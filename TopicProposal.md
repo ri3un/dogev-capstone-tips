@@ -59,9 +59,13 @@ Spring Boot 기반 REST API 서버를 구축하여 회원, 반려견 기록, 지
 계정당 반려견 1마리 구조로 우선 개발하되, 추후 다견 지원으로 확장 가능한 데이터 구조 설계를 목표로함
 
 · React와 TypeScript를 기반으로 회원가입·로그인, 반려견 프로필 등록, 생활·병원 기록을 관리하는 사용자 화면 구현을 목표로 함.
+
 · Tailwind CSS로 PC와 스마트폰 화면 크기에 맞는 디자인을 적용하고, React Router로 회원·기록·장소·채팅 화면 간 이동 기능 구현.
+
 · Axios로 백엔드 서버와 연결하여 기록의 입력 및 날짜별·카테고리별 조회, 장소 정보 확인, 이용 조건 수정 요청 및 관리자 승인 화면 구현.
+
 · React로 AI 채팅 화면을 구성하고 Axios로 질문과 답변을 주고받으며, 대화에서 정리된 건강 기록을 확인하고 서버에서 생성한 병원 방문용 PDF 리포트를 내려받는 기능 구현.
+
 · Capacitor를 활용하여 개발한 웹 화면을 Android 앱으로 제작하고, Android Studio에서 앱 실행 및 화면 동작 확인.
 
 ## 사용 기술
@@ -69,17 +73,25 @@ Spring Boot 기반 REST API 서버를 구축하여 회원, 반려견 기록, 지
 ### BE
 
 프레임 워크: Spring Boot
+
 데이터 베이스: Spring Data JPA, MySQL
+
 인증/보안: Spring Security, JWT
+
 동적 쿼리 처리: QueryDSL
+
 외부 API 연동: 네이버 지동 API, 무료 LLM API
+
 PDF 생성: Thymeleaf+Flying Saucer
 
 ### FE
 
 화면 개발: React, TypeScript
+
 화면 디자인: Tailwind CSS
+
 화면 이동: React Router
+
 서버 연결: Axios
 Android 앱 제작: Capacitor, Android Studio
 프로젝트 실행 및 빌드: Vite
