@@ -48,7 +48,7 @@ git push -u origin feature/login  # 푸시 후 GitHub에서 develop으로 PR 생
 ## 3. PR(Pull Request) 규칙
 
 - `develop`에 합칠 때는 **반드시 PR**로 올리고 승인을 받은 뒤 합칩니다.
-  - 백엔드: **서주희** 승인
+  - 백엔드: **이다인** 승인
   - 프론트엔드: **팀원 1명** 승인
 - PR 하나에는 기능 하나만 담습니다.
 - 관련 이슈가 있으면 PR 설명에 `#이슈번호`를 적습니다.
