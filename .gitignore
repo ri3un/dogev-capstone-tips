@@ -1,0 +1,22 @@
+# 비밀 값
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# backend (Gradle)
+backend/.gradle/
+backend/build/
+backend/out/
+backend/bin/
+
+# frontend (Node)
+node_modules/
+frontend/dist/
+*.log
