@@ -3,6 +3,9 @@ spring:
     name: backend
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
+  # 저장소 루트의 .env 를 읽습니다(backend 폴더에서 실행 기준). 파일이 없으면 건너뜁니다.
+  config:
+    import: optional:file:../.env[.properties]
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:gaebalhagae}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: ${DB_USERNAME:root}
@@ -27,6 +30,24 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+# 네이버 블로그 검색 (NAVER API HUB 키)
+naver:
+  search:
+    base-url: https://naverapihub.apigw.ntruss.com
+    client-id: ${NAVER_SEARCH_ID:}
+    client-secret: ${NAVER_SEARCH_SECRET:}
+
+# 장소 리뷰 요약 LLM: Groq 메인, Gemini 대안 (결정 31). 모델 이름은 여기서만 바꿉니다.
+llm:
+  groq:
+    base-url: https://api.groq.com/openai/v1
+    api-key: ${GROQ_API_KEY:}
+    model: openai/gpt-oss-120b
+  gemini:
+    base-url: https://generativelanguage.googleapis.com/v1beta
+    api-key: ${GEMINI_API_KEY:}
+    model: gemini-2.5-flash-lite
+
 ---
 spring:
   config:
@@ -34,6 +55,23 @@ spring:
       on-profile: local
   jpa:
     show-sql: true
+
+---
+# 노트북 수집용: DB 없이 실행하고 결과는 JSON 파일로 저장합니다.
+spring:
+  config:
+    activate:
+      on-profile: collect
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+collect:
+  store: json
+  dir: data/blog
+  summary-dir: data/summary
+  summary-delay-ms: 20000
 
 ---
 spring:
