@@ -3,6 +3,9 @@ spring:
     name: backend
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
+  # 저장소 루트의 .env 를 읽습니다(backend 폴더에서 실행 기준). 파일이 없으면 건너뜁니다.
+  config:
+    import: optional:file:../.env[.properties]
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:gaebalhagae}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: ${DB_USERNAME:root}
@@ -27,6 +30,13 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+# 네이버 블로그 검색 (NAVER API HUB 키)
+naver:
+  search:
+    base-url: https://naverapihub.apigw.ntruss.com
+    client-id: ${NAVER_SEARCH_ID:}
+    client-secret: ${NAVER_SEARCH_SECRET:}
+
 ---
 spring:
   config:
@@ -34,6 +44,21 @@ spring:
       on-profile: local
   jpa:
     show-sql: true
+
+---
+# 노트북 수집용: DB 없이 실행하고 결과는 JSON 파일로 저장합니다.
+spring:
+  config:
+    activate:
+      on-profile: collect
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+collect:
+  store: json
+  dir: data/blog
 
 ---
 spring:

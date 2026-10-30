@@ -15,6 +15,8 @@ backend/.gradle/
 backend/build/
 backend/out/
 backend/bin/
+# 수집한 블로그 글(JSON) - 저장소에 올리지 않음
+backend/data/
 
 # frontend (Node)
 node_modules/
