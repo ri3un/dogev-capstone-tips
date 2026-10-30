@@ -1,5 +1,8 @@
 package com.gaebalhagae.place.collect;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gaebalhagae.global.response.BusinessException;
 import com.gaebalhagae.global.response.ErrorCode;
 import java.util.List;
@@ -16,6 +19,9 @@ import org.springframework.web.client.RestClientException;
 public class NaverBlogClient {
 
     private final RestClient restClient;
+    // API HUB는 JSON을 text/plain 으로 내려줘서 문자열로 받은 뒤 직접 변환합니다.
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     public NaverBlogClient(RestClient.Builder builder,
                            @Value("${naver.search.base-url}") String baseUrl,
@@ -37,18 +43,27 @@ public class NaverBlogClient {
 
     /** 최신순으로 최대 display건(1~100)을 가져옵니다. */
     public List<Item> search(String query, int display) {
+        String body = null;
         try {
-            Response res = restClient.get()
+            body = restClient.get()
                     .uri(u -> u.path("/search/v1/blog")
                             .queryParam("query", query)
                             .queryParam("display", display)
                             .queryParam("sort", "date")
+                            .queryParam("format", "json")
                             .build())
                     .retrieve()
-                    .body(Response.class);
-            return res == null || res.items() == null ? List.of() : res.items();
+                    .body(String.class);
+            if (body == null || body.isBlank()) {
+                return List.of();
+            }
+            Response res = objectMapper.readValue(body, Response.class);
+            return res.items() == null ? List.of() : res.items();
         } catch (RestClientException e) {
             throw new BusinessException(ErrorCode.EXTERNAL_API_FAILED, "블로그 검색 실패: " + e.getMessage());
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(ErrorCode.EXTERNAL_API_FAILED,
+                    "블로그 검색 응답을 읽지 못했습니다: " + body.substring(0, Math.min(200, body.length())));
         }
     }
 }

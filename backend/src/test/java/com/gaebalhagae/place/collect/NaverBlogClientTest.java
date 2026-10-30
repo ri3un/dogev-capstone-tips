@@ -39,6 +39,18 @@ class NaverBlogClientTest {
     }
 
     @Test
+    void JSON이_text_plain으로_와도_읽는다() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        NaverBlogClient client = new NaverBlogClient(builder, BASE, "id", "secret");
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith(BASE))).andRespond(withSuccess(
+                "{\"lastBuildDate\":\"x\",\"items\":[{\"title\":\"t\",\"link\":\"u1\",\"description\":\"d\",\"bloggername\":\"b\",\"postdate\":\"20261001\"}]}",
+                new MediaType("text", "plain", java.nio.charset.StandardCharsets.UTF_8)));
+
+        assertThat(client.search("카페", 10)).extracting(NaverBlogClient.Item::link).containsExactly("u1");
+    }
+
+    @Test
     void 인증_실패는_EXTERNAL_API_FAILED로_바꾼다() {
         RestClient.Builder builder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
