@@ -14,6 +14,7 @@ import org.springframework.web.util.HtmlUtils;
 
 /**
  * 장소 하나의 블로그 글을 검색해 걸러 낸 뒤 저장합니다. (기능별_구현방법 5-3 전처리 1~4단계)
+ * 장소 이름이 제목이나 요약에 들어간 글만 남겨 다른 지역 글이 섞이지 않게 합니다.
  * LLM 요약(5단계)은 저장된 글을 읽어 처리하는 다음 단계에서 붙입니다.
  */
 @Service
@@ -31,15 +32,19 @@ public class BlogCollectService {
     private final BlogPostStore blogPostStore;
     private final Clock clock;
 
-    public record CollectResult(String placeName, int fetched, int saved, int sponsored, int total) {
+    public record CollectResult(String placeName, int fetched, int relevant, int saved, int sponsored, int total) {
     }
 
     public CollectResult collect(String placeName) {
         LocalDate oneYearAgo = LocalDate.now(clock).minusYears(1);
         List<NaverBlogClient.Item> items = naverBlogClient.search(placeName + " 애견동반", 100);
 
-        List<BlogPost> newPosts = items.stream()
+        List<BlogPost> relevantPosts = items.stream()
                 .map(this::toPost)
+                .filter(p -> mentionsPlace(placeName, p))                                    // 장소 이름이 있는 글만
+                .toList();
+
+        List<BlogPost> newPosts = relevantPosts.stream()
                 .filter(p -> p.postDate() != null && !p.postDate().isBefore(oneYearAgo))   // 최근 1년
                 .filter(p -> !blogPostStore.existsByUrl(placeName, p.url()))                 // 이미 본 글 제외
                 .sorted(Comparator.comparing(BlogPost::postDate).reversed())
@@ -50,7 +55,7 @@ public class BlogCollectService {
             blogPostStore.saveAll(placeName, newPosts);
         }
         int sponsored = (int) newPosts.stream().filter(BlogPost::sponsored).count();
-        return new CollectResult(placeName, items.size(), newPosts.size(), sponsored,
+        return new CollectResult(placeName, items.size(), relevantPosts.size(), newPosts.size(), sponsored,
                 blogPostStore.findByPlace(placeName).size());
     }
 
@@ -65,6 +70,20 @@ public class BlogCollectService {
         boolean sponsored = SPONSORED_WORDS.stream().anyMatch(text::contains);
         return new BlogPost(title, description, item.link(), item.bloggername(),
                 parseDate(item.postdate()), sponsored, petSentences(description));
+    }
+
+    // 띄어쓰기를 무시하고 장소 이름 전체가 있거나, 이름의 단어(2글자 이상)가 모두 있으면 관련 글로 봄
+    static boolean mentionsPlace(String placeName, BlogPost post) {
+        String text = normalize(post.title() + post.description());
+        if (text.contains(normalize(placeName))) {
+            return true;
+        }
+        List<String> words = Arrays.stream(placeName.split("\\s+")).filter(w -> w.length() >= 2).toList();
+        return !words.isEmpty() && words.stream().allMatch(w -> text.contains(normalize(w)));
+    }
+
+    private static String normalize(String s) {
+        return s.replaceAll("\\s+", "").toLowerCase();
     }
 
     // <b> 태그 제거 + &quot; 같은 HTML 문자 복원

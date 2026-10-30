@@ -41,7 +41,7 @@ public class NaverBlogClient {
     public record Item(String title, String link, String description, String bloggername, String postdate) {
     }
 
-    /** 최신순으로 최대 display건(1~100)을 가져옵니다. */
+    /** 정확도순으로 최대 display건(1~100)을 가져옵니다. 최신순은 관련 없는 글이 많이 섞여서 쓰지 않습니다. */
     public List<Item> search(String query, int display) {
         String body = null;
         try {
@@ -49,7 +49,7 @@ public class NaverBlogClient {
                     .uri(u -> u.path("/search/v1/blog")
                             .queryParam("query", query)
                             .queryParam("display", display)
-                            .queryParam("sort", "date")
+                            .queryParam("sort", "sim")
                             .queryParam("format", "json")
                             .build())
                     .retrieve()

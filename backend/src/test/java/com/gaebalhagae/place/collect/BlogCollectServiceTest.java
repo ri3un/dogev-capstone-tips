@@ -35,7 +35,7 @@ class BlogCollectServiceTest {
     }
 
     private static NaverBlogClient.Item item(String link, String desc, String date) {
-        return new NaverBlogClient.Item("<b>카페</b> 후기", link, desc, "블로거", date);
+        return new NaverBlogClient.Item("<b>카페A</b> 후기", link, desc, "블로거", date);
     }
 
     @Test
@@ -48,6 +48,19 @@ class BlogCollectServiceTest {
 
         assertThat(result.saved()).isEqualTo(1);
         assertThat(store.findByPlace("카페A")).extracting(BlogPost::url).containsExactly("u1");
+    }
+
+    @Test
+    void 장소_이름이_없는_글은_저장하지_않는다() {
+        when(client.search(eq("안양 카페A 애견동반"), anyInt())).thenReturn(List.of(
+                new NaverBlogClient.Item("안양 카페 A 다녀옴", "u1", "강아지 동반 가능", "b", "20261001"),   // 띄어쓰기만 다름
+                new NaverBlogClient.Item("카페A 후기", "u2", "안양 평촌 강아지", "b", "20261001"),          // 단어가 나뉘어 있음
+                new NaverBlogClient.Item("연남동 브런치", "u3", "애견동반 가능", "b", "20261001")));        // 관련 없음
+
+        var result = service.collect("안양 카페A");
+
+        assertThat(result.relevant()).isEqualTo(2);
+        assertThat(store.findByPlace("안양 카페A")).extracting(BlogPost::url).containsExactlyInAnyOrder("u1", "u2");
     }
 
     @Test
@@ -67,7 +80,7 @@ class BlogCollectServiceTest {
                 "소정의 원고료를 받았어요. 대형견도 <b>실내</b> 동반 가능! 커피가 맛있어요.", "20261001"));
 
         assertThat(post.sponsored()).isTrue();
-        assertThat(post.title()).isEqualTo("카페 후기");
+        assertThat(post.title()).isEqualTo("카페A 후기");
         assertThat(post.petSentences()).containsExactly("대형견도 실내 동반 가능!");
     }
 }
