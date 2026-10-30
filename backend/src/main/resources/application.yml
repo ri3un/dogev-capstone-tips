@@ -37,6 +37,17 @@ naver:
     client-id: ${NAVER_SEARCH_ID:}
     client-secret: ${NAVER_SEARCH_SECRET:}
 
+# 장소 리뷰 요약 LLM: Groq 메인, Gemini 대안 (결정 31). 모델 이름은 여기서만 바꿉니다.
+llm:
+  groq:
+    base-url: https://api.groq.com/openai/v1
+    api-key: ${GROQ_API_KEY:}
+    model: openai/gpt-oss-120b
+  gemini:
+    base-url: https://generativelanguage.googleapis.com/v1beta
+    api-key: ${GEMINI_API_KEY:}
+    model: gemini-2.5-flash-lite
+
 ---
 spring:
   config:
@@ -59,6 +70,8 @@ spring:
 collect:
   store: json
   dir: data/blog
+  summary-dir: data/summary
+  summary-delay-ms: 20000
 
 ---
 spring:
