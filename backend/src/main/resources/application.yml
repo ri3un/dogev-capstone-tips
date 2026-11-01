@@ -37,6 +37,12 @@ naver:
     client-id: ${NAVER_SEARCH_ID:}
     client-secret: ${NAVER_SEARCH_SECRET:}
 
+# 카카오 로컬 키워드 검색 (장소 목록 수집)
+kakao:
+  local:
+    base-url: https://dapi.kakao.com
+    rest-key: ${KAKAO_REST_KEY:}
+
 # 장소 리뷰 요약 LLM: Groq 메인, Gemini 대안 (결정 31). 모델 이름은 여기서만 바꿉니다.
 llm:
   groq:
@@ -71,6 +77,7 @@ collect:
   store: json
   dir: data/blog
   summary-dir: data/summary
+  place-dir: data/place
   summary-delay-ms: 20000
 
 ---
