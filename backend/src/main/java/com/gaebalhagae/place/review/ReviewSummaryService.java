@@ -1,6 +1,5 @@
 package com.gaebalhagae.place.review;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gaebalhagae.global.response.BusinessException;
@@ -13,20 +12,23 @@ import com.gaebalhagae.place.collect.BlogPostStore;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
- * 수집한 블로그 문장으로 3줄 요약, 조건 9개 판정, 키워드를 만듭니다. (결정 8·30·31, 기능별_구현방법 5-3)
- * 장소당 LLM 1회 호출, Groq 실패 시 Gemini로 한 번 더.
- * 키워드는 LLM이 자유롭게 만들지 않고, 판정된 조건 값을 ConditionKey 의 고정 태그로 바꿔 만듭니다.
- * 근거 문장 번호가 없거나 틀린 조건은 unknown, 그런 분위기 태그는 버립니다.
+ * 수집한 블로그 문장으로 3줄 요약, 조건 9개 판정, 키워드를 만듭니다. (결정 8·30·31·33, 기능별_구현방법 5-3)
+ * 장소당 LLM 1회 호출로 문장별 판정(judgements)과 요약을 받고, 서버가 조건마다 다수결로 합칩니다.
+ * 키워드는 LLM이 짓지 않고, 다수결로 정해진 조건 값을 ConditionKey 의 고정 태그로 바꿔 만듭니다.
  */
 @Slf4j
 @Service
@@ -35,21 +37,21 @@ public class ReviewSummaryService {
     static final int MAX_SENTENCES = 60;     // Groq 분당 8,000토큰 안에 들도록 문장 수 제한
     static final int MAX_CHARS = 6000;
     static final int MAX_KEYWORDS = 5;
-
     static final int MAX_MOOD = 3;
+    static final double MAJORITY = 0.6;      // 같은 값이 60% 이상이어야 확정, 아니면 NEEDS_CHECK
 
     static final String SYSTEM_PROMPT = """
             너는 반려견 동반 장소 정보를 정리하는 도우미다.
             사용자가 주는 문장들은 한 장소에 대한 블로그 글에서 뽑았고, 앞에 [번호]가 붙어 있다.
-            문장에 없는 내용은 절대 지어내지 않는다. 근거가 없으면 반드시 unknown 이다.
-            조건 목록 (키(설명): 가능한 값):
+            문장 번호별로 아래 조건을 판정한다. 문장에 근거가 없으면 반드시 unknown 이다. 추측하지 않는다.
+            조건 (키(설명): 가능한 값):
             %s
+            mood_tags(분위기): "조용함", "넓음"처럼 짧은 태그 최대 3개
             다음 JSON만 출력한다.
-            {"summary": [반려견 보호자 입장의 요약 3줄, 원문을 그대로 옮기지 않고 새로 쓴다, 각 줄 60자 이내],
-             "conditions": {"size": {"value": "medium", "weight_limit_kg": 15, "evidence": [근거 문장 번호들]}, ... 조건 목록의 모든 키},
-             "mood": [{"tag": "#조용함"처럼 분위기를 나타내는 짧은 태그, "evidence": [근거 문장 번호들]}] (최대 3개)}
-            weight_limit_kg 는 size 에서 몸무게 제한 숫자가 문장에 있을 때만 넣고 없으면 null.
-            값이 unknown 이면 evidence 는 빈 배열.
+            {"judgements": [{"sentence": 문장 번호, "size_allowed": "up_to_medium", "weight_limit_kg": 15, "indoor": "indoor", "mood_tags": ["조용함"]}],
+             "summary": [반려견 보호자 입장의 요약 3줄, 원문을 그대로 옮기지 않고 새로 쓴다, 각 줄 60자 이내]}
+            judgements 에는 판정할 내용이 하나라도 있는 문장만 넣고, unknown 인 조건 키는 생략한다.
+            weight_limit_kg 는 문장에 몸무게 제한 숫자가 있을 때만 넣는다.
             문장에 근거가 부족하면 summary 를 1~2줄로 줄인다.
             """.formatted(ConditionKey.promptLines());
 
@@ -77,13 +79,12 @@ public class ReviewSummaryService {
         this.clock = clock;
     }
 
-    /** LLM 응답 모양 */
-    record LlmResult(List<String> summary, Map<String, Condition> conditions, List<Mood> mood) {
-        record Condition(String value, @JsonProperty("weight_limit_kg") Integer weightLimitKg, List<Integer> evidence) {
-        }
+    /** LLM 응답 모양. 판정 한 건은 조건 키가 문장마다 달라서 Map 으로 받습니다. */
+    record LlmResult(List<Map<String, Object>> judgements, List<String> summary) {
+    }
 
-        record Mood(String tag, List<Integer> evidence) {
-        }
+    /** 검증을 통과한 문장 한 개의 판정 */
+    record Judgement(int sentence, Map<String, String> values, Integer weightLimitKg, List<String> moodTags) {
     }
 
     public record SummaryResult(String placeName, String status, int sourceCount, ReviewSummary summary) {
@@ -99,8 +100,7 @@ public class ReviewSummaryService {
             return new SummaryResult(placeName, "NO_SOURCE", 0, null);
         }
         Optional<ReviewSummary> previous = summaryStore.findByPlace(placeName);
-        // 조건 판정이 없는 예전 형식 요약은 새 글이 없어도 다시 만듦
-        if (!force && previous.isPresent() && previous.get().conditions() != null
+        if (!force && previous.isPresent() && isCurrentFormat(previous.get())
                 && previous.get().sourceCount() == posts.size()) {
             return new SummaryResult(placeName, "SKIPPED_NO_NEW_POSTS", posts.size(), previous.get());
         }
@@ -109,8 +109,9 @@ public class ReviewSummaryService {
         String userPrompt = "장소: " + placeName + "\n문장:\n" + String.join("\n", sentences);
 
         Called called = callWithFallback(userPrompt);
-        Map<String, ConditionResult> conditions = validConditions(called.result(), sentences);
-        List<String> mood = validMood(called.result(), sentences.size());
+        List<Judgement> judgements = validJudgements(called.result(), sentences.size());
+        Map<String, ConditionResult> conditions = vote(judgements, sentences);
+        List<String> mood = topMood(judgements);
         ReviewSummary summary = new ReviewSummary(
                 placeName,
                 called.result().summary() == null ? List.of() : called.result().summary().stream().limit(3).toList(),
@@ -118,6 +119,7 @@ public class ReviewSummaryService {
                 conditions,
                 mood,
                 posts.size(),
+                posts.stream().map(BlogPost::url).toList(),
                 called.model(),
                 LocalDateTime.now(clock));
         summaryStore.save(summary);
@@ -126,6 +128,11 @@ public class ReviewSummaryService {
 
     public Optional<ReviewSummary> findByPlace(String placeName) {
         return summaryStore.findByPlace(placeName);
+    }
+
+    // 조건 판정이 없거나 예전 키 이름으로 만든 요약은 새 글이 없어도 다시 만듦
+    private static boolean isCurrentFormat(ReviewSummary s) {
+        return s.conditions() != null && s.conditions().containsKey(ConditionKey.SIZE_ALLOWED.key());
     }
 
     // [1] 문장, [2] 문장 ... 형태로 번호를 붙이고 중복 문장은 한 번만 넣음
@@ -144,39 +151,71 @@ public class ReviewSummaryService {
         return numbered;
     }
 
-    // 조건 9개를 모두 채움. 목록에 없는 값이거나 근거 번호가 틀리면 unknown (지어낸 판정 방지)
-    static Map<String, ConditionResult> validConditions(LlmResult result, List<String> sentences) {
-        Map<String, ConditionResult> out = new LinkedHashMap<>();
-        for (ConditionKey key : ConditionKey.values()) {
-            LlmResult.Condition c = result.conditions() == null ? null : result.conditions().get(key.key());
-            if (c == null || c.value() == null || ConditionKey.UNKNOWN.equals(c.value())
-                    || !key.accepts(c.value()) || !validEvidence(c.evidence(), sentences.size())) {
-                out.put(key.key(), ConditionResult.unknown());
+    // 없는 문장 번호를 가리키는 판정은 버리고, 목록에 없는 값과 unknown 은 빼서 남김 (지어낸 판정 방지)
+    static List<Judgement> validJudgements(LlmResult result, int sentenceCount) {
+        if (result.judgements() == null) {
+            return List.of();
+        }
+        List<Judgement> out = new ArrayList<>();
+        for (Map<String, Object> j : result.judgements()) {
+            if (!(j.get("sentence") instanceof Number n) || n.intValue() < 1 || n.intValue() > sentenceCount) {
                 continue;
             }
-            Integer kg = key == ConditionKey.SIZE && c.weightLimitKg() != null
-                    && c.weightLimitKg() > 0 && c.weightLimitKg() <= 100 ? c.weightLimitKg() : null;
-            List<String> evidence = c.evidence().stream().distinct().map(n -> stripNumber(sentences.get(n - 1))).toList();
-            out.put(key.key(), new ConditionResult(c.value(), kg, evidence));
+            Map<String, String> values = new LinkedHashMap<>();
+            for (ConditionKey key : ConditionKey.values()) {
+                if (j.get(key.key()) instanceof String v && key.isKnownValue(v)) {
+                    values.put(key.key(), v);
+                }
+            }
+            Integer kg = j.get("weight_limit_kg") instanceof Number w && w.intValue() > 0 && w.intValue() <= 100
+                    ? w.intValue() : null;
+            List<String> mood = j.get("mood_tags") instanceof List<?> tags
+                    ? tags.stream().filter(String.class::isInstance).map(String.class::cast)
+                        .map(t -> "#" + t.replace("#", "").replace(" ", "")).filter(t -> t.length() > 1).toList()
+                    : List.of();
+            out.add(new Judgement(n.intValue(), values, kg, mood));
         }
         return out;
     }
 
-    // 분위기 태그: 근거가 있는 것만, # 붙이고 공백 제거, 최대 3개
-    static List<String> validMood(LlmResult result, int sentenceCount) {
-        if (result.mood() == null) {
-            return List.of();
+    // 조건마다 unknown 이 아닌 판정만 세서 다수결. 60% 이상이면 그 값, 아니면 NEEDS_CHECK
+    static Map<String, ConditionResult> vote(List<Judgement> judgements, List<String> sentences) {
+        Map<String, ConditionResult> out = new LinkedHashMap<>();
+        for (ConditionKey key : ConditionKey.values()) {
+            List<Judgement> voted = judgements.stream().filter(j -> j.values().containsKey(key.key())).toList();
+            if (voted.isEmpty()) {
+                out.put(key.key(), ConditionResult.unknown());
+                continue;
+            }
+            Map<String, Long> votes = voted.stream()
+                    .collect(Collectors.groupingBy(j -> j.values().get(key.key()), LinkedHashMap::new, Collectors.counting()));
+            Map.Entry<String, Long> top = votes.entrySet().stream().max(Map.Entry.comparingByValue()).orElseThrow();
+            int total = voted.size();
+            int positive = top.getValue().intValue();
+            String value = positive >= total * MAJORITY ? top.getKey() : ConditionKey.NEEDS_CHECK;
+            List<Judgement> support = voted.stream().filter(j -> j.values().get(key.key()).equals(top.getKey())).toList();
+            // 몸무게 제한은 이긴 값의 판정 중 가장 작은 숫자 (보수적으로)
+            Integer kg = key == ConditionKey.SIZE_ALLOWED
+                    ? support.stream().map(Judgement::weightLimitKg).filter(Objects::nonNull).min(Comparator.naturalOrder()).orElse(null)
+                    : null;
+            List<String> evidence = support.stream().map(j -> stripNumber(sentences.get(j.sentence() - 1))).distinct().toList();
+            out.put(key.key(), new ConditionResult(value, kg, total, positive, evidence));
         }
-        return result.mood().stream()
-                .filter(m -> m.tag() != null && !m.tag().isBlank())
-                .filter(m -> validEvidence(m.evidence(), sentenceCount))
-                .map(m -> "#" + m.tag().replace("#", "").replace(" ", ""))
-                .distinct()
+        return out;
+    }
+
+    // 분위기 태그는 여러 문장에서 많이 나온 순서로 최대 3개
+    static List<String> topMood(List<Judgement> judgements) {
+        Map<String, Long> counts = judgements.stream().flatMap(j -> j.moodTags().stream().distinct())
+                .collect(Collectors.groupingBy(Function.identity(), LinkedHashMap::new, Collectors.counting()));
+        return counts.entrySet().stream()
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                 .limit(MAX_MOOD)
+                .map(Map.Entry::getKey)
                 .toList();
     }
 
-    // 조건 고정 태그(ConditionKey 순서)를 먼저, 남는 자리에 분위기 태그. 최대 5개
+    // 확정된 조건의 고정 태그(ConditionKey 순서)를 먼저, 남는 자리에 분위기 태그. 최대 5개
     static List<String> keywords(Map<String, ConditionResult> conditions, List<String> mood) {
         LinkedHashSet<String> tags = new LinkedHashSet<>();
         for (ConditionKey key : ConditionKey.values()) {
@@ -184,11 +223,6 @@ public class ReviewSummaryService {
         }
         tags.addAll(mood);
         return tags.stream().limit(MAX_KEYWORDS).toList();
-    }
-
-    private static boolean validEvidence(List<Integer> evidence, int sentenceCount) {
-        return evidence != null && !evidence.isEmpty()
-                && evidence.stream().allMatch(n -> n != null && n >= 1 && n <= sentenceCount);
     }
 
     // "[3] 문장" → "문장"

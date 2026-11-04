@@ -78,7 +78,7 @@ collect:
   dir: data/blog
   summary-dir: data/summary
   place-dir: data/place
-  summary-delay-ms: 20000
+  summary-delay-ms: 40000
 
 ---
 spring:

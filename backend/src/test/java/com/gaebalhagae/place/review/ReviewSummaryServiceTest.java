@@ -58,16 +58,15 @@ class ReviewSummaryServiceTest {
         }
     }
 
+    // 문장 [1] 중형견 실내, [2] 주차장 넓음, [3] 대형견 안 됨(중형까지), [4] 주차 불가
     private static final String GOOD = """
-            {"summary":["중형견까지 실내 동반이 가능해요.","주차장이 넓어요.","주말엔 붐벼요."],
-             "conditions":{
-               "size":{"value":"medium","weight_limit_kg":15,"evidence":[1]},
-               "space":{"value":"indoor","evidence":[1]},
-               "parking":{"value":"allowed","evidence":[2]},
-               "leash":{"value":"required","evidence":[]},
-               "seat":{"value":"allowed","evidence":[99]},
-               "pet_menu":{"value":"지어낸값","evidence":[1]}},
-             "mood":[{"tag":"넓음","evidence":[2]},{"tag":"#지어냄","evidence":[]}]}
+            {"judgements":[
+               {"sentence":1,"size_allowed":"up_to_medium","weight_limit_kg":15,"indoor":"indoor","mood_tags":["조용함"]},
+               {"sentence":2,"parking":"yes","mood_tags":["넓음","#조용함"]},
+               {"sentence":3,"size_allowed":"up_to_medium","weight_limit_kg":10,"leash_required":"지어낸값"},
+               {"sentence":4,"parking":"no"},
+               {"sentence":99,"seat_allowed":"yes"}],
+             "summary":["중형견까지 실내 동반이 가능해요.","주차는 후기가 엇갈려요.","조용한 편이에요."]}
             """;
 
     @BeforeEach
@@ -78,6 +77,8 @@ class ReviewSummaryServiceTest {
         blogStore.saveAll("공원A", List.of(
                 post("u1", false, "중형견 실내 동반 가능해요."),
                 post("u2", false, "주차장이 넓어 강아지랑 가기 편해요."),
+                post("u4", false, "대형견은 안 되고 10kg 이하 중형견까지 돼요."),
+                post("u5", false, "강아지 데리고 갔는데 주차는 안 돼요."),
                 post("u3", true, "협찬 글: 대형견도 됩니다.")));
     }
 
@@ -90,22 +91,29 @@ class ReviewSummaryServiceTest {
     }
 
     @Test
-    void 조건은_고정_값만_남기고_키워드는_고정_태그로_만든다() {
+    void 문장별_판정을_다수결로_합치고_키워드는_고정_태그로_만든다() {
         var result = service(new FakeLlm("groq", GOOD), new FakeLlm("gemini")).summarize("공원A", false);
 
         assertThat(result.status()).isEqualTo("SUMMARIZED");
-        assertThat(result.sourceCount()).isEqualTo(2);   // 협찬 글 제외
+        assertThat(result.sourceCount()).isEqualTo(4);   // 협찬 글 제외
+        assertThat(result.summary().sourceUrls()).containsExactly("u1", "u2", "u4", "u5");
         var c = result.summary().conditions();
         assertThat(c).hasSize(ConditionKey.values().length);
-        assertThat(c.get("size").value()).isEqualTo("medium");
-        assertThat(c.get("size").weightLimitKg()).isEqualTo(15);
-        assertThat(c.get("size").evidence()).containsExactly("중형견 실내 동반 가능해요.");
-        assertThat(c.get("leash").value()).isEqualTo("unknown");      // 근거 없음
-        assertThat(c.get("seat").value()).isEqualTo("unknown");       // 없는 문장 번호
-        assertThat(c.get("pet_menu").value()).isEqualTo("unknown");   // 목록에 없는 값
-        assertThat(c.get("carrier").value()).isEqualTo("unknown");    // 응답에 없던 조건
-        assertThat(result.summary().mood()).containsExactly("#넓음");
-        assertThat(result.summary().keywords()).containsExactly("#중형견까지", "#실내동반", "#주차가능", "#넓음");
+
+        var size = c.get("size_allowed");
+        assertThat(size.value()).isEqualTo("up_to_medium");
+        assertThat(size.evidenceCount()).isEqualTo(2);
+        assertThat(size.positiveCount()).isEqualTo(2);
+        assertThat(size.weightLimitKg()).isEqualTo(10);   // 더 작은 제한
+        assertThat(size.evidence()).hasSize(2);
+
+        assertThat(c.get("parking").value()).isEqualTo("NEEDS_CHECK");   // 1:1 로 엇갈림
+        assertThat(c.get("parking").evidenceCount()).isEqualTo(2);
+        assertThat(c.get("leash_required").value()).isEqualTo("unknown"); // 목록에 없는 값
+        assertThat(c.get("seat_allowed").value()).isEqualTo("unknown");   // 없는 문장 번호
+
+        assertThat(result.summary().mood()).containsExactly("#조용함", "#넓음");
+        assertThat(result.summary().keywords()).containsExactly("#중형견까지", "#실내동반", "#조용함", "#넓음");
     }
 
     @Test

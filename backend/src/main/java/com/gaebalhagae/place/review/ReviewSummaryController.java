@@ -29,7 +29,7 @@ public class ReviewSummaryController {
     private final long delayMs;
 
     public ReviewSummaryController(ReviewSummaryService reviewSummaryService,
-                                   @Value("${collect.summary-delay-ms:20000}") long delayMs) {
+                                   @Value("${collect.summary-delay-ms:40000}") long delayMs) {
         this.reviewSummaryService = reviewSummaryService;
         this.delayMs = delayMs;
     }
@@ -37,7 +37,7 @@ public class ReviewSummaryController {
     public record SummaryRequest(@NotEmpty List<String> places, boolean force) {
     }
 
-    /** Groq 분당 토큰 한도 때문에 LLM을 부른 뒤에는 장소 사이에 delayMs(기본 20초) 쉽니다. */
+    /** Groq 분당 토큰 한도 때문에 LLM을 부른 뒤에는 장소 사이에 delayMs(기본 40초, 결정 30) 쉽니다. */
     @PostMapping
     public ApiResponse<List<ReviewSummaryService.SummaryResult>> summarize(@Valid @RequestBody SummaryRequest request)
             throws InterruptedException {
