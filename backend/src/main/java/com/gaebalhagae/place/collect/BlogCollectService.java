@@ -25,7 +25,8 @@ public class BlogCollectService {
     private static final List<String> SPONSORED_WORDS = List.of("협찬", "원고료", "제공받아", "체험단", "소정의");
     private static final List<String> PET_WORDS = List.of(
             "강아지", "애견", "반려견", "댕댕", "멍멍", "대형견", "중형견", "소형견", "케이지", "이동장",
-            "유모차", "실내", "테라스", "목줄", "매너벨트", "기저귀", "펫", "동반");
+            "유모차", "실내", "테라스", "목줄", "매너벨트", "기저귀", "펫", "동반",
+            "주차", "물그릇", "의자", "방석", "운동장", "오프리쉬", "kg", "킬로");   // 조건 9개 판정용 단어
     private static final DateTimeFormatter POST_DATE = DateTimeFormatter.BASIC_ISO_DATE; // 20261030
 
     private final NaverBlogClient naverBlogClient;

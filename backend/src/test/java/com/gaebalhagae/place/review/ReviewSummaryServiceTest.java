@@ -59,9 +59,15 @@ class ReviewSummaryServiceTest {
     }
 
     private static final String GOOD = """
-            {"summary":["중형견까지 실내 동반이 가능해요.","목줄은 꼭 필요해요.","주말엔 붐벼요."],
-             "keywords":[{"tag":"#실내동반","evidence":[1]},{"tag":"주차편함","evidence":[2]},
-                         {"tag":"#지어냄","evidence":[]},{"tag":"#없는번호","evidence":[99]}]}
+            {"summary":["중형견까지 실내 동반이 가능해요.","주차장이 넓어요.","주말엔 붐벼요."],
+             "conditions":{
+               "size":{"value":"medium","weight_limit_kg":15,"evidence":[1]},
+               "space":{"value":"indoor","evidence":[1]},
+               "parking":{"value":"allowed","evidence":[2]},
+               "leash":{"value":"required","evidence":[]},
+               "seat":{"value":"allowed","evidence":[99]},
+               "pet_menu":{"value":"지어낸값","evidence":[1]}},
+             "mood":[{"tag":"넓음","evidence":[2]},{"tag":"#지어냄","evidence":[]}]}
             """;
 
     @BeforeEach
@@ -84,14 +90,22 @@ class ReviewSummaryServiceTest {
     }
 
     @Test
-    void 근거_없는_키워드는_버리고_협찬_글은_빼고_요약한다() {
+    void 조건은_고정_값만_남기고_키워드는_고정_태그로_만든다() {
         var result = service(new FakeLlm("groq", GOOD), new FakeLlm("gemini")).summarize("공원A", false);
 
         assertThat(result.status()).isEqualTo("SUMMARIZED");
-        assertThat(result.sourceCount()).isEqualTo(2);
-        assertThat(result.summary().summary()).hasSize(3);
-        assertThat(result.summary().keywords()).containsExactly("#실내동반", "#주차편함");
-        assertThat(summaryStore.findByPlace("공원A")).isPresent();
+        assertThat(result.sourceCount()).isEqualTo(2);   // 협찬 글 제외
+        var c = result.summary().conditions();
+        assertThat(c).hasSize(ConditionKey.values().length);
+        assertThat(c.get("size").value()).isEqualTo("medium");
+        assertThat(c.get("size").weightLimitKg()).isEqualTo(15);
+        assertThat(c.get("size").evidence()).containsExactly("중형견 실내 동반 가능해요.");
+        assertThat(c.get("leash").value()).isEqualTo("unknown");      // 근거 없음
+        assertThat(c.get("seat").value()).isEqualTo("unknown");       // 없는 문장 번호
+        assertThat(c.get("pet_menu").value()).isEqualTo("unknown");   // 목록에 없는 값
+        assertThat(c.get("carrier").value()).isEqualTo("unknown");    // 응답에 없던 조건
+        assertThat(result.summary().mood()).containsExactly("#넓음");
+        assertThat(result.summary().keywords()).containsExactly("#중형견까지", "#실내동반", "#주차가능", "#넓음");
     }
 
     @Test

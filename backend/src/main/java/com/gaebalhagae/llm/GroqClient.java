@@ -38,7 +38,7 @@ public class GroqClient implements LlmClient {
                 "response_format", Map.of("type", "json_object"),   // JSON만 돌려받기
                 "reasoning_effort", "low",                          // 생각 토큰을 줄여 분당 토큰 한도 절약
                 "temperature", 0.2,
-                "max_completion_tokens", 1500);
+                "max_completion_tokens", 2500);   // 조건 9개까지 받으므로 여유 있게
         JsonNode res = restClient.post()
                 .uri("/chat/completions")
                 .contentType(MediaType.APPLICATION_JSON)
