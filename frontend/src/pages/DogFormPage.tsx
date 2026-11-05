@@ -1,9 +1,11 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
+import ConfirmModal from '../components/common/ConfirmModal'
 import Icon from '../components/common/Icon'
 import Photo from '../components/common/Photo'
 import { card, chip, ghostBtn, input, primaryBtn } from '../components/common/styles'
 import { DOG } from '../mocks/dog'
+import { FAMILY } from '../mocks/family'
 
 type Sex = 'MALE' | 'FEMALE'
 interface Form {
@@ -14,13 +16,21 @@ interface Form {
   sex: Sex | ''
   neutered: boolean | null
   memo: string
+  // 수정 화면의 선택 항목 (영양·코스 추천에 쓰임)
+  activity: 'LOW' | 'NORMAL' | 'HIGH'
+  diseases: string[]
+  allergies: string
+  foodKcal: string
+  carrier: boolean
 }
 
 const BREEDS = ['말티즈', '푸들', '포메라니안', '시츄', '비숑 프리제', '진돗개', '골든 리트리버', '믹스']
 const thisMonth = new Date().toISOString().slice(0, 7)
-const EMPTY: Form = { name: '', breed: '', weight: '', birth: '', sex: '', neutered: null, memo: '' }
+const DISEASES = ['신장', '췌장염', '비만', '관절', '피부']
+const ACTIVITY = { LOW: '낮음', NORMAL: '보통', HIGH: '높음' } as const
+const EMPTY: Form = { name: '', breed: '', weight: '', birth: '', sex: '', neutered: null, memo: '', activity: 'NORMAL', diseases: [], allergies: '', foodKcal: '', carrier: false }
 // 수정 화면 예시 값 (TODO: GET /api/dogs/{dogId})
-const EDIT_SAMPLE: Form = { name: DOG.name, breed: DOG.breed, weight: String(DOG.weightKg), birth: '2023-05', sex: 'MALE', neutered: true, memo: '슬개골 주의' }
+const EDIT_SAMPLE: Form = { name: DOG.name, breed: DOG.breed, weight: String(DOG.weightKg), birth: '2023-05', sex: 'MALE', neutered: true, memo: '슬개골 주의', activity: 'NORMAL', diseases: ['관절'], allergies: '밀', foodKcal: '3300', carrier: true }
 
 // 몸무게로 크기 자동 분류 (10kg 미만 소형, 25kg 미만 중형)
 const sizeOf = (kg: number) => (kg < 10 ? '소형견' : kg < 25 ? '중형견' : '대형견')
@@ -37,13 +47,14 @@ function Field({ label, error, children }: { label: string; error?: string; chil
   )
 }
 
-// 반려견 등록(/dogs/new)·수정(/dogs/:dogId/edit) 공용 폼: 필수 6개 + 건강 메모
+// 반려견 등록(/dogs/new)·수정(/dogs/:dogId/edit) 공용 폼: 필수 6개 + 건강 메모, 수정 때만 선택 항목·삭제
 export default function DogFormPage() {
   const { dogId } = useParams()
   const isEdit = Boolean(dogId)
   const navigate = useNavigate()
   const [form, setForm] = useState<Form>(isEdit ? EDIT_SAMPLE : EMPTY)
   const [submitted, setSubmitted] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm((f) => ({ ...f, [key]: value }))
 
   const kg = Number(form.weight)
@@ -137,7 +148,60 @@ export default function DogFormPage() {
           <textarea value={form.memo} onChange={(e) => set('memo', e.target.value)} rows={3} placeholder="알레르기, 지병, 주의할 점 (예: 슬개골 주의)" className={`${input} h-auto resize-none py-3`} />
         </label>
 
-        <div className="flex justify-end gap-2 border-t border-outline-variant/30 pt-5">
+        {isEdit && (
+          <fieldset className="flex flex-col gap-5 rounded-2xl bg-surface-container-low p-5">
+            <legend className="sr-only">선택 항목</legend>
+            <p className="text-label-md text-secondary">선택 항목: 영양 가이드와 코스 추천이 더 정확해져요</p>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <span className="text-label-lg font-semibold">활동량</span>
+                <div className="flex gap-2">
+                  {(Object.keys(ACTIVITY) as Form['activity'][]).map((a) => (
+                    <button key={a} type="button" onClick={() => set('activity', a)} className={`${chip(form.activity === a)} flex-1`}>
+                      {ACTIVITY[a]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label className="flex flex-col gap-2">
+                <span className="text-label-lg font-semibold">사료 칼로리</span>
+                <div className="relative">
+                  <input value={form.foodKcal} onChange={(e) => set('foodKcal', e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="사료 봉투 뒷면 (예: 3300)" className={`${input} pr-20`} />
+                  <span className="absolute top-1/2 right-4 -translate-y-1/2 text-outline">kcal/kg</span>
+                </div>
+              </label>
+              <div className="flex flex-col gap-2">
+                <span className="text-label-lg font-semibold">지병 (여러 개)</span>
+                <div className="flex flex-wrap gap-2">
+                  {DISEASES.map((d) => {
+                    const on = form.diseases.includes(d)
+                    return (
+                      <button key={d} type="button" onClick={() => set('diseases', on ? form.diseases.filter((x) => x !== d) : [...form.diseases, d])} className={chip(on)}>
+                        {d}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <label className="flex flex-col gap-2">
+                <span className="text-label-lg font-semibold">알레르기 성분</span>
+                <input value={form.allergies} onChange={(e) => set('allergies', e.target.value)} placeholder="쉼표로 구분 (예: 밀, 닭고기)" className={input} />
+              </label>
+            </div>
+            <label className="flex items-center gap-2 text-label-lg">
+              <input type="checkbox" checked={form.carrier} onChange={(e) => set('carrier', e.target.checked)} className="h-5 w-5 accent-primary-container" />
+              이동장·유모차가 있어요
+            </label>
+          </fieldset>
+        )}
+
+        <div className="flex items-center justify-end gap-2 border-t border-outline-variant/30 pt-5">
+          {isEdit && FAMILY.myRole === 'OWNER' && (
+            <button type="button" onClick={() => setConfirmDelete(true)} className="mr-auto flex items-center gap-1 text-label-md font-semibold text-error hover:underline">
+              <Icon name="delete" className="text-[18px]" />
+              반려견 삭제
+            </button>
+          )}
           <button type="button" onClick={() => navigate(-1)} className={ghostBtn}>
             취소
           </button>
@@ -147,6 +211,18 @@ export default function DogFormPage() {
           </button>
         </div>
       </form>
+
+      {confirmDelete && (
+        // TODO: DELETE /api/dogs/{dogId} (관리자만)
+        <ConfirmModal
+          title={`${form.name}의 정보를 삭제할까요?`}
+          body="가족 모두에게서 사라지고 기록도 함께 지워져요. 되돌릴 수 없어요."
+          confirmLabel="삭제"
+          danger
+          onConfirm={() => navigate('/my')}
+          onClose={() => setConfirmDelete(false)}
+        />
+      )}
     </div>
   )
 }

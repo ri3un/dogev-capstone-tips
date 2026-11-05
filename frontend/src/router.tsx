@@ -8,9 +8,12 @@ import FamilyPage from './pages/FamilyPage'
 import HomePage from './pages/HomePage'
 import InvitePage from './pages/InvitePage'
 import LoginPage from './pages/LoginPage'
+import MyPage from './pages/MyPage'
 import MapPage from './pages/MapPage'
 import NotFoundPage from './pages/NotFoundPage'
+import NutritionPage from './pages/NutritionPage'
 import OnboardingPage from './pages/OnboardingPage'
+import QuestionsPage from './pages/QuestionsPage'
 import RecordNewPage from './pages/RecordNewPage'
 import RecordsPage from './pages/RecordsPage'
 import ReportPage from './pages/ReportPage'
@@ -25,12 +28,16 @@ export const router = createBrowserRouter([
       { path: '/course', element: <CoursePage /> },
       { path: '/course/plan', element: <CoursePlanPage /> },
       { path: '/consult', element: <ConsultPage /> },
+      { path: '/consult/:consultId', element: <ConsultPage /> },
       { path: '/records', element: <RecordsPage /> },
       { path: '/records/new', element: <RecordNewPage /> },
       { path: '/report', element: <ReportPage /> },
       { path: '/onboarding', element: <OnboardingPage /> },
       { path: '/dogs/new', element: <DogFormPage /> },
       { path: '/dogs/:dogId/edit', element: <DogFormPage /> },
+      { path: '/nutrition', element: <NutritionPage /> },
+      { path: '/questions', element: <QuestionsPage /> },
+      { path: '/my', element: <MyPage /> },
       { path: '/my/family', element: <FamilyPage /> },
     ],
   },

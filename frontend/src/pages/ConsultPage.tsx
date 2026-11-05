@@ -213,17 +213,24 @@ export default function ConsultPage() {
               <Icon name="local_hospital" className="text-[18px] text-primary" />
               동물병원 진료 시 수의사에게 바로 보여줄 수 있어요
             </div>
-            {/* TODO: POST /api/questions (수의사 질문 메모) */}
-            <button
-              type="button"
-              onClick={() => setSaved((v) => !v)}
-              className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-label-lg transition-all active:scale-[0.98] ${saved ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container hover:bg-surface-container-high'}`}
-            >
-              <span className="material-symbols-outlined text-[18px] text-primary" style={{ fontVariationSettings: `'FILL' ${saved ? 1 : 0}` }}>
-                {saved ? 'bookmark' : 'bookmark_border'}
-              </span>
-              {saved ? '메모 저장 완료' : '질문 메모에 저장'}
-            </button>
+            <div className="flex items-center gap-3">
+              {/* TODO: POST /api/questions (수의사 질문 메모) */}
+              <button
+                type="button"
+                onClick={() => setSaved((v) => !v)}
+                className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-label-lg transition-all active:scale-[0.98] ${saved ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container hover:bg-surface-container-high'}`}
+              >
+                <span className="material-symbols-outlined text-[18px] text-primary" style={{ fontVariationSettings: `'FILL' ${saved ? 1 : 0}` }}>
+                  {saved ? 'bookmark' : 'bookmark_border'}
+                </span>
+                {saved ? '메모 저장 완료' : '질문 메모에 저장'}
+              </button>
+              {saved && (
+                <Link to="/questions" className="text-label-md font-semibold text-primary hover:underline">
+                  메모 보기
+                </Link>
+              )}
+            </div>
           </div>
         </article>
 
