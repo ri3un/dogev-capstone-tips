@@ -1,0 +1,171 @@
+import { useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router'
+import Icon from '../components/common/Icon'
+import { card, chip, ghostBtn, primaryBtn } from '../components/common/styles'
+import { DOG } from '../mocks/dog'
+import { EXAMPLE_SENTENCES, PARSE_RESULT, PARSED_LABEL, PARSED_OPTIONS, type ParsedItem, type ParsedKind } from '../mocks/records'
+
+const KINDS = Object.keys(PARSED_LABEL) as ParsedKind[]
+const today = new Date().toISOString().slice(0, 10)
+
+// 기록 입력: 1단계 글 입력 → 2단계 확인 카드 → 저장 (LLM 결과는 사용자가 확인한 뒤 저장)
+export default function RecordNewPage() {
+  const [params] = useSearchParams()
+  const navigate = useNavigate()
+  const [date, setDate] = useState(params.get('date') ?? today)
+  const [text, setText] = useState('')
+  const [step, setStep] = useState<1 | 2>(1)
+  const [loading, setLoading] = useState(false)
+  const [items, setItems] = useState<ParsedItem[]>([])
+
+  // TODO: POST /api/dogs/{dogId}/records/parse, 503이면 직접 입력 모드
+  const parse = () => {
+    setLoading(true)
+    setTimeout(() => {
+      setItems(PARSE_RESULT.items)
+      setLoading(false)
+      setStep(2)
+    }, 600)
+  }
+  const update = (id: number, patch: Partial<ParsedItem>) => setItems((list) => list.map((i) => (i.id === id ? { ...i, ...patch, needsCheck: false } : i)))
+  const remove = (id: number) => setItems((list) => list.filter((i) => i.id !== id))
+  const add = (kind: ParsedKind) => setItems((list) => [...list, { id: Date.now(), kind, value: PARSED_OPTIONS[kind]?.options[1]?.value ?? '', memo: '' }])
+  // TODO: POST /api/dogs/{dogId}/records/batch
+  const save = () => navigate(`/records?date=${date}`)
+
+  return (
+    <div className="mx-auto flex w-full max-w-[840px] flex-col gap-6 px-5 py-9 lg:px-6">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <div className="mb-1 flex items-center gap-2 text-label-sm">
+            <span className={`rounded-full px-2.5 py-0.5 font-bold ${step === 1 ? 'bg-primary-container text-on-primary' : 'bg-surface-container text-on-surface-variant'}`}>1 글 쓰기</span>
+            <Icon name="arrow_forward" className="text-[14px] text-outline" />
+            <span className={`rounded-full px-2.5 py-0.5 font-bold ${step === 2 ? 'bg-primary-container text-on-primary' : 'bg-surface-container text-on-surface-variant'}`}>2 확인하고 저장</span>
+          </div>
+          <h1 className="text-headline-lg font-bold tracking-tight">말하듯 기록하기</h1>
+        </div>
+        <label className="flex items-center gap-2 rounded-full bg-surface-container-lowest px-4 py-2 text-label-md shadow-sm">
+          <Icon name="event" className="text-[18px] text-primary" />
+          <input type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} className="bg-transparent focus:outline-none" />
+        </label>
+      </div>
+
+      {step === 1 ? (
+        <section className={`${card} flex flex-col gap-5 p-6 md:p-8`}>
+          <div className="inline-flex items-center gap-2 self-start rounded-full bg-surface-container px-3 py-1.5 text-label-md">
+            <span className="h-2 w-2 rounded-full bg-primary-container" />
+            기록 대상: <strong>{DOG.name}</strong>
+          </div>
+          <textarea
+            rows={6}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="아침 사료 반 정도 먹고 오후에 무른 변 한 번, 저녁에 30분 산책"
+            className="w-full resize-none rounded-xl border border-beige bg-surface-container-low p-5 text-body-lg leading-relaxed transition-all placeholder:text-outline focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container focus:outline-none"
+          />
+          <div className="flex flex-col gap-2">
+            <span className="text-label-sm text-outline">이렇게 써 보세요 (누르면 채워져요)</span>
+            <div className="flex flex-wrap gap-2">
+              {EXAMPLE_SENTENCES.map((s) => (
+                <button key={s} type="button" onClick={() => setText(s)} className="rounded-full border border-beige bg-surface-container-lowest px-3.5 py-1.5 text-label-md text-on-surface-variant transition-all hover:bg-surface-container hover:text-primary">
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 border-t border-outline-variant/30 pt-4">
+            <span className="flex items-center gap-1.5 text-label-sm text-outline">
+              <Icon name="auto_awesome" className="text-[16px] text-primary" />
+              AI가 식사·배변·활동 등으로 나눠 줘요. 저장 전에 직접 고칠 수 있어요.
+            </span>
+            <button type="button" onClick={parse} disabled={!text.trim() || loading} className={primaryBtn}>
+              <Icon name={loading ? 'refresh' : 'auto_awesome'} className={`text-[20px] ${loading ? 'animate-spin' : ''}`} />
+              {loading ? '기록으로 정리하는 중' : '기록으로 바꾸기'}
+            </button>
+          </div>
+        </section>
+      ) : (
+        <section className="flex flex-col gap-4">
+          <div className={`${card} flex items-start gap-3 p-5`}>
+            <Icon name="format_quote" className="text-[22px] text-primary-container" />
+            <p className="flex-1 leading-relaxed text-on-surface-variant">{text}</p>
+            <button type="button" onClick={() => setStep(1)} className="shrink-0 text-label-md text-primary hover:underline">
+              글 고치기
+            </button>
+          </div>
+
+          {PARSE_RESULT.warning && (
+            <div className="flex items-center gap-3 rounded-2xl bg-error-container px-5 py-4 text-on-error-container">
+              <Icon name="warning" className="text-[22px]" />
+              <p className="font-semibold">{PARSE_RESULT.warning}</p>
+            </div>
+          )}
+
+          {items.map((item) => {
+            const meta = PARSED_LABEL[item.kind]
+            const opts = PARSED_OPTIONS[item.kind]
+            return (
+              <div key={item.id} className={`${card} flex flex-col gap-3 p-5 ${item.needsCheck ? 'ring-2 ring-status-check' : ''}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary-container/60">
+                      <Icon name={meta.icon} className="text-[20px] text-primary" />
+                    </span>
+                    <span className="text-headline-sm font-bold">{meta.label}</span>
+                    {item.needsCheck && <span className="rounded-full bg-status-check px-2.5 py-0.5 text-label-sm font-bold text-white">확인 필요</span>}
+                  </div>
+                  <button type="button" aria-label="카드 삭제" onClick={() => remove(item.id)} className="flex h-8 w-8 items-center justify-center rounded-full text-outline transition-colors hover:bg-surface-container-low hover:text-error">
+                    <Icon name="delete" className="text-[20px]" />
+                  </button>
+                </div>
+                {opts ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="mr-1 text-label-md text-outline">{opts.field}</span>
+                    {opts.options.map((o) => (
+                      <button
+                        key={o.value}
+                        type="button"
+                        onClick={() => update(item.id, { value: o.value })}
+                        className={chip(item.value === o.value)}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  item.kind !== 'question' && (
+                    <input value={item.value} onChange={(e) => update(item.id, { value: e.target.value })} placeholder="값 (예: 30분, 3.2kg)" className="h-11 rounded-xl border border-beige bg-surface-container-lowest px-4 focus:border-primary-container focus:outline-none" />
+                  )
+                )}
+                <input value={item.memo} onChange={(e) => update(item.id, { memo: e.target.value })} placeholder="메모" className="h-11 rounded-xl border border-beige bg-surface-container-low px-4 text-body-sm focus:border-primary-container focus:bg-surface-container-lowest focus:outline-none" />
+              </div>
+            )
+          })}
+
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-outline-variant p-4">
+            <span className="mr-1 text-label-md text-outline">빠진 항목 추가</span>
+            {KINDS.map((k) => (
+              <button key={k} type="button" onClick={() => add(k)} className="flex items-center gap-1 rounded-full bg-surface-container-low px-3 py-1.5 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-high">
+                <Icon name="add" className="text-[16px] text-primary" />
+                {PARSED_LABEL[k].label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between gap-3 pt-2">
+            <span className="text-label-sm text-outline">참고 정보이며 진단이 아니에요.</span>
+            <div className="flex gap-2">
+              <Link to="/records" className={ghostBtn}>
+                취소
+              </Link>
+              <button type="button" onClick={save} disabled={items.length === 0} className={primaryBtn}>
+                <Icon name="task_alt" className="text-[20px]" />
+                {items.length}개 기록 저장
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+    </div>
+  )
+}
