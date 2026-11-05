@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router'
 import Icon from '../common/Icon'
+import { EDIT_REQUESTS } from '../../mocks/editRequests'
+import { ME } from '../../mocks/family'
 
 const NAV = [
   { to: '/', label: '홈' },
@@ -17,6 +19,9 @@ const MENU = [
   { to: '/my/family', icon: 'group', label: '가족 그룹' },
   { to: '/questions', icon: 'help', label: '수의사 질문 메모' },
 ]
+// 관리자만: 대기 중인 수정 요청 건수 (화면 들어올 때 조회, 실시간 아님)
+const PENDING = EDIT_REQUESTS.filter((r) => r.status === 'PENDING').length
+const ADMIN_ITEM = { to: '/admin/edit-requests', icon: 'admin_panel_settings', label: '수정 요청 관리' }
 
 export default function AppHeader() {
   const [open, setOpen] = useState(false)
@@ -73,16 +78,18 @@ export default function AppHeader() {
             onClick={() => setOpen((v) => !v)}
             className="flex items-center gap-2 rounded-full p-1 pr-2.5 pl-1.5 transition-all hover:bg-surface-container-high/60"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary-container shadow-[0_2px_8px_rgba(74,52,38,0.08)]">
+            <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-secondary-container shadow-[0_2px_8px_rgba(74,52,38,0.08)]">
               <Icon name="pets" className="text-[18px] text-primary" />
+              {ME.role === 'ADMIN' && PENDING > 0 && <span aria-label={`대기 중인 수정 요청 ${PENDING}건`} className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-error ring-2 ring-surface" />}
             </span>
             <Icon name="expand_more" className={`text-[18px] text-outline transition-transform ${open ? 'rotate-180 text-on-surface' : ''}`} />
           </button>
           <div className={`absolute top-full right-0 z-50 mt-2 w-52 rounded-xl border border-outline-variant/30 bg-surface-container-lowest py-2 shadow-[0_16px_40px_-8px_rgba(74,52,38,0.12)] transition-all duration-200 ${open ? 'opacity-100' : 'pointer-events-none invisible opacity-0'}`}>
-            {MENU.map(({ to, icon, label }) => (
+            {[...MENU, ...(ME.role === 'ADMIN' ? [ADMIN_ITEM] : [])].map(({ to, icon, label }) => (
               <Link key={to} to={to} onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface">
                 <Icon name={icon} className="text-[18px] text-primary" />
                 {label}
+                {to === ADMIN_ITEM.to && PENDING > 0 && <span className="ml-auto rounded-full bg-error px-1.5 text-[11px] font-bold text-white">{PENDING}</span>}
               </Link>
             ))}
             <div className="mx-3 my-1.5 border-t border-surface-container-high" />

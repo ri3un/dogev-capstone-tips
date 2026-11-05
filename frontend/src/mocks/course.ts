@@ -126,3 +126,10 @@ export const COURSE_PLAN = {
     },
   ] as CourseStop[],
 }
+
+// 저장한 코스 (TODO: GET /api/dogs/{dogId}/courses)
+export const SAVED_COURSES = [
+  { id: 11, courseId: 1, stops: ['학의천 산책길', '평촌 멍카페', '범계 브런치하우스'], distanceKm: 3.2, savedBy: '엄마', visitedAt: '2026-11-02' },
+  { id: 10, courseId: 2, stops: ['안양천 도그 그라운드', '평촌 멍카페'], distanceKm: 2.1, savedBy: '아빠', visitedAt: '2026-10-26' },
+  { id: 9, courseId: 3, stops: ['수리산 단풍길', '수리산 멍스테이'], distanceKm: 4.5, savedBy: '엄마', visitedAt: null as string | null },
+]

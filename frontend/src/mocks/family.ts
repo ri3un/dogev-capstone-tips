@@ -28,4 +28,4 @@ export const INVITE_PREVIEW = {
 }
 
 // 마이페이지 내 정보 (TODO: GET /api/members/me)
-export const ME = { nickname: '엄마', provider: 'kakao' as 'kakao' | 'naver' }
+export const ME = { nickname: '엄마', provider: 'kakao' as 'kakao' | 'naver', role: 'ADMIN' as 'USER' | 'ADMIN' } // 시연용으로 ADMIN
