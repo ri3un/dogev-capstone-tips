@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import Icon from '../components/common/Icon'
+import Modal from '../components/common/Modal'
+import { chip, primaryBtn } from '../components/common/styles'
 import PlaceDrawer from '../components/place/PlaceDrawer'
 import { DOG } from '../mocks/dog'
+import { FILTERS, PLACE_OK, type ConditionKey } from '../mocks/editRequests'
 import { CATEGORY_LABEL, MAP_PLACEHOLDER_URL, PLACES, SEARCH_SUGGESTIONS, STATUS_BG, STATUS_LABEL, formatDistance, type PlaceCategory } from '../mocks/places'
 
 const CATEGORIES = Object.keys(CATEGORY_LABEL) as PlaceCategory[]
@@ -15,6 +18,9 @@ export default function MapPage() {
   const [keyword, setKeyword] = useState('')
   const [category, setCategory] = useState<PlaceCategory | null>(null)
   const [dogBased, setDogBased] = useState(true)
+  const [conds, setConds] = useState<ConditionKey[]>([])
+  const [filterOpen, setFilterOpen] = useState(false)
+  const toggleCond = (k: ConditionKey) => setConds((c) => (c.includes(k) ? c.filter((x) => x !== k) : [...c, k]))
 
   const select = (id: number | null) => setParams(id ? { placeId: String(id) } : {})
   const selected = PLACES.find((p) => p.id === selectedId)
@@ -22,8 +28,8 @@ export default function MapPage() {
   // TODO: 서버 필터(GET /api/places?category=&dogId=)로 바꿉니다.
   const list = useMemo(
     () =>
-      PLACES.filter((p) => (!category || p.category === category) && (!dogBased || p.status !== 'HARD') && p.name.includes(keyword.trim())),
-    [category, dogBased, keyword],
+      PLACES.filter((p) => (!category || p.category === category) && (!dogBased || p.status !== 'HARD') && p.name.includes(keyword.trim()) && conds.every((k) => PLACE_OK[p.id]?.includes(k))),
+    [category, dogBased, keyword, conds],
   )
 
   return (
@@ -100,10 +106,9 @@ export default function MapPage() {
                 </button>
               ))}
             </div>
-            {/* TODO: 조건 10개 필터 드로어 */}
-            <button type="button" className="flex shrink-0 items-center gap-1 rounded-full border border-outline-variant/30 px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface">
+            <button type="button" onClick={() => setFilterOpen(true)} className="flex shrink-0 items-center gap-1 rounded-full border border-outline-variant/30 px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface">
               <Icon name="tune" className="text-[15px]" />
-              필터 더보기
+              필터 더보기{conds.length > 0 && <span className="ml-0.5 rounded-full bg-primary-container px-1.5 text-[11px] font-bold text-white">{conds.length}</span>}
             </button>
           </div>
         </div>
@@ -183,8 +188,28 @@ export default function MapPage() {
           })}
         </div>
 
-        {selected && <PlaceDrawer place={selected} onClose={() => select(null)} />}
+        {selected && <PlaceDrawer key={selected.id} place={selected} onClose={() => select(null)} />}
       </div>
+      {filterOpen && (
+        <Modal title="필터 더보기" onClose={() => setFilterOpen(false)}>
+          <p className="mb-3 text-label-md text-outline">블로그 근거로 확인된 장소만 보여 드려요.</p>
+          <div className="flex flex-wrap gap-2">
+            {FILTERS.map((f) => (
+              <button key={f.key} type="button" onClick={() => toggleCond(f.key)} className={chip(conds.includes(f.key))}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-6 flex items-center justify-between">
+            <button type="button" onClick={() => setConds([])} className="text-label-md text-outline hover:text-on-surface">
+              초기화
+            </button>
+            <button type="button" onClick={() => setFilterOpen(false)} className={`${primaryBtn} h-11`}>
+              {list.length}곳 보기
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

@@ -3,6 +3,7 @@ import Icon from '../components/common/Icon'
 import Photo from '../components/common/Photo'
 import { card } from '../components/common/styles'
 import { DOG } from '../mocks/dog'
+import { EDIT_REQUESTS } from '../mocks/editRequests'
 import { FAMILY, ME } from '../mocks/family'
 
 const PROVIDER = {
@@ -14,7 +15,12 @@ const MENU = [
   { to: '/questions', icon: 'help', label: '수의사 질문 메모' },
   { to: '/report', icon: 'description', label: '건강 리포트' },
   { to: '/nutrition', icon: 'restaurant', label: '영양 가이드' },
+  { to: '/courses', icon: 'route', label: '저장한 코스' },
+  { to: '/my/edit-requests', icon: 'flag', label: '내 장소 수정 요청' },
 ]
+const pending = EDIT_REQUESTS.filter((r) => r.status === 'PENDING').length
+// 관리자에게만 보이는 메뉴 (대기 건수 배지)
+const ADMIN_MENU = { to: '/admin/edit-requests', icon: 'admin_panel_settings', label: '수정 요청 관리', sub: `대기 ${pending}건` }
 
 // 마이페이지: 내 정보, 반려견, 메뉴, 로그아웃
 export default function MyPage() {
@@ -53,7 +59,7 @@ export default function MyPage() {
       </section>
 
       <section className={`${card} p-2`}>
-        {MENU.map((m) => (
+        {[...MENU, ...(ME.role === 'ADMIN' ? [ADMIN_MENU] : [])].map((m) => (
           <Link key={m.to} to={m.to} className="flex items-center gap-3 rounded-xl px-4 py-3.5 hover:bg-surface-container-low">
             <Icon name={m.icon} className="text-[22px] text-primary" />
             <span className="flex-1 font-semibold">{m.label}</span>
