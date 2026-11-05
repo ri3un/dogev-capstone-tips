@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router'
 import AppLayout from './components/layout/AppLayout'
+import AdminRequestsPage from './pages/AdminRequestsPage'
 import ConsultPage from './pages/ConsultPage'
 import CoursePage from './pages/CoursePage'
 import CoursePlanPage from './pages/CoursePlanPage'
@@ -9,10 +10,12 @@ import HomePage from './pages/HomePage'
 import InvitePage from './pages/InvitePage'
 import LoginPage from './pages/LoginPage'
 import MyPage from './pages/MyPage'
+import MyRequestsPage from './pages/MyRequestsPage'
 import MapPage from './pages/MapPage'
 import NotFoundPage from './pages/NotFoundPage'
 import NutritionPage from './pages/NutritionPage'
 import OnboardingPage from './pages/OnboardingPage'
+import PlaceEditRequestPage from './pages/PlaceEditRequestPage'
 import QuestionsPage from './pages/QuestionsPage'
 import RecordNewPage from './pages/RecordNewPage'
 import RecordsPage from './pages/RecordsPage'
@@ -25,6 +28,7 @@ export const router = createBrowserRouter([
     children: [
       { path: '/', element: <HomePage /> },
       { path: '/map', element: <MapPage /> },
+      { path: '/places/:placeId/edit-request', element: <PlaceEditRequestPage /> },
       { path: '/course', element: <CoursePage /> },
       { path: '/course/plan', element: <CoursePlanPage /> },
       { path: '/consult', element: <ConsultPage /> },
@@ -39,6 +43,8 @@ export const router = createBrowserRouter([
       { path: '/questions', element: <QuestionsPage /> },
       { path: '/my', element: <MyPage /> },
       { path: '/my/family', element: <FamilyPage /> },
+      { path: '/my/requests', element: <MyRequestsPage /> },
+      { path: '/admin/requests', element: <AdminRequestsPage /> },
     ],
   },
   { path: '/login', element: <LoginPage /> },

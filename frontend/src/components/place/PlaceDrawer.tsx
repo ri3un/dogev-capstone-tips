@@ -1,5 +1,8 @@
+import { useState } from 'react'
+import { Link } from 'react-router'
 import Icon from '../common/Icon'
 import Photo from '../common/Photo'
+import EvidenceModal from './EvidenceModal'
 import { CATEGORY_LABEL, STATUS_BG, STATUS_LABEL, formatDistance, type BadgeTone, type Place } from '../../mocks/places'
 
 const TONE: Record<BadgeTone, string> = {
@@ -10,6 +13,7 @@ const TONE: Record<BadgeTone, string> = {
 
 // 장소 상세 드로어: 지도 오른쪽에 겹쳐 열립니다.
 export default function PlaceDrawer({ place, onClose }: { place: Place; onClose: () => void }) {
+  const [showEvidence, setShowEvidence] = useState(false)
   return (
     <aside className="absolute top-0 right-0 z-30 flex h-full w-full flex-col border-l border-outline-variant/30 bg-surface-container-lowest shadow-2xl sm:w-[420px]">
       <div className="flex-1 overflow-y-auto">
@@ -58,8 +62,7 @@ export default function PlaceDrawer({ place, onClose }: { place: Place; onClose:
               </li>
             ))}
           </ol>
-          {/* TODO: 근거 블로그 목록(출처) 모달 */}
-          <button type="button" className="flex items-center justify-between rounded-xl px-3 py-2 text-[13px] font-medium text-outline transition-colors hover:bg-surface-container-low">
+          <button type="button" onClick={() => setShowEvidence(true)} className="flex items-center justify-between rounded-xl px-3 py-2 text-[13px] font-medium text-outline transition-colors hover:bg-surface-container-low">
             <span className="flex items-center gap-1.5">
               <Icon name="find_in_page" className="text-[16px]" />
               근거 {place.evidenceCount}건 · 출처 보기
@@ -70,16 +73,17 @@ export default function PlaceDrawer({ place, onClose }: { place: Place; onClose:
       </div>
 
       <div className="flex shrink-0 flex-col gap-2 border-t border-surface-container-high/60 p-5 pt-3">
-        {/* TODO: POST /api/places/{id}/visits, 정보 수정 요청 화면 연결 */}
+        {/* TODO: POST /api/places/{id}/visits */}
         <button type="button" className="flex h-12 w-full items-center justify-center gap-1.5 rounded-full bg-primary-container text-label-lg font-bold text-white shadow-sm transition-all hover:bg-primary">
           <Icon name="task_alt" className="text-[20px]" />
           다녀왔어요
         </button>
-        <button type="button" className="flex w-full items-center justify-center gap-1 rounded-full py-2 text-label-md text-outline transition-colors hover:text-on-surface">
+        <Link to={`/places/${place.id}/edit-request`} className="flex w-full items-center justify-center gap-1 rounded-full py-2 text-label-md text-outline transition-colors hover:text-on-surface">
           <Icon name="flag" className="text-[15px]" />
           정보 수정 요청
-        </button>
+        </Link>
       </div>
+      {showEvidence && <EvidenceModal placeName={place.name} total={place.evidenceCount} onClose={() => setShowEvidence(false)} />}
     </aside>
   )
 }

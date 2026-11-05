@@ -12,6 +12,7 @@ const PROVIDER = {
 const MENU = [
   { to: '/my/family', icon: 'group', label: '가족 관리', sub: `${FAMILY.name} · ${FAMILY.members.length}명` },
   { to: '/questions', icon: 'help', label: '수의사 질문 메모' },
+  { to: '/my/requests', icon: 'flag', label: '내 수정 요청' },
   { to: '/report', icon: 'description', label: '건강 리포트' },
   { to: '/nutrition', icon: 'restaurant', label: '영양 가이드' },
 ]
