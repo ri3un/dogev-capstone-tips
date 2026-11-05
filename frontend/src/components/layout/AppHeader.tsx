@@ -11,8 +11,10 @@ const NAV = [
 
 // TODO: dogStore 연결 후 실제 반려견 id로 바꿉니다.
 const MENU = [
+  { to: '/my', icon: 'person', label: '마이페이지' },
   { to: '/dogs/1/edit', icon: 'edit_note', label: '반려견 정보 수정' },
   { to: '/my/family', icon: 'group', label: '가족 그룹' },
+  { to: '/questions', icon: 'help', label: '수의사 질문 메모' },
 ]
 
 export default function AppHeader() {

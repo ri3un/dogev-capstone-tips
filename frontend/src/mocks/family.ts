@@ -26,3 +26,6 @@ export const INVITE_PREVIEW = {
   memberCount: 3,
   myDogs: ['콩'], // ALONE_WITH_DOGS일 때 함께 옮겨지는 내 반려견
 }
+
+// 마이페이지 내 정보 (TODO: GET /api/members/me)
+export const ME = { nickname: '엄마', provider: 'kakao' as 'kakao' | 'naver' }
