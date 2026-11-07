@@ -220,9 +220,7 @@ export default function ConsultPage() {
                 onClick={() => setSaved((v) => !v)}
                 className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-label-lg transition-all active:scale-[0.98] ${saved ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container hover:bg-surface-container-high'}`}
               >
-                <span className="material-symbols-outlined text-[18px] text-primary" style={{ fontVariationSettings: `'FILL' ${saved ? 1 : 0}` }}>
-                  {saved ? 'bookmark' : 'bookmark_border'}
-                </span>
+                <Icon name={saved ? 'bookmark' : 'bookmark_border'} filled={saved} className="text-[18px] text-primary" />
                 {saved ? '메모 저장 완료' : '질문 메모에 저장'}
               </button>
               {saved && (

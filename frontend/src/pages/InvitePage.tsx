@@ -6,8 +6,6 @@ import { FAMILY, INVITE_PREVIEW, type InviteStatus } from '../mocks/family'
 
 type ViewState = InviteStatus | 'GUEST'
 const STATES: ViewState[] = ['GUEST', 'OK', 'ALONE_WITH_DOGS', 'WITH_OTHERS', 'SAME_GROUP', 'FULL', 'INVALID']
-const filled = { fontVariationSettings: "'FILL' 1" }
-
 // 참여할 수 없는 상태의 안내 문구
 const BLOCKED: Partial<Record<ViewState, { icon: string; title: string; body: string }>> = {
   WITH_OTHERS: { icon: 'group_off', title: '지금 그룹을 먼저 나가야 해요', body: '다른 가족과 함께 쓰는 그룹이 있어요. 가족 관리에서 나간 뒤 다시 링크를 열어 주세요.' },
@@ -63,7 +61,7 @@ export default function InvitePage() {
         ) : (
           <>
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
-              <span className="material-symbols-outlined text-[32px]" style={filled}>family_restroom</span>
+              <Icon name="family_restroom" filled className="text-[32px]" />
             </span>
             <div>
               <h1 className="text-headline-md font-bold leading-snug">

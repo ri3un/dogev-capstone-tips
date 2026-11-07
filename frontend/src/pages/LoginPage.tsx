@@ -8,8 +8,6 @@ const OAUTH = {
   naver: '/oauth2/authorization/naver',
 }
 const socialBtn = 'flex h-[52px] w-full items-center justify-center gap-2.5 rounded-[14px] text-label-lg transition-all duration-150 active:scale-[0.98]'
-const filled = { fontVariationSettings: "'FILL' 1" }
-
 // 로그인 (Stitch 07-login): 카카오·네이버 소셜 로그인만 사용
 export default function LoginPage() {
   return (
@@ -35,7 +33,7 @@ export default function LoginPage() {
             <div className="mb-5 flex flex-col items-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-container-low shadow-[0_4px_16px_rgba(200,134,75,0.12)] transition-transform duration-300 hover:scale-105">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
-                  <span className="material-symbols-outlined text-[28px]" style={filled}>pets</span>
+                  <Icon name="pets" filled className="text-[28px]" />
                 </div>
               </div>
               <h1 className="mt-4 text-headline-xl font-bold tracking-tight text-primary">킁킁</h1>
@@ -68,7 +66,7 @@ export default function LoginPage() {
 
             <div className="mt-6 flex w-full flex-col items-center pt-5">
               <div className="mb-3 flex items-start justify-center gap-1.5 text-body-sm text-on-surface-variant">
-                <span className="material-symbols-outlined mt-0.5 text-[16px] text-primary" style={filled}>info</span>
+                <Icon name="info" filled className="mt-0.5 text-[16px] text-primary" />
                 <span className="break-keep">처음이면 로그인 후 반려견을 등록해요. 별도 회원가입은 없어요.</span>
               </div>
               <div className="flex items-center justify-center gap-2 text-label-sm text-outline">

@@ -275,7 +275,7 @@ export default function RecordsPage() {
       </div>
 
       <Link to="/records/new" className="fixed right-8 bottom-8 z-40 flex items-center gap-2.5 rounded-full bg-primary-container px-6 py-3.5 text-label-lg text-on-primary shadow-[0_12px_28px_-6px_rgba(200,134,75,0.45)] transition-all hover:scale-105 hover:bg-primary active:scale-95">
-        <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>add</span>
+        <Icon name="add" filled className="text-[20px]" />
         <span className="tracking-tight">기록 추가</span>
         <Icon name="pets" className="text-[18px] opacity-80" />
       </Link>

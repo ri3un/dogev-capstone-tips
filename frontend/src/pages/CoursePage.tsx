@@ -14,8 +14,6 @@ const TONE: Record<Tone, string> = {
 // 카드 순서별 강조 색 (Stitch 원본과 동일)
 const AREA_COLOR = ['text-primary', 'text-secondary', 'text-on-surface-variant']
 const LEVEL_COLOR = ['text-tertiary', 'text-secondary', 'text-on-surface-variant']
-const filled = { fontVariationSettings: "'FILL' 1" }
-
 // 코스 추천 카드 목록 (Stitch 03-course). 카드를 누르면 2단계 플로우(/course/plan)로 이동
 export default function CoursePage() {
   const [theme, setTheme] = useState<CourseTheme>('light') // TODO: 테마별 추천 API 파라미터로 전달
@@ -26,7 +24,7 @@ export default function CoursePage() {
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div className="flex flex-col gap-1">
             <div className="inline-flex w-fit items-center gap-2 rounded-full bg-secondary-container/50 px-3 py-1 text-label-md text-on-secondary-container">
-              <span className="material-symbols-outlined text-[16px] text-primary" style={filled}>favorite</span>
+              <Icon name="favorite" filled className="text-[16px] text-primary" />
               오늘의 컨디션 매칭 지수 98%
             </div>
             <h1 className="text-headline-xl tracking-tight">{DOG.name} 맞춤형 산책 코스 🐕</h1>
@@ -150,7 +148,7 @@ export default function CoursePage() {
         <div className="flex items-center justify-end gap-2 self-stretch md:self-auto">
           {WALK_TIP.checklist.map((item) => (
             <div key={item} className="flex items-center gap-1.5 rounded-full bg-surface-container-lowest px-4 py-2 text-label-md shadow-sm">
-              <span className="material-symbols-outlined text-[18px] text-tertiary" style={filled}>check_circle</span>
+              <Icon name="check_circle" filled className="text-[18px] text-tertiary" />
               {item}
             </div>
           ))}

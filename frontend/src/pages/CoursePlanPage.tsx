@@ -4,7 +4,6 @@ import { COURSE_PLAN, type StopKind } from '../mocks/course'
 import { DOG } from '../mocks/dog'
 
 const DISTANCES = [1, 2, 3]
-const filled = { fontVariationSettings: "'FILL' 1" }
 const cardShadow = 'shadow-[0_4px_24px_-4px_rgba(74,52,38,0.06)]'
 
 // 지점 종류별 라벨·색상 (타임라인 번호, 배지, 지도 핀)
@@ -57,7 +56,7 @@ export default function CoursePlanPage() {
           <h1 className="text-headline-lg font-bold tracking-tight">맞춤 산책 코스 추천</h1>
         </div>
         <div className="flex items-center gap-2.5 rounded-full bg-surface-container-low px-4 py-2">
-          <span className="material-symbols-outlined text-[18px] text-tertiary" style={filled}>eco</span>
+          <Icon name="eco" filled className="text-[18px] text-tertiary" />
           <span className="text-label-md font-medium text-on-surface-variant">
             {DOG.name} ({DOG.breed} · {DOG.age}세) 맞춤 모드
           </span>
@@ -158,7 +157,7 @@ export default function CoursePlanPage() {
           <div className="flex flex-col justify-between gap-3 border-b border-surface-container-low pb-5 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary-container/60">
-                <span className="material-symbols-outlined text-[24px] text-primary" style={filled}>pets</span>
+                <Icon name="pets" filled className="text-[24px] text-primary" />
               </div>
               <div>
                 <span className="text-label-sm font-bold tracking-wider text-primary">AI RECOMMENDATION</span>
