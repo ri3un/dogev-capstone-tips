@@ -48,7 +48,7 @@ cd backend && ./gradlew test             # 백엔드 테스트
 - [x] AppHeader: `authApi.me`, `adminApi.requests('PENDING')`, 반려견 수정 링크 실제 id, 로그아웃 시 토큰 삭제
 - [x] OnboardingPage(변경 불필요), DogFormPage(등록·수정·사진·삭제 연결, 백엔드 dog.memo 컬럼 추가)
 - [x] MyPage (DOG·FAMILY·ME·EDIT_REQUESTS 목업 → useCurrentDog, familyApi.get, authApi.me, adminApi.requests, 로그아웃은 api/session logout)
-- [ ] HomePage (DOG, MONTHLY_SUMMARY → dog + nutrition + records summary)
+- [x] HomePage (DOG, MONTHLY_SUMMARY → dog + nutrition + records summary)
 - [ ] FamilyPage, InvitePage (familyApi)
 - [ ] RecordsPage(달력·체중), RecordNewPage(글 → 후보 → batch 저장, `?kind=` 읽기)
 - [ ] QuestionsPage (questionApi)
