@@ -40,6 +40,19 @@ public enum ConditionKey {
         return key;
     }
 
+    public String label() {
+        return label;
+    }
+
+    /** 고정 키워드(#대형견가능 등) 전체. 분위기 태그와 구분할 때 씁니다 */
+    public java.util.Collection<String> tags() {
+        return valueToTag.values();
+    }
+
+    public static Optional<ConditionKey> fromKey(String key) {
+        return Arrays.stream(values()).filter(c -> c.key.equals(key)).findFirst();
+    }
+
     /** unknown 이 아닌 허용 값인지 확인 */
     public boolean isKnownValue(String value) {
         return valueToTag.containsKey(value);

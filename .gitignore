@@ -22,3 +22,6 @@ backend/data/
 node_modules/
 frontend/dist/
 *.log
+
+# 반려견 사진 업로드 (로컬 실행)
+backend/uploads/

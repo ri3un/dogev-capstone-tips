@@ -7,9 +7,11 @@ spring:
   config:
     import: optional:file:../.env[.properties]
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:gaebalhagae}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    # DB가 없으면 처음 실행할 때 만들고, 테이블은 아래 ddl-auto: update 가 만듭니다.
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:gaebalhagae}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&createDatabaseIfNotExist=true
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:}
+    # 로컬에서는 .env 의 DB_ROOT_PASSWORD 하나만 적어도 됩니다.
+    password: ${DB_PASSWORD:${DB_ROOT_PASSWORD:}}
   jpa:
     open-in-view: false
     hibernate:
@@ -20,6 +22,24 @@ spring:
         format_sql: true
   jackson:
     time-zone: Asia/Seoul
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+
+app:
+  # 카카오·네이버 로그인 (OAuth2ClientConfig). 키가 비어 있어도 서버는 뜨고, 로그인 시도만 실패합니다.
+  oauth:
+    kakao-client-id: ${KAKAO_CLIENT_ID:}
+    kakao-client-secret: ${KAKAO_CLIENT_SECRET:}
+    naver-client-id: ${NAVER_CLIENT_ID:}
+    naver-client-secret: ${NAVER_CLIENT_SECRET:}
+  front-url: ${FRONT_URL:http://localhost:5173}
+  upload-dir: ${UPLOAD_DIR:./uploads}
+  jwt:
+    # 비어 있으면 서버가 임시 키를 만들고 경고를 남깁니다(재시작하면 로그인 풀림).
+    secret: ${JWT_SECRET:}
+    expire-hours: 168
 
 server:
   port: 8080
@@ -53,6 +73,13 @@ llm:
     base-url: https://generativelanguage.googleapis.com/v1beta
     api-key: ${GEMINI_API_KEY:}
     model: gemini-2.5-flash-lite
+  # AI 상담 세 번째 모델. 무료 모델 이름은 자주 바뀌어서 환경 변수로 둡니다.
+  openrouter:
+    base-url: https://openrouter.ai/api/v1
+    api-key: ${OPENROUTER_API_KEY:}
+    model: ${OPENROUTER_MODEL:deepseek/deepseek-chat-v3-0324:free}
+  # AI 상담에서 모델 하나를 기다리는 최대 시간 (결정 14)
+  consult-timeout-seconds: 15
 
 ---
 spring:
@@ -63,16 +90,18 @@ spring:
     show-sql: true
 
 ---
-# 노트북 수집용: DB 없이 실행하고 결과는 JSON 파일로 저장합니다.
+# 노트북 수집용: MySQL 없이 H2 메모리 DB로 실행하고 결과는 JSON 파일로 저장합니다.
 spring:
   config:
     activate:
       on-profile: collect
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
-      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
-      - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+  datasource:
+    url: jdbc:h2:mem:collect;MODE=MySQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
 collect:
   store: json
   dir: data/blog
