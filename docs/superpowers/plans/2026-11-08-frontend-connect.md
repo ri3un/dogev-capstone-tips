@@ -55,7 +55,7 @@ cd backend && ./gradlew test             # 백엔드 테스트
 - [x] NutritionPage (dogApi.nutrition — 서버는 열량·사료량을 범위 아닌 한 값으로 줌, 주의 음식 중 알레르기는 빨간 배지)
 - [x] MapPage, PlaceDrawer, SourceModal, EditRequestModal (placeApi. 상수는 `constants/place.ts`(서버 키), 위치는 `hooks/useMyLocation.ts`. 핀은 위·경도 범위를 % 로 펼친 임시 위치, 카테고리 칩은 카페·식당·공원·산책로 3개)
 - [x] MyEditRequestsPage, AdminEditRequestsPage (placeApi.myRequests, adminApi — 값은 valueLabel 로 한글 표시, 이슈 2 반려 모달 X 닫기 시 사유 지움)
-- [ ] ConsultPage (consultApi, 질문 메모 저장)
+- [x] ConsultPage (consultApi, 질문 메모 저장, /consult/:id 로 지난 상담 열기, 검색은 지난 상담·질문 메모에서 글자 포함 — 이슈 5 상담 버튼 해결)
 - [ ] CoursePage, CoursePlanPage, CoursesPage (courseApi, 위치는 navigator.geolocation, 실패 시 안양 평촌 좌표)
 - [ ] ReportPage (reportApi.preview, PDF 다운로드)
 - [ ] mocks 폴더 정리: 화면 상수(KIND_DOT·KIND_BADGE·KIND_LABEL·PARSED_LABEL·PARSED_OPTIONS·EXAMPLE_SENTENCES, CONDITIONS 등)는 `src/constants/` 로 옮기고 나머지 목업 삭제
