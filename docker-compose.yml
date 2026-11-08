@@ -28,6 +28,8 @@ services:
       DB_USERNAME: root
       DB_PASSWORD: ${DB_ROOT_PASSWORD}
       JAVA_TOOL_OPTIONS: "-Xmx512m -Djava.awt.headless=true"
+      # 반려견 사진 저장 위치 (Nginx 가 같은 볼륨의 /uploads 를 제공)
+      UPLOAD_DIR: /data/uploads
       TZ: Asia/Seoul
     depends_on:
       mysql:

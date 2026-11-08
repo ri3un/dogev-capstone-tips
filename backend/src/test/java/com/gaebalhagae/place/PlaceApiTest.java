@@ -10,10 +10,10 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-class PlaceApiTest extends ApiTestSupport {
+public class PlaceApiTest extends ApiTestSupport {
 
-    /** 수집 JSON(CollectedPlace + ReviewSummary)과 같은 모양 */
-    static Map<String, Object> sample() {
+    /** 수집 JSON(CollectedPlace + ReviewSummary)과 같은 모양. 코스 테스트도 씁니다 */
+    public static Map<String, Object> sample() {
         Map<String, Object> cafe = Map.of("kakaoId", "k1", "name", "카페 콩", "category", "음식점 > 카페",
                 "categoryGroupCode", "CE7", "address", "경기 안양시 동안구 1", "roadAddress", "경기 안양시 동안구 로 1",
                 "lat", 37.3900, "lng", 126.9500, "foundBy", List.of("안양 애견카페"),

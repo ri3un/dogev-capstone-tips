@@ -39,7 +39,8 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
-    implementation 'org.xhtmlrenderer:flying-saucer-pdf:10.7.0'
+    // 10.x 는 Java 21 필요. 서버가 Java 17 이라 9.x 사용
+    implementation 'org.xhtmlrenderer:flying-saucer-pdf:9.13.4'
     implementation 'org.jfree:jfreechart:1.5.6'
     runtimeOnly 'com.mysql:mysql-connector-j'
     // collect 프로필(수집 서버)과 테스트용 메모리 DB
