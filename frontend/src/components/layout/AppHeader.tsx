@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router'
 import Icon from '../common/Icon'
-import { EDIT_REQUESTS } from '../../mocks/editRequests'
-import { ME } from '../../mocks/family'
+import { adminApi, authApi } from '../../api/endpoints'
+import { logout } from '../../api/session'
+import { useApi } from '../../hooks/useApi'
+import { useCurrentDog } from '../../hooks/useCurrentDog'
 
 const NAV = [
   { to: '/', label: '홈' },
@@ -12,20 +14,24 @@ const NAV = [
   { to: '/records', label: '건강 기록' },
 ]
 
-// TODO: dogStore 연결 후 실제 반려견 id로 바꿉니다.
-const MENU = [
+const menuOf = (dogId?: number) => [
   { to: '/my', icon: 'person', label: '마이페이지' },
-  { to: '/dogs/1/edit', icon: 'edit_note', label: '반려견 정보 수정' },
+  { to: dogId ? `/dogs/${dogId}/edit` : '/dogs/new', icon: 'edit_note', label: '반려견 정보 수정' },
   { to: '/my/family', icon: 'group', label: '가족 그룹' },
   { to: '/questions', icon: 'help', label: '수의사 질문 메모' },
 ]
-// 관리자만: 대기 중인 수정 요청 건수 (화면 들어올 때 조회, 실시간 아님)
-const PENDING = EDIT_REQUESTS.filter((r) => r.status === 'PENDING').length
 const ADMIN_ITEM = { to: '/admin/edit-requests', icon: 'admin_panel_settings', label: '수정 요청 관리' }
 
 export default function AppHeader() {
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const { data: me } = useApi(() => authApi.me(), [])
+  const { dog } = useCurrentDog()
+  const isAdmin = me?.role === 'ADMIN'
+  // 관리자만: 대기 중인 수정 요청 건수 (화면 들어올 때 조회, 실시간 아님)
+  const { data: pending } = useApi(() => (isAdmin ? adminApi.requests('PENDING') : null), [isAdmin])
+  const PENDING = pending?.length ?? 0
+  const MENU = menuOf(dog?.id)
 
   // 메뉴 밖을 누르거나 Esc를 누르면 닫음 (메뉴 항목을 누르면 onClick으로 닫음)
   useEffect(() => {
@@ -80,12 +86,12 @@ export default function AppHeader() {
           >
             <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-secondary-container shadow-[0_2px_8px_rgba(74,52,38,0.08)]">
               <Icon name="pets" className="text-[18px] text-primary" />
-              {ME.role === 'ADMIN' && PENDING > 0 && <span aria-label={`대기 중인 수정 요청 ${PENDING}건`} className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-error ring-2 ring-surface" />}
+              {isAdmin && PENDING > 0 && <span aria-label={`대기 중인 수정 요청 ${PENDING}건`} className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-error ring-2 ring-surface" />}
             </span>
             <Icon name="expand_more" className={`text-[18px] text-outline transition-transform ${open ? 'rotate-180 text-on-surface' : ''}`} />
           </button>
           <div className={`absolute top-full right-0 z-50 mt-2 w-52 rounded-xl border border-outline-variant/30 bg-surface-container-lowest py-2 shadow-[0_16px_40px_-8px_rgba(74,52,38,0.12)] transition-all duration-200 ${open ? 'opacity-100' : 'pointer-events-none invisible opacity-0'}`}>
-            {[...MENU, ...(ME.role === 'ADMIN' ? [ADMIN_ITEM] : [])].map(({ to, icon, label }) => (
+            {[...MENU, ...(isAdmin ? [ADMIN_ITEM] : [])].map(({ to, icon, label }) => (
               <Link key={to} to={to} onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface">
                 <Icon name={icon} className="text-[18px] text-primary" />
                 {label}
@@ -93,8 +99,7 @@ export default function AppHeader() {
               </Link>
             ))}
             <div className="mx-3 my-1.5 border-t border-surface-container-high" />
-            {/* TODO: authStore 로그아웃 처리 후 이동 */}
-            <Link to="/login" onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-label-md text-outline transition-colors hover:bg-error-container/40 hover:text-error">
+            <Link to="/login" onClick={() => { logout(); setOpen(false) }} className="flex items-center gap-2 px-4 py-2.5 text-label-md text-outline transition-colors hover:bg-error-container/40 hover:text-error">
               <Icon name="logout" className="text-[18px]" />
               로그아웃
             </Link>

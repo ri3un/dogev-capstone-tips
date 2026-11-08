@@ -1,4 +1,7 @@
-import { Link } from 'react-router'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router'
+import { authApi } from '../api/endpoints'
+import { finishLogin } from '../api/session'
 import Icon from '../components/common/Icon'
 import PuppyIllustration from '../components/login/PuppyIllustration'
 
@@ -8,6 +11,35 @@ const OAUTH = {
   naver: '/oauth2/authorization/naver',
 }
 const socialBtn = 'flex h-[52px] w-full items-center justify-center gap-2.5 rounded-[14px] text-label-lg transition-all duration-150 active:scale-[0.98]'
+
+// 개발 모드(npm run dev)에서만 보이는 로그인: SNS 키 없이 닉네임으로 들어갑니다. 배포 빌드에는 없음
+function DevLogin() {
+  const navigate = useNavigate()
+  const [nickname, setNickname] = useState('')
+  const [admin, setAdmin] = useState(false)
+  const [error, setError] = useState('')
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!nickname.trim()) return
+    try {
+      const { token } = await authApi.devLogin(nickname.trim(), admin)
+      await finishLogin(token, navigate)
+    } catch (err) {
+      setError((err as { message?: string }).message ?? '로그인하지 못했어요')
+    }
+  }
+  return (
+    <form onSubmit={submit} className="mt-2 flex flex-col gap-2 rounded-[14px] border border-dashed border-outline-variant p-3 text-left">
+      <span className="text-label-sm text-outline">개발용 로그인 (배포에는 없음)</span>
+      <input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="닉네임" aria-label="개발용 닉네임" className="rounded-lg bg-surface-container-low px-3 py-2 text-body-sm" />
+      <label className="flex items-center gap-2 text-label-sm text-on-surface-variant">
+        <input type="checkbox" checked={admin} onChange={(e) => setAdmin(e.target.checked)} /> 관리자로
+      </label>
+      <button type="submit" className="rounded-lg bg-primary py-2 text-label-md text-on-primary">들어가기</button>
+      {error && <p role="alert" className="text-label-sm text-error">{error}</p>}
+    </form>
+  )
+}
 // 로그인 (Stitch 07-login): 카카오·네이버 소셜 로그인만 사용
 export default function LoginPage() {
   return (
@@ -62,6 +94,7 @@ export default function LoginPage() {
                 </svg>
                 <span className="font-semibold tracking-tight">네이버로 시작하기</span>
               </a>
+              {import.meta.env.DEV && <DevLogin />}
             </div>
 
             <div className="mt-6 flex w-full flex-col items-center pt-5">

@@ -44,8 +44,8 @@ cd backend && ./gradlew test             # 백엔드 테스트
 
 ## 남은 일 (위에서부터)
 
-- [ ] LoginPage: 개발 모드 전용 "개발용 로그인" 추가 / OAuthCallbackPage: 반려견 없으면 /onboarding
-- [ ] AppHeader: ME·EDIT_REQUESTS 목업 → `authApi.me`, `adminApi.requests('PENDING')`, 로그아웃 시 토큰 삭제
+- [x] LoginPage: 개발 모드 전용 "개발용 로그인" 추가 / OAuthCallbackPage: `api/session.ts` finishLogin(반려견 없으면 /onboarding)
+- [x] AppHeader: `authApi.me`, `adminApi.requests('PENDING')`, 반려견 수정 링크 실제 id, 로그아웃 시 토큰 삭제
 - [ ] OnboardingPage, DogFormPage(등록·수정·사진), MyPage
 - [ ] HomePage (DOG, MONTHLY_SUMMARY → dog + nutrition + records summary)
 - [ ] FamilyPage, InvitePage (familyApi)
@@ -59,7 +59,7 @@ cd backend && ./gradlew test             # 백엔드 테스트
 - [ ] ReportPage (reportApi.preview, PDF 다운로드)
 - [ ] mocks 폴더에서 안 쓰는 데이터 삭제
 - [ ] lint·build 통과 → 브라우저로 주요 흐름 확인(백엔드+프론트 실행) → 커밋
-- [ ] Claude 앱 졸업작품 프로젝트로 작업 정보 옮기기: Claude Docs 문서 "킁킁 백엔드·연결 작업 정리" 만들기 + 사용자에게 `/send-to-project` 안내
+- [x] Claude 앱으로 작업 정보 옮기기: Claude Docs 문서 https://claude.ai/artifact/5H1TfDmuuvFs41YZzmLDsZ (끝나면 "프론트 연결 진행 상황" 체크 갱신). 프로젝트에 넣으려면 사용자가 `/send-to-project` 직접 실행
 
 ## 백엔드 연결 때 같이 고치기로 한 프론트 이슈 (메모리에서)
 

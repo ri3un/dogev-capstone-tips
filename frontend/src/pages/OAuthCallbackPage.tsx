@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
+import { finishLogin } from '../api/session'
 
 // 소셜 로그인 후 백엔드가 FRONT_URL/oauth/callback#token=... 으로 보내면 토큰을 저장하고 이동
 export default function OAuthCallbackPage() {
@@ -14,18 +15,8 @@ export default function OAuthCallbackPage() {
       navigate('/login', { replace: true })
       return
     }
-    // TODO: authStore로 옮기기, GET /api/members/me로 닉네임·role 불러오기
-    localStorage.setItem('accessToken', token)
     history.replaceState(null, '', location.pathname) // 주소창에서 토큰 지우기
-
-    const invite = sessionStorage.getItem('inviteCode')
-    if (invite) {
-      sessionStorage.removeItem('inviteCode')
-      navigate(`/invite/${invite}`, { replace: true })
-      return
-    }
-    // TODO: GET /api/dogs가 비어 있으면 /onboarding
-    navigate('/', { replace: true })
+    finishLogin(token, navigate)
   }, [navigate])
 
   return (
