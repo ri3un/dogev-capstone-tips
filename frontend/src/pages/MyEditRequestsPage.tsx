@@ -1,13 +1,16 @@
 import { Link } from 'react-router'
 import Icon from '../components/common/Icon'
 import { card } from '../components/common/styles'
-import { CONDITION_LABEL, EDIT_REQUESTS, EDIT_STATUS } from '../mocks/editRequests'
-import { ME } from '../mocks/family'
+import { placeApi } from '../api/endpoints'
+import { localDate } from '../api/format'
+import { conditionLabel, EDIT_STATUS, valueLabel } from '../constants/place'
+import { useApi } from '../hooks/useApi'
 
 // 내 수정 요청: 내가 보낸 장소 정보 수정 요청과 처리 상태 (가족과 공유하지 않음)
 export default function MyEditRequestsPage() {
-  // TODO: GET /api/me/edit-requests
-  const mine = EDIT_REQUESTS.filter((r) => r.requester === ME.nickname)
+  const { data, loading } = useApi(() => placeApi.myRequests(), [])
+  if (loading) return null
+  const mine = data ?? []
 
   return (
     <div className="mx-auto flex w-full max-w-[840px] flex-col gap-6 px-5 py-9 lg:px-6">
@@ -32,12 +35,12 @@ export default function MyEditRequestsPage() {
                 <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-label-sm font-bold ${EDIT_STATUS[r.status].cls}`}>{EDIT_STATUS[r.status].label}</span>
               </div>
               <p className="text-on-surface-variant">
-                {CONDITION_LABEL[r.condition]}: <span className="text-outline line-through">{r.currentValue}</span> → <strong>{r.requestedValue}</strong>
+                {r.conditionLabel ?? conditionLabel(r.conditionKey)}: <span className="text-outline line-through">{valueLabel(r.conditionKey, r.currentValue)}</span> → <strong>{valueLabel(r.conditionKey, r.requestedValue)}</strong>
               </p>
               {r.status === 'REJECTED' && r.rejectReason && (
                 <p className="rounded-xl bg-error-container/50 px-3 py-2 text-label-md text-on-error-container">반려 사유: {r.rejectReason}</p>
               )}
-              <span className="text-label-sm text-outline">{r.date}</span>
+              <span className="text-label-sm text-outline">{localDate(new Date(r.createdAt))}</span>
             </li>
           ))}
         </ul>
