@@ -82,6 +82,10 @@ public class Dog extends BaseTimeEntity {
     @Column(name = "photo_url", length = 300)
     private String photoUrl;
 
+    /** 등록 화면의 건강 메모(자유 입력) */
+    @Column(length = 300)
+    private String memo;
+
     public Dog(Long familyGroupId, Long createdBy, Profile profile) {
         this.familyGroupId = familyGroupId;
         this.createdBy = createdBy;
@@ -91,7 +95,7 @@ public class Dog extends BaseTimeEntity {
     /** 등록·수정 화면에서 받는 값 묶음 */
     public record Profile(String name, String breed, BigDecimal weightKg, String birthYm, Sex sex, boolean neutered,
                           boolean hasCarrier, boolean hasStroller, ActivityLevel activityLevel,
-                          List<String> diseases, List<String> allergies, Integer foodKcalPerKg) {
+                          List<String> diseases, List<String> allergies, Integer foodKcalPerKg, String memo) {
     }
 
     public void update(Profile p) {
@@ -107,6 +111,7 @@ public class Dog extends BaseTimeEntity {
         this.diseases = p.diseases() == null ? new ArrayList<>() : new ArrayList<>(p.diseases());
         this.allergies = p.allergies() == null ? new ArrayList<>() : new ArrayList<>(p.allergies());
         this.foodKcalPerKg = p.foodKcalPerKg();
+        this.memo = p.memo() == null || p.memo().isBlank() ? null : p.memo().strip();
     }
 
     public void changeWeight(BigDecimal weightKg) {

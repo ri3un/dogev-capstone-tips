@@ -27,12 +27,13 @@ public record DogRequest(
         ActivityLevel activityLevel,
         @Size(max = 10) List<@NotBlank @Size(max = 30) String> diseases,
         @Size(max = 10) List<@NotBlank @Size(max = 30) String> allergies,
-        @Min(1000) @Max(10000) Integer foodKcalPerKg
+        @Min(1000) @Max(10000) Integer foodKcalPerKg,
+        @Size(max = 300) String memo
 ) {
 
     public Dog.Profile toProfile() {
         return new Dog.Profile(name, breed, weightKg, birthYm, sex, neutered,
                 Boolean.TRUE.equals(hasCarrier), Boolean.TRUE.equals(hasStroller), activityLevel,
-                diseases, allergies, foodKcalPerKg);
+                diseases, allergies, foodKcalPerKg, memo);
     }
 }

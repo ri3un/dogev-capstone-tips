@@ -19,12 +19,13 @@ export interface Me { id: number; nickname: string; provider: 'KAKAO' | 'NAVER' 
 export interface Dog {
   id: number; name: string; breed: string; weightKg: number; size: DogSize; birthYm: string; ageMonths: number
   sex: Sex; neutered: boolean; hasCarrier: boolean; hasStroller: boolean; activityLevel: ActivityLevel | null
-  diseases: string[]; allergies: string[]; foodKcalPerKg: number | null; photoUrl: string | null; createdBy: number
+  diseases: string[]; allergies: string[]; foodKcalPerKg: number | null; photoUrl: string | null; memo: string | null
+  createdBy: number
 }
 export interface DogInput {
   name: string; breed: string; weightKg: number; birthYm: string; sex: Sex; neutered: boolean
   hasCarrier?: boolean; hasStroller?: boolean; activityLevel?: ActivityLevel | null
-  diseases?: string[]; allergies?: string[]; foodKcalPerKg?: number | null
+  diseases?: string[]; allergies?: string[]; foodKcalPerKg?: number | null; memo?: string | null
 }
 
 export interface FamilyMemberItem { memberId: number; nickname: string; role: FamilyRole; joinedAt: string }
