@@ -50,7 +50,7 @@ cd backend && ./gradlew test             # 백엔드 테스트
 - [x] MyPage (DOG·FAMILY·ME·EDIT_REQUESTS 목업 → useCurrentDog, familyApi.get, authApi.me, adminApi.requests, 로그아웃은 api/session logout)
 - [x] HomePage (DOG, MONTHLY_SUMMARY → dog + nutrition + records summary)
 - [x] FamilyPage, InvitePage (familyApi, 이슈 3·6의 가족 메뉴 부분 해결)
-- [ ] RecordsPage(달력·체중), RecordNewPage(글 → 후보 → batch 저장, `?kind=` 읽기)
+- [x] RecordsPage(달력·체중 그래프·달성률), RecordNewPage(글 → 후보 → batch 저장, 홈에서 넘긴 글 자동 변환, `?kind=` 읽기, 503이면 직접 입력) — 이슈 1·4·5(홈) 해결
 - [ ] QuestionsPage (questionApi)
 - [ ] NutritionPage (dogApi.nutrition)
 - [ ] MapPage, PlaceDrawer, SourceModal, EditRequestModal (placeApi)
@@ -58,7 +58,7 @@ cd backend && ./gradlew test             # 백엔드 테스트
 - [ ] ConsultPage (consultApi, 질문 메모 저장)
 - [ ] CoursePage, CoursePlanPage, CoursesPage (courseApi, 위치는 navigator.geolocation, 실패 시 안양 평촌 좌표)
 - [ ] ReportPage (reportApi.preview, PDF 다운로드)
-- [ ] mocks 폴더에서 안 쓰는 데이터 삭제
+- [ ] mocks 폴더 정리: 화면 상수(KIND_DOT·KIND_BADGE·KIND_LABEL·PARSED_LABEL·PARSED_OPTIONS·EXAMPLE_SENTENCES, CONDITIONS 등)는 `src/constants/` 로 옮기고 나머지 목업 삭제
 - [ ] lint·build 통과 → 브라우저로 주요 흐름 확인(백엔드+프론트 실행) → 커밋
 - [x] Claude 앱으로 작업 정보 옮기기: Claude Docs 문서 https://claude.ai/artifact/5H1TfDmuuvFs41YZzmLDsZ (끝나면 "프론트 연결 진행 상황" 체크 갱신). 프로젝트에 넣으려면 사용자가 `/send-to-project` 직접 실행
 
