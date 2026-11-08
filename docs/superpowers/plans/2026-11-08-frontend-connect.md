@@ -53,7 +53,7 @@ cd backend && ./gradlew test             # 백엔드 테스트
 - [x] RecordsPage(달력·체중 그래프·달성률), RecordNewPage(글 → 후보 → batch 저장, 홈에서 넘긴 글 자동 변환, `?kind=` 읽기, 503이면 직접 입력) — 이슈 1·4·5(홈) 해결
 - [x] QuestionsPage (questionApi, 작성자는 가족 구성원 닉네임, 날짜는 현지 시간)
 - [x] NutritionPage (dogApi.nutrition — 서버는 열량·사료량을 범위 아닌 한 값으로 줌, 주의 음식 중 알레르기는 빨간 배지)
-- [ ] MapPage, PlaceDrawer, SourceModal, EditRequestModal (placeApi)
+- [x] MapPage, PlaceDrawer, SourceModal, EditRequestModal (placeApi. 상수는 `constants/place.ts`(서버 키), 위치는 `hooks/useMyLocation.ts`. 핀은 위·경도 범위를 % 로 펼친 임시 위치, 카테고리 칩은 카페·식당·공원·산책로 3개)
 - [ ] MyEditRequestsPage, AdminEditRequestsPage (placeApi.myRequests, adminApi)
 - [ ] ConsultPage (consultApi, 질문 메모 저장)
 - [ ] CoursePage, CoursePlanPage, CoursesPage (courseApi, 위치는 navigator.geolocation, 실패 시 안양 평촌 좌표)

@@ -1,15 +1,37 @@
-import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useState } from 'react'
+import { Navigate, useSearchParams } from 'react-router'
+import { placeApi } from '../api/endpoints'
+import { formatDistance, SIZE_LABEL } from '../api/format'
+import type { PlaceCategory, PlaceItem } from '../api/types'
 import Icon from '../components/common/Icon'
 import Modal from '../components/common/Modal'
 import { chip, primaryBtn } from '../components/common/styles'
 import PlaceDrawer from '../components/place/PlaceDrawer'
-import { DOG } from '../mocks/dog'
-import { FILTERS, PLACE_OK, type ConditionKey } from '../mocks/editRequests'
-import { CATEGORY_LABEL, MAP_PLACEHOLDER_URL, PLACES, SEARCH_SUGGESTIONS, STATUS_BG, STATUS_LABEL, formatDistance, type PlaceCategory } from '../mocks/places'
+import { CATEGORY_ICON, CATEGORY_LABEL, FILTERS, MAP_PLACEHOLDER_URL, VERDICT_BG, VERDICT_LABEL } from '../constants/place'
+import { useApi } from '../hooks/useApi'
+import { useCurrentDog } from '../hooks/useCurrentDog'
+import { useMyLocation } from '../hooks/useMyLocation'
 
-const CATEGORIES = Object.keys(CATEGORY_LABEL) as PlaceCategory[]
+const CATEGORIES: PlaceCategory[] = ['CAFE', 'RESTAURANT', 'PARK']
 const mapBtn = 'flex h-10 w-10 items-center justify-center transition-colors hover:bg-surface-container-low'
+
+// 지도 SDK 붙이기 전 임시 핀 위치: 목록의 위·경도 범위를 화면 10~90%에 펼침
+// shortcut: 실제 지도와 축척이 안 맞음, 네이버 지도 SDK를 붙이면 지울 것
+function pinsOf(list: PlaceItem[]) {
+  const lats = list.map((p) => p.lat)
+  const lngs = list.map((p) => p.lng)
+  const [minLat, maxLat, minLng, maxLng] = [Math.min(...lats), Math.max(...lats), Math.min(...lngs), Math.max(...lngs)]
+  return new Map(
+    list.map((p) => [
+      p.id,
+      {
+        top: `${maxLat === minLat ? 50 : 10 + (80 * (maxLat - p.lat)) / (maxLat - minLat)}%`,
+        left: `${maxLng === minLng ? 50 : 10 + (80 * (p.lng - minLng)) / (maxLng - minLng)}%`,
+        icon: CATEGORY_ICON[p.category],
+      },
+    ]),
+  )
+}
 
 // 장소 지도 + 상세 드로어 (Stitch 02-map-drawer)
 export default function MapPage() {
@@ -18,19 +40,26 @@ export default function MapPage() {
   const [keyword, setKeyword] = useState('')
   const [category, setCategory] = useState<PlaceCategory | null>(null)
   const [dogBased, setDogBased] = useState(true)
-  const [conds, setConds] = useState<ConditionKey[]>([])
+  const [conds, setConds] = useState<string[]>([])
   const [filterOpen, setFilterOpen] = useState(false)
-  const toggleCond = (k: ConditionKey) => setConds((c) => (c.includes(k) ? c.filter((x) => x !== k) : [...c, k]))
+  const toggleCond = (k: string) => setConds((c) => (c.includes(k) ? c.filter((x) => x !== k) : [...c, k]))
 
-  const select = (id: number | null) => setParams(id ? { placeId: String(id) } : {})
-  const selected = PLACES.find((p) => p.id === selectedId)
-
-  // TODO: 서버 필터(GET /api/places?category=&dogId=)로 바꿉니다.
-  const list = useMemo(
-    () =>
-      PLACES.filter((p) => (!category || p.category === category) && (!dogBased || p.status !== 'HARD') && p.name.includes(keyword.trim()) && conds.every((k) => PLACE_OK[p.id]?.includes(k))),
-    [category, dogBased, keyword, conds],
+  const { dog, loading } = useCurrentDog()
+  const pos = useMyLocation()
+  const dogId = dog?.id
+  const q = keyword.trim()
+  const { data } = useApi(
+    () => (dogId && pos ? placeApi.list({ dogId, category: category ?? undefined, q: q || undefined, lat: pos.lat, lng: pos.lng, fitOnly: dogBased, conditions: conds }) : null),
+    [dogId, pos, category, q, dogBased, conds.join()],
   )
+
+  if (loading) return null
+  if (!dog) return <Navigate to="/onboarding" replace />
+
+  const list = data ?? []
+  const pins = pinsOf(list)
+  const select = (id: number | null) => setParams(id ? { placeId: String(id) } : {})
+  const selected = list.find((p) => p.id === selectedId)
 
   return (
     <div className="flex h-[calc(100vh-80px)] w-full flex-col overflow-hidden lg:flex-row">
@@ -52,17 +81,17 @@ export default function MapPage() {
                 </button>
               )}
             </div>
-            {/* 검색어가 있을 때만 자동완성 표시 (TODO: 검색 API) */}
-            {keyword && (
+            {/* 검색어가 있을 때만 자동완성 표시 (이름 검색 결과 앞 3곳) */}
+            {keyword && list.length > 0 && (
               <ul className="flex flex-col divide-y divide-surface-container-high/40 overflow-hidden rounded-xl border border-beige bg-white shadow-sm">
-                {SEARCH_SUGGESTIONS.map((s, i) => (
-                  <li key={s.name} onClick={() => setKeyword(s.name)} className="flex cursor-pointer items-center justify-between px-3 py-2.5 transition-colors hover:bg-surface-container-low">
+                {list.slice(0, 3).map((s, i) => (
+                  <li key={s.id} onClick={() => setKeyword(s.name)} className="flex cursor-pointer items-center justify-between px-3 py-2.5 transition-colors hover:bg-surface-container-low">
                     <div className="flex min-w-0 items-center gap-2">
                       <Icon name="location_on" className="shrink-0 text-[18px] text-primary-container" />
                       <span className="truncate text-[13px] font-medium">{s.name}</span>
                     </div>
                     <span className="ml-2 shrink-0 text-[12px] text-outline">
-                      {s.category} · <span className={i === 0 ? 'font-medium text-primary' : ''}>{formatDistance(s.distanceM)}</span>
+                      {s.categoryLabel} · <span className={i === 0 ? 'font-medium text-primary' : ''}>{s.distanceM != null && formatDistance(s.distanceM)}</span>
                     </span>
                   </li>
                 ))}
@@ -77,7 +106,7 @@ export default function MapPage() {
                 우리 강아지 기준
               </span>
               <span className="mt-0.5 text-[12px] text-outline">
-                {DOG.name} · {DOG.size} 기준으로 보여줘요
+                {dog.name} · {SIZE_LABEL[dog.size]} 기준으로 보여줘요
               </span>
             </div>
             <button
@@ -133,10 +162,10 @@ export default function MapPage() {
                   <div className="mt-1 flex items-center gap-2 text-[13px] text-on-surface-variant">
                     {CATEGORY_LABEL[p.category]}
                     <span className="text-outline">·</span>
-                    <span className={active ? 'font-medium text-primary' : 'text-outline'}>{formatDistance(p.distanceM)}</span>
+                    <span className={active ? 'font-medium text-primary' : 'text-outline'}>{p.distanceM != null && formatDistance(p.distanceM)}</span>
                   </div>
                 </div>
-                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-bold text-white ${STATUS_BG[p.status]}`}>{STATUS_LABEL[p.status]}</span>
+                {p.verdict && <span className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-bold text-white ${VERDICT_BG[p.verdict.level]}`}>{VERDICT_LABEL[p.verdict.level]}</span>}
               </button>
             )
           })}
@@ -164,14 +193,15 @@ export default function MapPage() {
           </div>
 
           {list.map((p) => {
-            if (!p.pin) return null
+            const pin = pins.get(p.id)
+            if (!pin) return null
             const active = p.id === selectedId
             return (
               <button
                 key={p.id}
                 type="button"
                 onClick={() => select(p.id)}
-                style={{ top: p.pin.top, left: p.pin.left }}
+                style={{ top: pin.top, left: pin.left }}
                 className={`absolute flex -translate-x-1/2 -translate-y-full flex-col items-center ${active ? 'z-20' : 'z-10 opacity-90 transition-opacity hover:opacity-100'}`}
               >
                 <span
@@ -179,7 +209,7 @@ export default function MapPage() {
                     active ? 'bg-primary-container px-3 py-1.5 text-[13px] text-white shadow-lg ring-2 ring-white' : 'border border-outline-variant/30 bg-white px-2.5 py-1 text-[12px] text-secondary shadow-md'
                   }`}
                 >
-                  <Icon name={p.pin.icon} className="text-[14px]" />
+                  <Icon name={pin.icon} className="text-[14px]" />
                   {p.name}
                 </span>
                 <span className={`-mt-1 rotate-45 ${active ? 'h-2.5 w-2.5 bg-primary-container shadow-md' : 'h-2 w-2 border-r border-b border-outline-variant/30 bg-white'}`} />
@@ -188,7 +218,7 @@ export default function MapPage() {
           })}
         </div>
 
-        {selected && <PlaceDrawer key={selected.id} place={selected} onClose={() => select(null)} />}
+        {selectedId && <PlaceDrawer key={selectedId} placeId={selectedId} dogId={dog.id} distanceM={selected?.distanceM ?? null} onClose={() => select(null)} />}
       </div>
       {filterOpen && (
         <Modal title="필터 더보기" onClose={() => setFilterOpen(false)}>

@@ -1,18 +1,32 @@
 import { useState } from 'react'
+import { placeApi } from '../../api/endpoints'
 import Icon from '../common/Icon'
 import Modal from '../common/Modal'
 import { chip, input, primaryBtn } from '../common/styles'
-import { CONDITIONS, type ConditionKey } from '../../mocks/editRequests'
+import { CONDITIONS, type ConditionKey } from '../../constants/place'
 
 // 장소 정보 수정 요청: 조건 하나를 고르고 맞는 값을 알려 줌 (관리자가 승인하면 반영)
-export default function EditRequestModal({ placeName, onClose }: { placeName: string; onClose: () => void }) {
+export default function EditRequestModal({ placeId, placeName, onClose }: { placeId: number; placeName: string; onClose: () => void }) {
   const [key, setKey] = useState<ConditionKey | null>(null)
   const [value, setValue] = useState('')
   const [memo, setMemo] = useState('')
   const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
   const condition = CONDITIONS.find((c) => c.key === key)
 
-  // TODO: POST /api/places/{id}/edit-requests
+  const send = async () => {
+    if (!key || !value) return
+    setSending(true)
+    try {
+      await placeApi.requestEdit(placeId, key, value, memo.trim() || undefined)
+      setSent(true)
+    } catch {
+      alert('요청을 보내지 못했어요. 잠시 후 다시 시도해 주세요')
+    } finally {
+      setSending(false)
+    }
+  }
+
   if (sent)
     return (
       <Modal title="요청을 보냈어요" onClose={onClose}>
@@ -52,9 +66,9 @@ export default function EditRequestModal({ placeName, onClose }: { placeName: st
           <div className="flex flex-col gap-2">
             <span className="text-label-lg font-semibold">실제로는</span>
             <div className="flex flex-wrap gap-2">
-              {condition.options.map((o) => (
-                <button key={o} type="button" onClick={() => setValue(o)} className={chip(value === o)}>
-                  {o}
+              {condition.options.map(([v, label]) => (
+                <button key={v} type="button" onClick={() => setValue(v)} className={chip(value === v)}>
+                  {label}
                 </button>
               ))}
             </div>
@@ -66,7 +80,7 @@ export default function EditRequestModal({ placeName, onClose }: { placeName: st
           </span>
           <input value={memo} onChange={(e) => setMemo(e.target.value)} maxLength={100} placeholder="예: 매장 안내문에 15kg까지 가능하다고 적혀 있어요" className={input} />
         </label>
-        <button type="button" disabled={!value} onClick={() => setSent(true)} className={`${primaryBtn} w-full`}>
+        <button type="button" disabled={!value || sending} onClick={send} className={`${primaryBtn} w-full`}>
           <Icon name="send" className="text-[20px]" />
           요청 보내기
         </button>
