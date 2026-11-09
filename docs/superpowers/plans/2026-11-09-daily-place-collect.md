@@ -794,3 +794,10 @@ public class CollectJobController {
 - [x] 2-4 `DailyCollectJob`/`CollectPlanner`/`CollectJobStore`: 확인된 곳만 import, 미확인 장소 14일 쉬기(`State.retryAfter` 맵), 기록에 `confirmed` (테스트) → 커밋
 - [x] 2-5 DB 정리: 사용자 요청("데이터베이스를 지우고 … 30곳을 수집해봐")으로 장소 관련 6개 테이블(place·place_condition·place_source·place_edit_request·course·course_place) 비움, 회원·반려견은 유지. 백업: DB 는 mysqldump(작업용 임시 폴더), 수집 파일은 `backend/data-backup-20261109/`(git 제외)
 - [ ] 2-6 다른 포트로 백엔드 띄워 AI 상담 3개 모델 응답·수집 한 번 확인 → 결과 기록·커밋
+
+### 2단계 첫 실제 수집 (2026-11-09 12:50~12:57, DB 비운 뒤 30곳)
+
+평촌 검색어 6개 → 후보 42곳 → 블로그 30곳 → 글 10건 이상 9곳 요약 → 조건 키워드 있는 2곳만 DB(에그룸, 올웨이즈 선데이). 실패 0. AI 상담은 3개 모델 모두 응답(Gemini 1.3초, Groq 1.2초, OpenRouter 11.9초)
+원인 발견: 글이 많은 7곳(아카루이 29건, 아띠 26건 …)이 키워드 0개 → Groq 이 `"sentence":"1"` 처럼 문장 번호를 문자로 줄 때 판정을 통째로 버리던 버그. 수정 커밋 b31f22f (테스트 추가)
+
+- [ ] 2-7 새 코드로 백엔드 다시 띄우고, 키워드 0개였던 7곳의 요약 파일을 지우고 쉬는 목록에서 빼서 다시 요약 → DB 반영 확인
