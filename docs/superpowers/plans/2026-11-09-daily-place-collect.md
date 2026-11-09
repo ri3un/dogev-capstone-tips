@@ -769,7 +769,7 @@ public class CollectJobController {
 ## 운영 메모: 노트북에서 매일 돌리기
 
 1. 루트 `.env` 에 `COLLECT_SCHEDULE_ENABLED=true` (2026-11-09 넣어 둠). 끄려면 `false` 또는 줄 삭제
-2. 매일 03:00 에 노트북이 켜져 있고 `cd backend && ./gradlew bootRun` 이 떠 있어야 돔. 놓친 날은 다음 날 이어서(검색어 위치는 파일에 남음)
+2. 수집 시각: 노트북(local)은 매일 **15:00**, 배포 서버(prod)는 매일 **03:00** (2026-11-09 사용자 결정). 그 시각에 노트북이 깨어 있고 `cd backend && ./gradlew bootRun` 이 떠 있어야 돔. 놓친 날은 다음 실행에서 이어서(검색어 위치는 파일에 남음). 시각은 `.env` 의 `COLLECT_CRON` 으로 바꿈 — 데이터가 충분히 쌓이면 한 달에 한 번 `0 0 3 1 * *`(매월 1일 03:00)
 3. 기다리지 않고 지금 돌리기: 관리자 로그인 후 `POST /api/admin/collect/run` (30곳이면 요약 사이 40초씩 쉬어 약 20~25분)
 4. 진행 보기: `GET /api/admin/collect/logs?n=7` 또는 `backend/data/collect-log.jsonl` (한 줄 = 하루). 서버 콘솔 로그는 Windows 인코딩이라 한글이 깨져 보일 수 있음 — 파일·API 는 정상
 5. 안양 다 돌았는지: `backend/data/collect-state.json` 의 `rounds` 가 1 이 되면 검색어(21개 지역 × 7개 키워드 = 147개, 하루 6개면 약 25일) 한 바퀴 완료 → `application.yml` 의 `collect.schedule.areas` 에 다른 시 지역을 더하고 `address-prefix` 를 바꿈(여러 시를 함께 받으려면 접두어를 목록으로 바꾸는 작은 수정 필요)
@@ -793,13 +793,18 @@ public class CollectJobController {
 - [x] 2-3 `ReviewSummaryService`: 쓸 수 있는 글 < 10 이면 LLM 안 부르고 `NOT_ENOUGH_SOURCE` + `static boolean isConfirmed(ReviewSummary)` (sourceCount ≥ 10 && 조건 고정 태그 ≥ 1) (테스트) → 커밋
 - [x] 2-4 `DailyCollectJob`/`CollectPlanner`/`CollectJobStore`: 확인된 곳만 import, 미확인 장소 14일 쉬기(`State.retryAfter` 맵), 기록에 `confirmed` (테스트) → 커밋
 - [x] 2-5 DB 정리: 사용자 요청("데이터베이스를 지우고 … 30곳을 수집해봐")으로 장소 관련 6개 테이블(place·place_condition·place_source·place_edit_request·course·course_place) 비움, 회원·반려견은 유지. 백업: DB 는 mysqldump(작업용 임시 폴더), 수집 파일은 `backend/data-backup-20261109/`(git 제외)
-- [ ] 2-6 다른 포트로 백엔드 띄워 AI 상담 3개 모델 응답·수집 한 번 확인 → 결과 기록·커밋
+- [x] 2-6 다른 포트로 백엔드 띄워 AI 상담 3개 모델 응답·수집 한 번 확인 → 결과 기록·커밋
 
 ### 2단계 첫 실제 수집 (2026-11-09 12:50~12:57, DB 비운 뒤 30곳)
 
 평촌 검색어 6개 → 후보 42곳 → 블로그 30곳 → 글 10건 이상 9곳 요약 → 조건 키워드 있는 2곳만 DB(에그룸, 올웨이즈 선데이). 실패 0. AI 상담은 3개 모델 모두 응답(Gemini 1.3초, Groq 1.2초, OpenRouter 11.9초)
 원인 발견: 글이 많은 7곳(아카루이 29건, 아띠 26건 …)이 키워드 0개 → Groq 이 `"sentence":"1"` 처럼 문장 번호를 문자로 줄 때 판정을 통째로 버리던 버그. 수정 커밋 b31f22f (테스트 추가)
 
-- [ ] 2-7 새 코드로 백엔드 다시 띄우고, 키워드 0개였던 7곳의 요약 파일을 지우고 쉬는 목록에서 빼서 다시 요약 → DB 반영 확인
+- [x] 2-7 새 코드로 백엔드 다시 띄우고, 키워드 0개였던 7곳의 요약 파일을 지우고 쉬는 목록에서 빼서 다시 요약 → DB 반영 확인
 
-- [ ] 2-8 (재수집 끝난 뒤) 수집 시각: 배포 전 노트북은 매일 15:00, 배포 서버(prod 프로필)는 매일 03:00. `.env` 의 `COLLECT_CRON` 으로 바꿀 수 있게(데이터가 충분히 쌓이면 한 달에 한 번, 예 `0 0 3 1 * *`). `.env.example`·운영 메모 갱신 → 테스트 → 커밋 → 백엔드 다시 띄우기 (사용자 결정 2026-11-09)
+- [x] 2-8 (재수집 끝난 뒤) 수집 시각: 배포 전 노트북은 매일 15:00, 배포 서버(prod 프로필)는 매일 03:00. `.env` 의 `COLLECT_CRON` 으로 바꿀 수 있게(데이터가 충분히 쌓이면 한 달에 한 번, 예 `0 0 3 1 * *`). `.env.example`·운영 메모 갱신 → 테스트 → 커밋 → 백엔드 다시 띄우기 (사용자 결정 2026-11-09)
+
+### 재수집 결과 (2026-11-09 13:03~13:16, 버그 수정 후)
+
+검색어 `평촌 펫프렌들리`, `범계 …` 5개 → 새 장소 24곳(후보 66) → 블로그 30곳 → 요약 17곳 → **DB 18곳**(키워드 0개였던 7곳 모두 키워드 나옴), 미확인 14곳은 14일 쉼, 실패 0. 2-6 의 AI 상담 3개 모델 응답도 확인(Gemini 1.3초, Groq 1.2초, OpenRouter 11.9초)
+열린 질문: 주차 키워드(#주차가능/#주차불가)만으로 확인된 곳이 5곳 — 반려견 조건(크기·목줄·실내 등)만 확인 조건으로 칠지 사용자 결정 대기
