@@ -818,3 +818,13 @@ public class CollectJobController {
 ### 새 규칙(주차 제외, 글 5건) 수집 결과 (2026-11-09 13:23~13:36)
 
 주차만 확인된 5곳을 DB 에서 지우고(백업 SQL 은 작업용 임시 폴더), 글 5건 이상 8곳을 쉬는 목록에서 뺀 뒤 수집: 범계·인덕원 검색어 6개 → 새 장소 7(후보 73) → 블로그 30 → 요약 19 → **DB 24곳**, 미확인 17, 실패 0
+
+## 3단계: 화면 손보기 (2026-11-09 사용자 요청)
+
+> 끊기면: `docs/superpowers/plans/2026-11-09-daily-place-collect.md 의 "3단계" 첫 [ ] 부터 이어서 해 줘. 브랜치 feature/daily-collect, 디자인(className)은 그대로.`
+
+- [ ] 3-1 지도: "우리 강아지 기준" 끄면 목록·상세의 가능/확인 필요/어려움 배지 숨김 (`MapPage`, `PlaceDrawer` 에 `showVerdict`)
+- [ ] 3-2 코스 화면 산책 팁 섹션 삭제 (`CoursePage`, `constants/care.ts` 의 `WALK_TIP`)
+- [ ] 3-3 삭제 X 버튼: 건강 기록(이미 `DELETE /api/records/{id}` 있음 → `RecordsPage` 일별 목록), AI 상담 기록(백엔드 `DELETE /api/consultations/{id}` 새로 + 테스트 → `ConsultPage` 지난 상담 목록)
+- [ ] 3-4 장소 이미지: 지도 API 는 사진을 안 줌 → 네이버 이미지 검색 API(공식, 기존 NAVER_SEARCH 키)로 "이름 + 지역" 첫 이미지 → place.image_url (사용자 확인 후)
+- [ ] 3-5 lint·build·test → 브라우저 확인 → 커밋
