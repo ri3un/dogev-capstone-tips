@@ -8,21 +8,26 @@ import com.gaebalhagae.llm.GeminiClient;
 import com.gaebalhagae.llm.GroqClient;
 import com.gaebalhagae.llm.LlmClient;
 import com.gaebalhagae.place.collect.BlogPost;
+import com.gaebalhagae.place.domain.PlaceCategory;
 import com.gaebalhagae.place.collect.BlogPostStore;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
@@ -60,23 +65,55 @@ public class ReviewSummaryService {
     private final LlmClient primary;
     private final LlmClient fallback;
     private final Clock clock;
+    private final int minSources;   // 요약에 필요한 최소 글 수 (협찬 아님 + 반려견 문장 있음)
     private final ObjectMapper objectMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Autowired
     public ReviewSummaryService(BlogPostStore blogPostStore, ReviewSummaryStore summaryStore,
-                                GroqClient groq, GeminiClient gemini, Clock clock) {
-        this(blogPostStore, summaryStore, (LlmClient) groq, (LlmClient) gemini, clock);   // Groq 메인, Gemini 대안
+                                GroqClient groq, GeminiClient gemini, Clock clock,
+                                @Value("${collect.min-sources:5}") int minSources) {
+        this(blogPostStore, summaryStore, (LlmClient) groq, (LlmClient) gemini, clock, minSources);   // Groq 메인, Gemini 대안
     }
 
     // 테스트에서 가짜 LLM을 넣기 위한 생성자
     ReviewSummaryService(BlogPostStore blogPostStore, ReviewSummaryStore summaryStore,
-                         LlmClient primary, LlmClient fallback, Clock clock) {
+                         LlmClient primary, LlmClient fallback, Clock clock, int minSources) {
         this.blogPostStore = blogPostStore;
         this.summaryStore = summaryStore;
         this.primary = primary;
         this.fallback = fallback;
         this.clock = clock;
+        this.minSources = minSources;
+    }
+
+    // 공원·산책로에 맞지 않는 카페 조건 (흔한 공원 이름은 근처 카페 후기가 섞여 이런 조건이 붙음, 2026-11-09 사용자 결정)
+    static final Set<ConditionKey> CAFE_ONLY = EnumSet.of(ConditionKey.INDOOR, ConditionKey.CARRIER_REQUIRED,
+            ConditionKey.MANNER_BELT_REQUIRED, ConditionKey.SEAT_ALLOWED, ConditionKey.WATER_OR_PET_MENU);
+
+    /** 공원·산책로면 카페 조건을 unknown 으로 바꾸고 키워드를 다시 만든 요약, 그 밖의 분류는 그대로 */
+    public static ReviewSummary forCategory(ReviewSummary s, PlaceCategory category) {
+        if (s == null || category != PlaceCategory.PARK || s.conditions() == null) {
+            return s;
+        }
+        Map<String, ConditionResult> conditions = new LinkedHashMap<>(s.conditions());
+        CAFE_ONLY.forEach(k -> conditions.put(k.key(), ConditionResult.unknown()));
+        return new ReviewSummary(s.placeName(), s.summary(), keywords(conditions, s.mood() == null ? List.of() : s.mood()),
+                conditions, s.mood(), s.sourceCount(), s.sourceUrls(), s.model(), s.summarizedAt());
+    }
+
+    /**
+     * 확인된 애견동반 장소: 요약에 쓴 글이 minSources 건 이상이고, 반려견 조건 키워드(#목줄필수, #소형견만 …)가 하나 이상.
+     * 주차는 반려견 동반과 상관없어서 세지 않음. 카카오 검색 결과에는 일반 카페도 섞이므로 이것을 통과한 곳만 DB 에 넣습니다.
+     */
+    public boolean isConfirmed(ReviewSummary s) {
+        if (s == null || s.sourceCount() < minSources || s.conditions() == null) {
+            return false;
+        }
+        return Arrays.stream(ConditionKey.values()).filter(k -> k != ConditionKey.PARKING).anyMatch(k -> {
+            ConditionResult r = s.conditions().get(k.key());
+            return r != null && r.value() != null && k.tagOf(r.value()).isPresent();
+        });
     }
 
     /** LLM 응답 모양. 판정 한 건은 조건 키가 문장마다 달라서 Map 으로 받습니다. */
@@ -98,6 +135,9 @@ public class ReviewSummaryService {
                 .toList();
         if (posts.isEmpty()) {
             return new SummaryResult(placeName, "NO_SOURCE", 0, null);
+        }
+        if (posts.size() < minSources) {   // 글이 적으면 한 줄짜리·키워드 없는 요약이 나와서 LLM 을 부르지 않음
+            return new SummaryResult(placeName, "NOT_ENOUGH_SOURCE", posts.size(), null);
         }
         Optional<ReviewSummary> previous = summaryStore.findByPlace(placeName);
         if (!force && previous.isPresent() && isCurrentFormat(previous.get())
@@ -158,7 +198,8 @@ public class ReviewSummaryService {
         }
         List<Judgement> out = new ArrayList<>();
         for (Map<String, Object> j : result.judgements()) {
-            if (!(j.get("sentence") instanceof Number n) || n.intValue() < 1 || n.intValue() > sentenceCount) {
+            Integer sentence = sentenceNumber(j.get("sentence"));
+            if (sentence == null || sentence < 1 || sentence > sentenceCount) {
                 continue;
             }
             Map<String, String> values = new LinkedHashMap<>();
@@ -173,9 +214,20 @@ public class ReviewSummaryService {
                     ? tags.stream().filter(String.class::isInstance).map(String.class::cast)
                         .map(t -> "#" + t.replace("#", "").replace(" ", "")).filter(t -> t.length() > 1).toList()
                     : List.of();
-            out.add(new Judgement(n.intValue(), values, kg, mood));
+            out.add(new Judgement(sentence, values, kg, mood));
         }
         return out;
+    }
+
+    // 문장 번호: 숫자 또는 "12" 같은 숫자 문자열 (Groq 이 가끔 문자로 줌). 그 밖은 null
+    private static Integer sentenceNumber(Object raw) {
+        if (raw instanceof Number n) {
+            return n.intValue();
+        }
+        if (raw instanceof String s && s.strip().matches("\\d{1,4}")) {
+            return Integer.parseInt(s.strip());
+        }
+        return null;
     }
 
     // 조건마다 unknown 이 아닌 판정만 세서 다수결. 60% 이상이면 그 값, 아니면 NEEDS_CHECK
@@ -219,7 +271,8 @@ public class ReviewSummaryService {
     static List<String> keywords(Map<String, ConditionResult> conditions, List<String> mood) {
         LinkedHashSet<String> tags = new LinkedHashSet<>();
         for (ConditionKey key : ConditionKey.values()) {
-            key.tagOf(conditions.get(key.key()).value()).ifPresent(tags::add);
+            // 저장된 예전 요약은 키가 빠져 있을 수 있음 → 없는 조건은 unknown
+            key.tagOf(conditions.getOrDefault(key.key(), ConditionResult.unknown()).value()).ifPresent(tags::add);
         }
         tags.addAll(mood);
         return tags.stream().limit(MAX_KEYWORDS).toList();

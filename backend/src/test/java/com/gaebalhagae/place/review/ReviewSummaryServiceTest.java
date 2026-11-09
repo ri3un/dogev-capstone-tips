@@ -18,6 +18,7 @@ import java.time.ZoneId;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -86,8 +87,62 @@ class ReviewSummaryServiceTest {
         return new BlogPost("t", sentence, url, "b", LocalDate.of(2026, 10, 1), sponsored, List.of(sentence));
     }
 
+    // 기존 판정 테스트는 글 4건으로 보므로 최소 글 수 1, 10건 규칙은 아래 테스트에서 따로
     private ReviewSummaryService service(LlmClient primary, LlmClient fallback) {
-        return new ReviewSummaryService(blogStore, summaryStore, primary, fallback, clock);
+        return new ReviewSummaryService(blogStore, summaryStore, primary, fallback, clock, 1);
+    }
+
+    @Test
+    void 쓸_수_있는_글이_10건_미만이면_LLM을_부르지_않는다() {
+        FakeLlm groq = new FakeLlm("groq", GOOD);
+        var result = new ReviewSummaryService(blogStore, summaryStore, groq, new FakeLlm("gemini"), clock, 10)
+                .summarize("공원A", false);
+
+        assertThat(result.status()).isEqualTo("NOT_ENOUGH_SOURCE");
+        assertThat(result.sourceCount()).isEqualTo(4);
+        assertThat(groq.calls).isZero();
+        assertThat(summaryStore.findByPlace("공원A")).isEmpty();
+    }
+
+    @Test
+    void 글_10건_이상이고_조건_키워드가_있어야_확인된_애견동반_장소다() {
+        var svc = new ReviewSummaryService(blogStore, summaryStore, new FakeLlm("groq"), new FakeLlm("gemini"), clock, 10);
+        var known = Map.of("leash_required", new ConditionResult("yes", null, 3, 3, List.of()));
+        var allUnknown = Map.of("leash_required", ConditionResult.unknown());
+
+        assertThat(svc.isConfirmed(summary(10, known))).isTrue();
+        assertThat(svc.isConfirmed(summary(9, known))).isFalse();        // 글 부족
+        assertThat(svc.isConfirmed(summary(12, allUnknown))).isFalse();  // 조건 키워드 없음
+        assertThat(svc.isConfirmed(null)).isFalse();
+        // 주차는 반려견 동반과 상관없어서 주차 키워드만으로는 확인 안 됨 (2026-11-09 사용자 결정)
+        var parkingOnly = Map.of("parking", new ConditionResult("yes", null, 3, 3, List.of()),
+                "leash_required", ConditionResult.unknown());
+        assertThat(svc.isConfirmed(summary(15, parkingOnly))).isFalse();
+    }
+
+    @Test
+    void 공원은_카페_조건을_빼고_키워드를_다시_만든다() {
+        // 흔한 공원 이름이면 근처 카페 후기가 섞여 #실내동반 등이 붙음 (2026-11-09 새마을공원·자유공원)
+        var conditions = new java.util.LinkedHashMap<String, ConditionResult>();
+        conditions.put("indoor", new ConditionResult("indoor", null, 3, 3, List.of()));
+        conditions.put("seat_allowed", new ConditionResult("yes", null, 2, 2, List.of()));
+        conditions.put("leash_required", new ConditionResult("yes", null, 2, 2, List.of()));
+        var s = new ReviewSummary("자유공원", List.of("요약"), List.of("#실내동반", "#목줄필수", "#의자착석가능"), conditions,
+                List.of("#넓음"), 8, List.of(), "groq", java.time.LocalDateTime.of(2026, 11, 9, 14, 0));
+
+        var park = ReviewSummaryService.forCategory(s, com.gaebalhagae.place.domain.PlaceCategory.PARK);
+        assertThat(park.conditions().get("indoor").value()).isEqualTo("unknown");
+        assertThat(park.conditions().get("seat_allowed").value()).isEqualTo("unknown");
+        assertThat(park.conditions().get("leash_required").value()).isEqualTo("yes");
+        assertThat(park.keywords()).containsExactly("#목줄필수", "#넓음");
+
+        var cafe = ReviewSummaryService.forCategory(s, com.gaebalhagae.place.domain.PlaceCategory.CAFE);
+        assertThat(cafe).isSameAs(s);
+    }
+
+    private static ReviewSummary summary(int sources, Map<String, ConditionResult> conditions) {
+        return new ReviewSummary("공원A", List.of("요약"), List.of(), conditions, List.of(), sources, List.of(), "groq",
+                java.time.LocalDateTime.of(2026, 11, 9, 3, 0));
     }
 
     @Test
@@ -114,6 +169,20 @@ class ReviewSummaryServiceTest {
 
         assertThat(result.summary().mood()).containsExactly("#조용함", "#넓음");
         assertThat(result.summary().keywords()).containsExactly("#중형견까지", "#실내동반", "#조용함", "#넓음");
+    }
+
+    @Test
+    void 문장_번호가_문자로_와도_판정을_버리지_않는다() {
+        // Groq 이 "sentence":"1" 처럼 문자로 줄 때가 있음 (2026-11-09 실제 응답) → 예전엔 판정이 통째로 버려져 키워드 0개
+        String stringNumbers = """
+                {"judgements":[{"sentence":"1","indoor":"indoor"},{"sentence":"2","parking":"yes","mood_tags":["넓음"]}],
+                 "summary":["실내 동반이 돼요."]}
+                """;
+        var result = service(new FakeLlm("groq", stringNumbers), new FakeLlm("gemini")).summarize("공원A", false);
+
+        assertThat(result.summary().conditions().get("indoor").value()).isEqualTo("indoor");
+        assertThat(result.summary().conditions().get("parking").value()).isEqualTo("yes");
+        assertThat(result.summary().keywords()).containsExactly("#실내동반", "#주차가능", "#넓음");
     }
 
     @Test

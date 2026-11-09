@@ -153,7 +153,7 @@ export default function MapPage() {
                     <span className={active ? 'font-medium text-primary' : 'text-outline'}>{p.distanceM != null && formatDistance(p.distanceM)}</span>
                   </div>
                 </div>
-                {p.verdict && <span className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-bold text-white ${VERDICT_BG[p.verdict.level]}`}>{VERDICT_LABEL[p.verdict.level]}</span>}
+                {dogBased && p.verdict && <span className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-bold text-white ${VERDICT_BG[p.verdict.level]}`}>{VERDICT_LABEL[p.verdict.level]}</span>}
               </button>
             )
           })}
@@ -212,7 +212,7 @@ export default function MapPage() {
           </div>
         </div>
 
-        {selectedId && <PlaceDrawer key={selectedId} placeId={selectedId} dogId={dog.id} distanceM={selected?.distanceM ?? null} onClose={() => select(null)} />}
+        {selectedId && <PlaceDrawer key={selectedId} placeId={selectedId} dogId={dog.id} showVerdict={dogBased} distanceM={selected?.distanceM ?? null} onClose={() => select(null)} />}
       </div>
       {filterOpen && (
         <Modal title="필터 더보기" onClose={() => setFilterOpen(false)}>

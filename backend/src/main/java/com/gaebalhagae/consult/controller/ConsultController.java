@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,5 +37,11 @@ public class ConsultController {
     @GetMapping("/api/consultations/{id}")
     public ApiResponse<ConsultResponses.Detail> detail(@AuthenticationPrincipal LoginMember me, @PathVariable Long id) {
         return ApiResponse.ok(consultService.detail(me.id(), id));
+    }
+
+    @DeleteMapping("/api/consultations/{id}")
+    public ApiResponse<Void> delete(@AuthenticationPrincipal LoginMember me, @PathVariable Long id) {
+        consultService.delete(me.id(), id);
+        return ApiResponse.ok();
     }
 }

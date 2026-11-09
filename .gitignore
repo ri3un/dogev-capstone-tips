@@ -17,6 +17,7 @@ backend/out/
 backend/bin/
 # 수집한 블로그 글(JSON) - 저장소에 올리지 않음
 backend/data/
+backend/data-backup-*/
 
 # frontend (Node)
 node_modules/

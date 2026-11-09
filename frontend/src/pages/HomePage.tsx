@@ -229,14 +229,12 @@ export default function HomePage() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {nearby.map((p) => (
             <Link key={p.id} to={`/map?placeId=${p.id}`} className={`group flex flex-col overflow-hidden ${card} transition-all hover:shadow-md`}>
-              <div className="relative h-44 overflow-hidden">
-                <Photo src={undefined} alt={p.name} className="h-full w-full transition-transform duration-500 group-hover:scale-105" />
-                <span className="absolute top-3 left-3 rounded-full bg-tertiary-fixed px-2.5 py-0.5 text-label-sm font-semibold text-on-tertiary-fixed shadow-sm">
-                  {DOG.size} OK
-                </span>
-              </div>
+              {/* 가게 사진은 지도 API 가 공식으로 주지 않아 사진 칸 없이 */}
               <div className="flex flex-1 flex-col justify-between gap-2 p-5">
                 <div>
+                  <span className="mb-2 inline-block rounded-full bg-tertiary-fixed px-2.5 py-0.5 text-label-sm font-semibold text-on-tertiary-fixed shadow-sm">
+                    {DOG.size} OK
+                  </span>
                   <h3 className="text-headline-sm font-bold transition-colors group-hover:text-primary">{p.name}</h3>
                   <p className="mt-1 text-body-sm text-on-surface-variant">{p.summaryFirstLine ?? p.keywords.join(' ')}</p>
                 </div>

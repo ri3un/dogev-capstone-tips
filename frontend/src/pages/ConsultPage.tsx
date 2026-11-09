@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import { consultApi, questionApi } from '../api/endpoints'
 import { ageText, localDate, monthDay, todayStr } from '../api/format'
 import type { Consultation } from '../api/types'
+import ConfirmModal from '../components/common/ConfirmModal'
 import Icon from '../components/common/Icon'
 import { useApi } from '../hooks/useApi'
 import { useCurrentDog } from '../hooks/useCurrentDog'
@@ -40,6 +41,18 @@ export default function ConsultPage() {
   const { data: memos } = useApi(() => (dogId ? questionApi.list(dogId) : null), [dogId])
   const { data: loaded, setData: setResult } = useApi(() => (consultId ? consultApi.get(consultId) : null), [consultId])
   const R = consultId ? loaded : undefined // '새 상담'으로 /consult 에 오면 이전 답변을 숨김
+  const [deleting, setDeleting] = useState<number | null>(null)
+  const removeConsult = async (id: number) => {
+    try {
+      await consultApi.remove(id)
+      reloadHistory()
+      if (id === consultId) navigate('/consult') // 보고 있던 상담을 지우면 빈 화면으로
+    } catch {
+      alert('상담 기록을 지우지 못했어요')
+    } finally {
+      setDeleting(null)
+    }
+  }
   const reset = () => {
     setSaved(false)
     setCompareOpen(false)
@@ -104,7 +117,20 @@ export default function ConsultPage() {
                 <Link key={h.id} to={`/consult/${h.id}`} onClick={reset} className={`block rounded-xl p-3 transition-all ${on ? 'bg-surface-container-low hover:bg-surface-container' : 'hover:bg-surface-container-low'}`}>
                   <div className="mb-1 flex items-center justify-between text-label-sm text-outline">
                     {whenText(h.createdAt)}
-                    {on && <span className="h-1.5 w-1.5 rounded-full bg-secondary-container" />}
+                    <span className="flex items-center gap-1">
+                      {on && <span className="h-1.5 w-1.5 rounded-full bg-secondary-container" />}
+                      <button
+                        type="button"
+                        aria-label="상담 기록 삭제"
+                        onClick={(e) => {
+                          e.preventDefault() // 링크(상담 열기)로 넘어가지 않게
+                          setDeleting(h.id)
+                        }}
+                        className="flex h-5 w-5 items-center justify-center rounded-full text-outline transition-colors hover:bg-surface-container hover:text-error"
+                      >
+                        <Icon name="close" className="text-[14px]" />
+                      </button>
+                    </span>
                   </div>
                   <p className={`line-clamp-1 text-body-sm ${on ? 'font-medium' : 'text-on-surface-variant'}`}>{h.question}</p>
                 </Link>
@@ -312,6 +338,16 @@ export default function ConsultPage() {
 
         <p className="py-2 text-center text-body-sm text-outline">킁킁 AI는 무료 AI 3개의 답변을 비교해 참고용 사전 가이드를 제공합니다.</p>
       </div>
+      {deleting && (
+        <ConfirmModal
+          title="이 상담 기록을 지울까요?"
+          body="질문과 AI 답변이 가족 모두에게서 사라지고 되돌릴 수 없어요. 질문 메모에 저장한 내용은 남아요."
+          confirmLabel="지우기"
+          danger
+          onConfirm={() => removeConsult(deleting)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
     </div>
   )
 }
