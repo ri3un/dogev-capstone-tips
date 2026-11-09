@@ -60,7 +60,7 @@
   - `static Queries CollectPlanner.nextQueries(List<String> areas, List<String> keywords, int cursor, int count)` — 검색어 = `area + " " + keyword`, 지역마다 모든 키워드를 돈 뒤 다음 지역. 끝을 넘으면 처음으로, `wrapped=true`
   - `static List<String> CollectPlanner.pickPlaces(List<CollectedPlace> places, Function<String, Optional<ReviewSummary>> summaryOf, int limit)` — 요약 없는 곳(목록 순서) 먼저, 그다음 요약이 오래된 순. 이름이 같으면 한 번만
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
 
 ```java
 package com.gaebalhagae.place.collect.schedule;
@@ -124,9 +124,9 @@ class CollectPlannerTest {
 }
 ```
 
-- [ ] **Step 2: 실패 확인** — `cd backend && ./gradlew test --tests "*CollectPlannerTest"` → 컴파일 오류(`CollectPlanner` 없음)
+- [x] **Step 2: 실패 확인** — `cd backend && ./gradlew test --tests "*CollectPlannerTest"` → 컴파일 오류(`CollectPlanner` 없음)
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현**
 
 ```java
 package com.gaebalhagae.place.collect.schedule;
@@ -198,8 +198,8 @@ public final class CollectPlanner {
 }
 ```
 
-- [ ] **Step 4: 통과 확인** — 같은 명령, 4 tests PASS
-- [ ] **Step 5: 커밋** — `feat: 매일 수집의 검색어 순환·30곳 고르기 규칙 추가`
+- [x] **Step 4: 통과 확인** — 같은 명령, 4 tests PASS
+- [x] **Step 5: 커밋** — `feat: 매일 수집의 검색어 순환·30곳 고르기 규칙 추가`
 
 ---
 
