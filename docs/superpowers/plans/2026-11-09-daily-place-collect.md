@@ -769,11 +769,11 @@ public class CollectJobController {
 ## 운영 메모: 노트북에서 매일 돌리기
 
 1. 루트 `.env` 에 `COLLECT_SCHEDULE_ENABLED=true` (2026-11-09 넣어 둠). 끄려면 `false` 또는 줄 삭제
-2. 수집 시각: 노트북(local)은 매일 **15:00**, 배포 서버(prod)는 매일 **03:00** (2026-11-09 사용자 결정). 그 시각에 노트북이 깨어 있고 `cd backend && ./gradlew bootRun` 이 떠 있어야 돔. 놓친 날은 다음 실행에서 이어서(검색어 위치는 파일에 남음). 시각은 `.env` 의 `COLLECT_CRON` 으로 바꿈 — 데이터가 충분히 쌓이면 한 달에 한 번 `0 0 3 1 * *`(매월 1일 03:00)
+2. 수집 시각: 매일 **03:00** (2026-11-09 사용자 결정, 서버 띄운 뒤 노트북도 03:00 으로 통일). 그 시각에 노트북이 깨어 있고 `cd backend && ./gradlew bootRun` 이 떠 있어야 돔. 놓친 날은 다음 실행에서 이어서(검색어 위치는 파일에 남음). 시각은 `.env` 의 `COLLECT_CRON` 으로 바꿈 — 데이터가 충분히 쌓이면 한 달에 한 번 `0 0 3 1 * *`(매월 1일 03:00)
 3. 기다리지 않고 지금 돌리기: 관리자 로그인 후 `POST /api/admin/collect/run` (30곳이면 요약 사이 40초씩 쉬어 약 20~25분)
 4. 진행 보기: `GET /api/admin/collect/logs?n=7` 또는 `backend/data/collect-log.jsonl` (한 줄 = 하루). 서버 콘솔 로그는 Windows 인코딩이라 한글이 깨져 보일 수 있음 — 파일·API 는 정상
 5. 안양 다 돌았는지: `backend/data/collect-state.json` 의 `rounds` 가 1 이 되면 검색어(21개 지역 × 7개 키워드 = 147개, 하루 6개면 약 25일) 한 바퀴 완료 → `application.yml` 의 `collect.schedule.areas` 에 다른 시 지역을 더하고 `address-prefix` 를 바꿈(여러 시를 함께 받으려면 접두어를 목록으로 바꾸는 작은 수정 필요)
-6. 배포 서버로 옮길 때: 서버 `.env` 에 `NAVER_SEARCH_ID/SECRET`, `KAKAO_REST_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`, `COLLECT_SCHEDULE_ENABLED=true` 를 넣고, `docker-compose.yml` 의 backend 에 `data/` 볼륨을 붙여 컨테이너를 다시 만들어도 진행 위치·후기가 남게 함. 노트북 쪽은 그때 `false` 로 꺼서 두 곳이 같이 돌지 않게
+6. 배포 서버로 옮길 때: 서버 `.env` 에 `NAVER_SEARCH_ID/SECRET`, `KAKAO_REST_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`, `COLLECT_SCHEDULE_ENABLED=true` 를 넣고, `docker-compose.yml` 의 backend 에 `data/` 볼륨을 붙여 컨테이너를 다시 만들어도 진행 위치·후기가 남게 함. 노트북 쪽은 그때 `false` 로 꺼서 두 곳이 같이 돌지 않게 (2026-11-09 노트북 끔, 서버만 수집)
 7. 한도: 카카오 키워드 검색 일 10만, 네이버 검색 일 2만 5천, 하루 사용은 각각 수십 번 수준. LLM 은 Groq 무료 한도 때문에 요약 사이 40초(결정 30)
 
 ---
