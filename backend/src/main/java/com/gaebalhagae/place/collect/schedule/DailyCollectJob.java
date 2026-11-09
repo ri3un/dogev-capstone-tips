@@ -4,6 +4,7 @@ import com.gaebalhagae.place.collect.BlogCollectService;
 import com.gaebalhagae.place.collect.CollectedPlace;
 import com.gaebalhagae.place.collect.CollectedPlaceStore;
 import com.gaebalhagae.place.collect.PlaceCollectService;
+import com.gaebalhagae.place.domain.PlaceCategory;
 import com.gaebalhagae.place.dto.PlaceImportRequest;
 import com.gaebalhagae.place.review.ReviewSummary;
 import com.gaebalhagae.place.review.ReviewSummaryService;
@@ -100,7 +101,10 @@ public class DailyCollectJob {
 
             // ② 30곳 블로그 수집 → 요약 (한 곳 실패가 나머지를 멈추지 않게)
             List<CollectedPlace> places = placeStore.findAll();
-            List<String> picked = CollectPlanner.pickPlaces(places, summaries::findByPlace,
+            List<CollectedPlace> candidates = props.onlyCategory() == null || props.onlyCategory().isBlank() ? places
+                    : places.stream().filter(p -> PlaceCategory.of(p.categoryGroupCode(), p.name(), p.category()).name()
+                            .equals(props.onlyCategory().strip())).toList();
+            List<String> picked = CollectPlanner.pickPlaces(candidates, summaries::findByPlace,
                     Set.copyOf(retryAfter.keySet()), props.dailyPlaces());
             int blogCollected = 0;
             int summarized = 0;

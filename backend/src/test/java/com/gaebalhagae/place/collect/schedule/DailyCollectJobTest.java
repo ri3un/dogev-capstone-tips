@@ -6,6 +6,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,7 +53,7 @@ class DailyCollectJobTest {
     void setUp() {
         jobStore = new CollectJobStore(new ObjectMapper().registerModule(new JavaTimeModule()), dir.toString());
         CollectScheduleProperties props = new CollectScheduleProperties(true, "0 0 3 * * *", 2, 2, "경기 안양시",
-                List.of("평촌", "범계"), List.of("애견동반 카페"), 0);
+                List.of("평촌", "범계"), List.of("애견동반 카페"), 0, null);
         job = new DailyCollectJob(props, placeCollect, placeStore, blogCollect, summaries, importer, jobStore, clock);
 
         when(placeCollect.collect(eq(""), eq("경기 안양시"), any())).thenReturn(new PlaceCollectService.CollectResult(
@@ -107,6 +109,22 @@ class DailyCollectJobTest {
         assertThat(log.failedPlaces()).containsExactly("멍카페");
         assertThat(log.summarized()).isEqualTo(1);
         assertThat(log.imported()).isZero(); // 남은 냥식당은 미확인
+    }
+
+    @Test
+    void 분류를_정하면_그_분류_장소만_고른다() {
+        CollectScheduleProperties parkOnly = new CollectScheduleProperties(true, "-", 30, 2, "경기 안양시",
+                List.of("평촌"), List.of("강아지 공원"), 0, "PARK");
+        DailyCollectJob parkJob = new DailyCollectJob(parkOnly, placeCollect, placeStore, blogCollect, summaries,
+                importer, jobStore, clock);
+        when(placeStore.findAll()).thenReturn(List.of(place("1", "멍카페"),
+                new CollectedPlace("9", "평촌중앙공원", "여행 > 공원", "AT4", "경기 안양시 동안구", "", 37.39, 126.95,
+                        "", "", List.of(), null)));
+
+        parkJob.runOnce();
+
+        verify(blogCollect).collect("평촌중앙공원");
+        verify(blogCollect, never()).collect("멍카페");
     }
 
     private static CollectedPlace place(String id, String name) {
