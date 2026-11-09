@@ -120,6 +120,26 @@ class ReviewSummaryServiceTest {
         assertThat(svc.isConfirmed(summary(15, parkingOnly))).isFalse();
     }
 
+    @Test
+    void 공원은_카페_조건을_빼고_키워드를_다시_만든다() {
+        // 흔한 공원 이름이면 근처 카페 후기가 섞여 #실내동반 등이 붙음 (2026-11-09 새마을공원·자유공원)
+        var conditions = new java.util.LinkedHashMap<String, ConditionResult>();
+        conditions.put("indoor", new ConditionResult("indoor", null, 3, 3, List.of()));
+        conditions.put("seat_allowed", new ConditionResult("yes", null, 2, 2, List.of()));
+        conditions.put("leash_required", new ConditionResult("yes", null, 2, 2, List.of()));
+        var s = new ReviewSummary("자유공원", List.of("요약"), List.of("#실내동반", "#목줄필수", "#의자착석가능"), conditions,
+                List.of("#넓음"), 8, List.of(), "groq", java.time.LocalDateTime.of(2026, 11, 9, 14, 0));
+
+        var park = ReviewSummaryService.forCategory(s, com.gaebalhagae.place.domain.PlaceCategory.PARK);
+        assertThat(park.conditions().get("indoor").value()).isEqualTo("unknown");
+        assertThat(park.conditions().get("seat_allowed").value()).isEqualTo("unknown");
+        assertThat(park.conditions().get("leash_required").value()).isEqualTo("yes");
+        assertThat(park.keywords()).containsExactly("#목줄필수", "#넓음");
+
+        var cafe = ReviewSummaryService.forCategory(s, com.gaebalhagae.place.domain.PlaceCategory.CAFE);
+        assertThat(cafe).isSameAs(s);
+    }
+
     private static ReviewSummary summary(int sources, Map<String, ConditionResult> conditions) {
         return new ReviewSummary("공원A", List.of("요약"), List.of(), conditions, List.of(), sources, List.of(), "groq",
                 java.time.LocalDateTime.of(2026, 11, 9, 3, 0));

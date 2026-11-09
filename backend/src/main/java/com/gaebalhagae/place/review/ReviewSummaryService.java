@@ -8,18 +8,21 @@ import com.gaebalhagae.llm.GeminiClient;
 import com.gaebalhagae.llm.GroqClient;
 import com.gaebalhagae.llm.LlmClient;
 import com.gaebalhagae.place.collect.BlogPost;
+import com.gaebalhagae.place.domain.PlaceCategory;
 import com.gaebalhagae.place.collect.BlogPostStore;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -82,6 +85,21 @@ public class ReviewSummaryService {
         this.fallback = fallback;
         this.clock = clock;
         this.minSources = minSources;
+    }
+
+    // 공원·산책로에 맞지 않는 카페 조건 (흔한 공원 이름은 근처 카페 후기가 섞여 이런 조건이 붙음, 2026-11-09 사용자 결정)
+    static final Set<ConditionKey> CAFE_ONLY = EnumSet.of(ConditionKey.INDOOR, ConditionKey.CARRIER_REQUIRED,
+            ConditionKey.MANNER_BELT_REQUIRED, ConditionKey.SEAT_ALLOWED, ConditionKey.WATER_OR_PET_MENU);
+
+    /** 공원·산책로면 카페 조건을 unknown 으로 바꾸고 키워드를 다시 만든 요약, 그 밖의 분류는 그대로 */
+    public static ReviewSummary forCategory(ReviewSummary s, PlaceCategory category) {
+        if (s == null || category != PlaceCategory.PARK || s.conditions() == null) {
+            return s;
+        }
+        Map<String, ConditionResult> conditions = new LinkedHashMap<>(s.conditions());
+        CAFE_ONLY.forEach(k -> conditions.put(k.key(), ConditionResult.unknown()));
+        return new ReviewSummary(s.placeName(), s.summary(), keywords(conditions, s.mood() == null ? List.of() : s.mood()),
+                conditions, s.mood(), s.sourceCount(), s.sourceUrls(), s.model(), s.summarizedAt());
     }
 
     /**
@@ -253,7 +271,8 @@ public class ReviewSummaryService {
     static List<String> keywords(Map<String, ConditionResult> conditions, List<String> mood) {
         LinkedHashSet<String> tags = new LinkedHashSet<>();
         for (ConditionKey key : ConditionKey.values()) {
-            key.tagOf(conditions.get(key.key()).value()).ifPresent(tags::add);
+            // 저장된 예전 요약은 키가 빠져 있을 수 있음 → 없는 조건은 unknown
+            key.tagOf(conditions.getOrDefault(key.key(), ConditionResult.unknown()).value()).ifPresent(tags::add);
         }
         tags.addAll(mood);
         return tags.stream().limit(MAX_KEYWORDS).toList();

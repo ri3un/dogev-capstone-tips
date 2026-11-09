@@ -16,9 +16,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -101,6 +102,12 @@ public class DailyCollectJob {
 
             // ② 30곳 블로그 수집 → 요약 (한 곳 실패가 나머지를 멈추지 않게)
             List<CollectedPlace> places = placeStore.findAll();
+            // 장소 이름 → 분류 (공원이면 카페 조건을 빼고 확인·반영)
+            Map<String, PlaceCategory> categoryOf = new HashMap<>();
+            places.forEach(p -> categoryOf.putIfAbsent(p.name(),
+                    PlaceCategory.of(p.categoryGroupCode(), p.name(), p.category())));
+            Function<String, ReviewSummary> summaryFor = name -> ReviewSummaryService.forCategory(
+                    summaries.findByPlace(name).orElse(null), categoryOf.get(name));
             List<CollectedPlace> candidates = props.onlyCategory() == null || props.onlyCategory().isBlank() ? places
                     : places.stream().filter(p -> PlaceCategory.of(p.categoryGroupCode(), p.name(), p.category()).name()
                             .equals(props.onlyCategory().strip())).toList();
@@ -119,7 +126,7 @@ public class DailyCollectJob {
                         summarized++;
                     }
                     // 글 10건 + 조건 키워드가 없으면 애견동반 미확인 → 14일 쉬고 다시 (그사이 새 후기가 쌓임)
-                    if (summaries.isConfirmed(summaries.findByPlace(name).orElse(null))) {
+                    if (summaries.isConfirmed(summaryFor.apply(name))) {
                         retryAfter.remove(name);
                     } else {
                         skipped++;
@@ -138,7 +145,7 @@ public class DailyCollectJob {
 
             // ③ 애견동반이 확인된 곳만 DB 에 반영 (카카오 결과엔 일반 카페도 섞임. import 는 kakaoId 기준 생성·갱신)
             List<ReviewSummary> confirmed = places.stream().map(CollectedPlace::name).distinct()
-                    .map(summaries::findByPlace).flatMap(Optional::stream).filter(summaries::isConfirmed).toList();
+                    .map(summaryFor).filter(Objects::nonNull).filter(summaries::isConfirmed).toList();
             Set<String> confirmedNames = confirmed.stream().map(ReviewSummary::placeName).collect(Collectors.toSet());
             List<CollectedPlace> confirmedPlaces = places.stream().filter(p -> confirmedNames.contains(p.name())).toList();
             PlaceImportRequest.Result imported = importer.importData(new PlaceImportRequest(confirmedPlaces, confirmed));
