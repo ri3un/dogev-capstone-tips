@@ -788,7 +788,7 @@ public class CollectJobController {
 
 규칙: "확인된 애견동반 장소" = 요약에 쓴 글(협찬 아님 + 반려견 문장 있음) **10건 이상** + 조건 고정 키워드 **1개 이상**. DB 에는 이것만 import. 미확인 장소는 14일 뒤 다시 시도(매일 같은 곳만 고르지 않게)
 
-- [ ] 2-1 `application.yml`: `llm.gemini.model: gemini-3.5-flash-lite`, `llm.openrouter.model` 기본값 `nvidia/nemotron-3.5-super-vl:free` → 커밋
+- [x] 2-1 `application.yml`: `llm.gemini.model: gemini-3.5-flash-lite`, `llm.openrouter.model` 기본값 `nvidia/nemotron-3.5-super-vl:free` → 커밋
 - [ ] 2-2 `BlogCollectService`: 검색어 `{이름} 애견동반`, `{이름} 강아지`, `{이름} 반려견` 세 번 검색해 URL 로 합침 (테스트 갱신) → 커밋
 - [ ] 2-3 `ReviewSummaryService`: 쓸 수 있는 글 < 10 이면 LLM 안 부르고 `NOT_ENOUGH_SOURCE` + `static boolean isConfirmed(ReviewSummary)` (sourceCount ≥ 10 && 조건 고정 태그 ≥ 1) (테스트) → 커밋
 - [ ] 2-4 `DailyCollectJob`/`CollectPlanner`/`CollectJobStore`: 확인된 곳만 import, 미확인 장소 14일 쉬기(`State.retryAfter` 맵), 기록에 `confirmed` (테스트) → 커밋

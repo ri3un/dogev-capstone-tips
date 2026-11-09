@@ -72,12 +72,12 @@ llm:
   gemini:
     base-url: https://generativelanguage.googleapis.com/v1beta
     api-key: ${GEMINI_API_KEY:}
-    model: gemini-2.5-flash-lite
+    model: gemini-3.5-flash-lite   # 2.5-flash-lite 는 신규 사용자에게 내려감(2026-11 404)
   # AI 상담 세 번째 모델. 무료 모델 이름은 자주 바뀌어서 환경 변수로 둡니다.
   openrouter:
     base-url: https://openrouter.ai/api/v1
     api-key: ${OPENROUTER_API_KEY:}
-    model: ${OPENROUTER_MODEL:deepseek/deepseek-chat-v3-0324:free}
+    model: ${OPENROUTER_MODEL:nvidia/nemotron-3.5-super-vl:free}   # deepseek 무료판 종료(2026-11 404)
   # AI 상담에서 모델 하나를 기다리는 최대 시간 (결정 14)
   consult-timeout-seconds: 15
 
