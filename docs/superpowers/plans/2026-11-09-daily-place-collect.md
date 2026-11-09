@@ -692,7 +692,7 @@ public class DailyCollectJob {
 - Consumes: `DailyCollectJob.scheduled()`, `isRunning()` (Task 3), `CollectJobStore.recentLogs(int)` (Task 2)
 - Produces: `POST /api/admin/collect/run` → `{"started": true|false}` (뒤에서 실행, 이미 돌면 false), `GET /api/admin/collect/logs?n=10` → `List<CollectJobStore.RunLog>`. `/api/admin/**` 는 기존 SecurityConfig 가 ADMIN 만 허용
 
-- [ ] **Step 1: 구현**
+- [x] **Step 1: 구현**
 
 ```java
 package com.gaebalhagae.place.collect.schedule;
@@ -733,8 +733,8 @@ public class CollectJobController {
 }
 ```
 
-- [ ] **Step 2: 전체 테스트** — `cd backend && ./gradlew test` → PASS
-- [ ] **Step 3: 커밋** — `feat: 관리자용 매일 수집 지금 실행·실행 기록 API 추가`
+- [x] **Step 2: 전체 테스트** — `cd backend && ./gradlew test` → PASS
+- [x] **Step 3: 커밋** — `feat: 관리자용 매일 수집 지금 실행·실행 기록 API 추가`
 
 ---
 
