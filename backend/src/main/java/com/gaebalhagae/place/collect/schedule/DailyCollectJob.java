@@ -9,11 +9,16 @@ import com.gaebalhagae.place.review.ReviewSummary;
 import com.gaebalhagae.place.review.ReviewSummaryService;
 import com.gaebalhagae.place.service.PlaceImportService;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -41,6 +46,7 @@ public class DailyCollectJob {
     private final CollectJobStore jobStore;
     private final Clock clock;
     private final AtomicBoolean running = new AtomicBoolean(false);
+    static final int RETRY_DAYS = 14;
 
     public DailyCollectJob(CollectScheduleProperties props, PlaceCollectService placeCollect,
                            CollectedPlaceStore placeStore, BlogCollectService blogCollect,
@@ -86,11 +92,16 @@ public class DailyCollectJob {
                 newPlaces = found.keywords().stream().mapToInt(PlaceCollectService.KeywordResult::added).sum();
                 totalPlaces = found.total();
             }
-            jobStore.saveState(new CollectJobStore.State(q.nextCursor(), state.rounds() + (q.wrapped() ? 1 : 0)));
+            int rounds = state.rounds() + (q.wrapped() ? 1 : 0);
+            LocalDate today = LocalDate.now(clock);
+            Map<String, LocalDate> retryAfter = new HashMap<>(state.retryAfter());
+            retryAfter.values().removeIf(d -> !d.isAfter(today));   // 쉬는 기간이 끝난 곳은 다시 후보
+            jobStore.saveState(new CollectJobStore.State(q.nextCursor(), rounds, retryAfter));
 
             // ② 30곳 블로그 수집 → 요약 (한 곳 실패가 나머지를 멈추지 않게)
             List<CollectedPlace> places = placeStore.findAll();
-            List<String> picked = CollectPlanner.pickPlaces(places, summaries::findByPlace, props.dailyPlaces());
+            List<String> picked = CollectPlanner.pickPlaces(places, summaries::findByPlace,
+                    Set.copyOf(retryAfter.keySet()), props.dailyPlaces());
             int blogCollected = 0;
             int summarized = 0;
             int skipped = 0;
@@ -99,11 +110,19 @@ public class DailyCollectJob {
                 try {
                     blogCollect.collect(name);
                     blogCollected++;
-                    if ("SUMMARIZED".equals(summaries.summarize(name, false).status())) {
+                    boolean calledLlm = "SUMMARIZED".equals(summaries.summarize(name, false).status());
+                    if (calledLlm) {
                         summarized++;
-                        pause(); // Groq 분당 토큰 한도 (결정 30)
+                    }
+                    // 글 10건 + 조건 키워드가 없으면 애견동반 미확인 → 14일 쉬고 다시 (그사이 새 후기가 쌓임)
+                    if (summaries.isConfirmed(summaries.findByPlace(name).orElse(null))) {
+                        retryAfter.remove(name);
                     } else {
                         skipped++;
+                        retryAfter.put(name, today.plusDays(RETRY_DAYS));
+                    }
+                    if (calledLlm) {
+                        pause(); // Groq 분당 토큰 한도 (결정 30)
                     }
                 } catch (RuntimeException e) {
                     log.warn("매일 수집: {} 실패 - {}", name, e.getMessage());
@@ -111,10 +130,14 @@ public class DailyCollectJob {
                 }
             }
 
-            // ③ 전체 장소 + 있는 요약을 DB 에 반영 (import 는 kakaoId 기준으로 생성·갱신)
-            List<ReviewSummary> allSummaries = places.stream().map(CollectedPlace::name).distinct()
-                    .map(summaries::findByPlace).flatMap(Optional::stream).toList();
-            PlaceImportRequest.Result imported = importer.importData(new PlaceImportRequest(places, allSummaries));
+            jobStore.saveState(new CollectJobStore.State(q.nextCursor(), rounds, retryAfter));
+
+            // ③ 애견동반이 확인된 곳만 DB 에 반영 (카카오 결과엔 일반 카페도 섞임. import 는 kakaoId 기준 생성·갱신)
+            List<ReviewSummary> confirmed = places.stream().map(CollectedPlace::name).distinct()
+                    .map(summaries::findByPlace).flatMap(Optional::stream).filter(summaries::isConfirmed).toList();
+            Set<String> confirmedNames = confirmed.stream().map(ReviewSummary::placeName).collect(Collectors.toSet());
+            List<CollectedPlace> confirmedPlaces = places.stream().filter(p -> confirmedNames.contains(p.name())).toList();
+            PlaceImportRequest.Result imported = importer.importData(new PlaceImportRequest(confirmedPlaces, confirmed));
 
             CollectJobStore.RunLog entry = new CollectJobStore.RunLog(startedAt, LocalDateTime.now(clock),
                     q.queries(), newPlaces, totalPlaces, blogCollected, summarized, skipped, failed.size(),

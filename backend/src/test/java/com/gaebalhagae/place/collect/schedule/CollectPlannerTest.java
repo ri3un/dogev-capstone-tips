@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class CollectPlannerTest {
@@ -38,7 +39,7 @@ class CollectPlannerTest {
                 "옛식당", summary("옛식당", LocalDateTime.of(2026, 10, 1, 3, 0)),
                 "최근공원", summary("최근공원", LocalDateTime.of(2026, 11, 8, 3, 0)));
 
-        List<String> picked = CollectPlanner.pickPlaces(places, n -> Optional.ofNullable(summaries.get(n)), 3);
+        List<String> picked = CollectPlanner.pickPlaces(places, n -> Optional.ofNullable(summaries.get(n)), Set.of(), 3);
 
         assertThat(picked).containsExactly("새카페", "또새곳", "옛식당");
     }
@@ -46,7 +47,13 @@ class CollectPlannerTest {
     @Test
     void 이름이_같은_장소는_한번만_고른다() {
         List<CollectedPlace> places = List.of(place("1", "멍카페"), place("2", "멍카페"), place("3", "냥식당"));
-        assertThat(CollectPlanner.pickPlaces(places, n -> Optional.empty(), 30)).containsExactly("멍카페", "냥식당");
+        assertThat(CollectPlanner.pickPlaces(places, n -> Optional.empty(), Set.of(), 30)).containsExactly("멍카페", "냥식당");
+    }
+
+    @Test
+    void 쉬는_중인_장소는_고르지_않는다() {
+        List<CollectedPlace> places = List.of(place("1", "글부족카페"), place("2", "새카페"));
+        assertThat(CollectPlanner.pickPlaces(places, n -> Optional.empty(), Set.of("글부족카페"), 30)).containsExactly("새카페");
     }
 
     private static CollectedPlace place(String id, String name) {

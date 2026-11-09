@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -21,9 +23,10 @@ class CollectJobStoreTest {
 
     @Test
     void 처음에는_위치_0이고_저장한_위치를_다시_읽는다() {
-        assertThat(store().loadState()).isEqualTo(new CollectJobStore.State(0, 0));
-        store().saveState(new CollectJobStore.State(7, 1));
-        assertThat(store().loadState()).isEqualTo(new CollectJobStore.State(7, 1));
+        assertThat(store().loadState()).isEqualTo(new CollectJobStore.State(0, 0, Map.of()));
+        var state = new CollectJobStore.State(7, 1, Map.of("글부족카페", LocalDate.of(2026, 11, 23)));
+        store().saveState(state);
+        assertThat(store().loadState()).isEqualTo(state);
     }
 
     @Test

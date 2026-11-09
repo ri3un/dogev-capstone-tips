@@ -15,17 +15,22 @@ import com.gaebalhagae.place.collect.CollectedPlace;
 import com.gaebalhagae.place.collect.CollectedPlaceStore;
 import com.gaebalhagae.place.collect.PlaceCollectService;
 import com.gaebalhagae.place.dto.PlaceImportRequest;
+import com.gaebalhagae.place.review.ReviewSummary;
 import com.gaebalhagae.place.review.ReviewSummaryService;
 import com.gaebalhagae.place.service.PlaceImportService;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 class DailyCollectJobTest {
@@ -53,11 +58,19 @@ class DailyCollectJobTest {
                 List.of(new PlaceCollectService.KeywordResult("평촌 애견동반 카페", 10, 5, 2),
                         new PlaceCollectService.KeywordResult("범계 애견동반 카페", 10, 3, 1)), 3));
         when(placeStore.findAll()).thenReturn(List.of(place("1", "멍카페"), place("2", "냥식당"), place("3", "공원")));
-        when(summaries.findByPlace(anyString())).thenReturn(Optional.empty());
+        Map<String, ReviewSummary> saved = new HashMap<>();
+        when(summaries.findByPlace(anyString())).thenAnswer(a -> Optional.ofNullable(saved.get(a.<String>getArgument(0))));
+        when(summaries.isConfirmed(any())).thenAnswer(a -> a.getArgument(0) != null
+                && "멍카페".equals(a.<ReviewSummary>getArgument(0).placeName()));
         when(blogCollect.collect(anyString())).thenAnswer(a -> new BlogCollectService.CollectResult(a.getArgument(0), 5, 3, 3, 0, 3));
-        when(summaries.summarize(anyString(), eq(false))).thenAnswer(
-                a -> new ReviewSummaryService.SummaryResult(a.getArgument(0), "SUMMARIZED", 3, null));
-        when(importer.importData(any())).thenReturn(new PlaceImportRequest.Result(3, 0, 0, List.of()));
+        when(summaries.summarize(anyString(), eq(false))).thenAnswer(a -> {
+            ReviewSummary s = new ReviewSummary(a.getArgument(0), List.of("요약"), List.of(), Map.of(), List.of(), 10,
+                    List.of(), "groq", null);
+            saved.put(s.placeName(), s);
+            return new ReviewSummaryService.SummaryResult(s.placeName(), "SUMMARIZED", 10, s);
+        });
+        when(importer.importData(any())).thenAnswer(
+                a -> new PlaceImportRequest.Result(a.<PlaceImportRequest>getArgument(0).places().size(), 0, 0, List.of()));
     }
 
     @Test
@@ -70,12 +83,17 @@ class DailyCollectJobTest {
         order.verify(summaries).summarize("멍카페", false);
         order.verify(blogCollect).collect("냥식당");
         order.verify(summaries).summarize("냥식당", false);
-        order.verify(importer).importData(any(PlaceImportRequest.class));
+        ArgumentCaptor<PlaceImportRequest> sent = ArgumentCaptor.forClass(PlaceImportRequest.class);
+        order.verify(importer).importData(sent.capture());
+        // 애견동반이 확인된 곳(멍카페)만 DB 로, 미확인(냥식당)·아직 안 본 곳(공원)은 넣지 않음
+        assertThat(sent.getValue().places()).extracting(CollectedPlace::name).containsExactly("멍카페");
+        assertThat(sent.getValue().summaries()).extracting(ReviewSummary::placeName).containsExactly("멍카페");
 
         assertThat(log.newPlaces()).isEqualTo(3);
         assertThat(log.summarized()).isEqualTo(2);
-        assertThat(log.imported()).isEqualTo(3);
-        assertThat(jobStore.loadState()).isEqualTo(new CollectJobStore.State(0, 1)); // 검색어 2개를 다 돌아 한 바퀴
+        assertThat(log.imported()).isEqualTo(1);
+        // 검색어 2개를 다 돌아 한 바퀴, 미확인 냥식당은 14일 뒤(11/24)까지 쉼
+        assertThat(jobStore.loadState()).isEqualTo(new CollectJobStore.State(0, 1, Map.of("냥식당", LocalDate.of(2026, 11, 24))));
         assertThat(jobStore.recentLogs(1)).hasSize(1);
     }
 
@@ -88,7 +106,7 @@ class DailyCollectJobTest {
         assertThat(log.failed()).isEqualTo(1);
         assertThat(log.failedPlaces()).containsExactly("멍카페");
         assertThat(log.summarized()).isEqualTo(1);
-        assertThat(log.imported()).isEqualTo(3);
+        assertThat(log.imported()).isZero(); // 남은 냥식당은 미확인
     }
 
     private static CollectedPlace place(String id, String name) {

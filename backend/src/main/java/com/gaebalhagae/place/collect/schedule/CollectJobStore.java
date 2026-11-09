@@ -7,10 +7,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -18,7 +20,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class CollectJobStore {
 
-    public record State(int queryCursor, int rounds) {
+    /** retryAfter = 애견동반 확인이 안 된 장소를 이 날짜까지 쉬게 함 (이름 → 날짜) */
+    public record State(int queryCursor, int rounds, Map<String, LocalDate> retryAfter) {
+        public State {
+            retryAfter = retryAfter == null ? Map.of() : Map.copyOf(retryAfter);   // 예전 파일엔 이 칸이 없음
+        }
     }
 
     public record RunLog(LocalDateTime startedAt, LocalDateTime finishedAt, List<String> queries, int newPlaces,
@@ -38,7 +44,7 @@ public class CollectJobStore {
 
     public synchronized State loadState() {
         try {
-            return Files.exists(statePath) ? om.readValue(statePath.toFile(), State.class) : new State(0, 0);
+            return Files.exists(statePath) ? om.readValue(statePath.toFile(), State.class) : new State(0, 0, Map.of());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

@@ -41,11 +41,15 @@ public final class CollectPlanner {
         return new Queries(picked, end % all.size(), end >= all.size());
     }
 
-    /** 요약 없는 곳(찾은 순서) 먼저, 그다음 요약이 오래된 순. 블로그·요약은 이름으로 하므로 이름이 같으면 한 번만 */
+    /**
+     * 요약 없는 곳(찾은 순서) 먼저, 그다음 요약이 오래된 순. 블로그·요약은 이름으로 하므로 이름이 같으면 한 번만.
+     * resting = 글이 부족하거나 키워드가 없어 잠시 쉬는 장소 (매일 같은 곳만 고르지 않게)
+     */
     public static List<String> pickPlaces(List<CollectedPlace> places,
-                                          Function<String, Optional<ReviewSummary>> summaryOf, int limit) {
+                                          Function<String, Optional<ReviewSummary>> summaryOf,
+                                          Set<String> resting, int limit) {
         Set<String> names = new LinkedHashSet<>();
-        places.forEach(p -> names.add(p.name()));
+        places.stream().map(CollectedPlace::name).filter(n -> !resting.contains(n)).forEach(names::add);
 
         List<String> fresh = new ArrayList<>();
         List<ReviewSummary> old = new ArrayList<>();
