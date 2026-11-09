@@ -157,7 +157,7 @@ export default function MapPage() {
               </button>
             )
           })}
-          {list.length === 0 && <p className="py-10 text-center text-body-sm text-outline">조건에 맞는 장소가 없어요.</p>}
+          {data && list.length === 0 && <p className="py-10 text-center text-body-sm text-outline">조건에 맞는 장소가 없어요.</p>}
         </div>
       </aside>
 

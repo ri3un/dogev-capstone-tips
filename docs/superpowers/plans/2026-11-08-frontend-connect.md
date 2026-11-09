@@ -59,7 +59,7 @@ cd backend && ./gradlew test             # 백엔드 테스트
 - [x] CoursePage, CoursePlanPage, CoursesPage (courseApi, 위치는 useMyLocation. 코스 화면 카드는 최근 추천 코스 3개, 테마 칩은 `/course/plan?theme=` 로 들를 곳 순서 미리 채움. 다시 추천은 로딩 중 비활성 — 이슈 6 해결. 산책 팁(WALK_TIP)은 날씨 API 없어 아직 목업)
 - [x] ReportPage (reportApi.preview, PDF 다운로드, 날짜 todayStr — 이슈 1 해결. 섹션마다 최근 6건만, 이상 신호는 글자로 배변·체중·증상 섹션에 붙임)
 - [x] mocks 폴더 정리: 화면 상수는 `constants/records.ts`·`constants/care.ts`·`constants/place.ts` 로 옮기고 `src/mocks` 삭제. 산책 팁은 날씨 API 없어 숫자 없는 고정 문구로
-- [ ] lint·build 통과 → 브라우저로 주요 흐름 확인(백엔드+프론트 실행) → 커밋
+- [x] lint·build 통과 → 브라우저로 주요 흐름 확인(2026-11-09: 지도·상세·질문 메모·영양·수정 요청·관리자·코스·저장 코스·상담·리포트 화면 실제 데이터 확인, 콘솔 오류 없음. API 스모크: 추천·다녀왔어요·반려·PDF 200) → 커밋
 - [x] Claude 앱으로 작업 정보 옮기기: Claude Docs 문서 https://claude.ai/artifact/5H1TfDmuuvFs41YZzmLDsZ (끝나면 "프론트 연결 진행 상황" 체크 갱신). 프로젝트에 넣으려면 사용자가 `/send-to-project` 직접 실행
 
 ## 백엔드 연결 때 같이 고치기로 한 프론트 이슈 (메모리에서)

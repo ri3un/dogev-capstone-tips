@@ -2,7 +2,7 @@
 import type { EditStatus, PlaceCategory, VerdictLevel } from '../api/types'
 
 // 지도 칩: 산책로·공원은 서버에서 PARK 하나
-export const CATEGORY_LABEL: Record<PlaceCategory, string> = { CAFE: '카페', RESTAURANT: '식당', PARK: '공원·산책로', ETC: '기타' }
+export const CATEGORY_LABEL: Record<PlaceCategory, string> = { CAFE: '카페', RESTAURANT: '식당', PARK: '산책로·공원', ETC: '기타' }
 export const CATEGORY_ICON: Record<PlaceCategory, string> = { CAFE: 'local_cafe', RESTAURANT: 'restaurant', PARK: 'park', ETC: 'pets' }
 
 export const VERDICT_BG: Record<VerdictLevel, string> = { OK: 'bg-status-ok', CHECK: 'bg-status-check', HARD: 'bg-status-hard' }

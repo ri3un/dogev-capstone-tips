@@ -20,7 +20,7 @@ export default function PlaceDrawer({ placeId, dogId, distanceM, onClose }: { pl
   if (!place) return null
 
   const badges = place.conditions.filter((c) => c.tag).map((c) => c.tag as string)
-  const area = (place.roadAddress ?? place.address ?? '').split(' ').slice(1, 3).join(' ')
+  const area = (place.roadAddress || place.address || '').split(' ').slice(1, 3).join(' ') // 서버가 빈 문자열을 줄 때가 있어 || 사용
 
   const visit = async () => {
     setVisiting(true)
@@ -51,7 +51,8 @@ export default function PlaceDrawer({ placeId, dogId, distanceM, onClose }: { pl
 
         <div className="border-b border-surface-container-high/60 p-5 pb-3">
           <div className="mb-1 flex items-center gap-2 text-[13px] font-medium text-outline">
-            동반 {CATEGORY_LABEL[place.category]} · {area}
+            동반 {CATEGORY_LABEL[place.category]}
+            {area && ` · ${area}`}
             {distanceM != null && (
               <>
                 {' ·'}
@@ -82,6 +83,7 @@ export default function PlaceDrawer({ placeId, dogId, distanceM, onClose }: { pl
             <span className="text-[11px] font-medium text-outline">{place.reviewSummarizedAt && `${monthDay(place.reviewSummarizedAt)} 요약`}</span>
           </div>
           <ol className="flex flex-col gap-2.5 rounded-2xl border border-outline-variant/20 bg-surface-container-low p-4">
+            {place.summary.length === 0 && <li className="text-[13px] text-outline">아직 블로그 리뷰 요약이 없어요</li>}
             {place.summary.map((line, i) => (
               <li key={i} className="flex items-start gap-2 text-[13px] leading-snug">
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary-container text-[11px] font-bold text-on-secondary-container">{i + 1}</span>
