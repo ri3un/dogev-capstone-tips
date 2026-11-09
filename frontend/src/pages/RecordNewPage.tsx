@@ -6,7 +6,7 @@ import type { RecordCategory, RecordInput, StoolStatus } from '../api/types'
 import Icon from '../components/common/Icon'
 import { card, chip, ghostBtn, primaryBtn } from '../components/common/styles'
 import { useCurrentDog } from '../hooks/useCurrentDog'
-import { EXAMPLE_SENTENCES, PARSED_LABEL, PARSED_OPTIONS, type ParsedKind } from '../mocks/records'
+import { EXAMPLE_SENTENCES, PARSED_LABEL, PARSED_OPTIONS, type ParsedKind } from '../constants/records'
 
 const KINDS = Object.keys(PARSED_LABEL) as ParsedKind[]
 

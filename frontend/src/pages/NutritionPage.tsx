@@ -4,7 +4,7 @@ import Icon from '../components/common/Icon'
 import { card } from '../components/common/styles'
 import { useApi } from '../hooks/useApi'
 import { useCurrentDog } from '../hooks/useCurrentDog'
-import { SOURCES } from '../mocks/nutrition'
+import { NUTRITION_SOURCES } from '../constants/care'
 
 const LEVEL = {
   danger: { label: '위험', cls: 'bg-error text-white' },
@@ -117,7 +117,7 @@ export default function NutritionPage() {
 
       <footer className="flex flex-col items-center gap-2 text-label-sm text-outline">
         <div className="flex flex-wrap justify-center gap-3">
-          {SOURCES.map((s) => (
+          {NUTRITION_SOURCES.map((s) => (
             <a key={s.url} href={s.url} target="_blank" rel="noreferrer" className="underline hover:text-primary">
               {s.label}
             </a>

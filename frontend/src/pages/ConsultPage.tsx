@@ -6,7 +6,7 @@ import type { Consultation } from '../api/types'
 import Icon from '../components/common/Icon'
 import { useApi } from '../hooks/useApi'
 import { useCurrentDog } from '../hooks/useCurrentDog'
-import { SYMPTOM_CHIPS } from '../mocks/consult'
+import { SYMPTOM_CHIPS } from '../constants/care'
 
 const softBorder = 'border border-beige bg-surface-container-lowest'
 const MODEL_COLORS = ['text-primary', 'text-secondary', 'text-tertiary']

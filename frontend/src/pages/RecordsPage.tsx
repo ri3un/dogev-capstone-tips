@@ -6,7 +6,7 @@ import type { HealthRecord, RecordCategory } from '../api/types'
 import Icon from '../components/common/Icon'
 import { useApi } from '../hooks/useApi'
 import { useCurrentDog } from '../hooks/useCurrentDog'
-import { KIND_BADGE, KIND_DOT, KIND_LABEL, type RecordKind } from '../mocks/records'
+import { KIND_BADGE, KIND_DOT, KIND_LABEL, type RecordKind } from '../constants/records'
 
 const KINDS = Object.keys(KIND_LABEL) as RecordKind[]
 const WEEK = ['일', '월', '화', '수', '목', '금', '토']

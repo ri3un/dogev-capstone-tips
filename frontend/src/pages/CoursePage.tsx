@@ -7,7 +7,7 @@ import Photo from '../components/common/Photo'
 import { CATEGORY_ICON } from '../constants/place'
 import { useApi } from '../hooks/useApi'
 import { useCurrentDog } from '../hooks/useCurrentDog'
-import { THEME_LABEL, WALK_TIP, type CourseTheme } from '../mocks/course'
+import { THEME_LABEL, WALK_TIP, type CourseTheme } from '../constants/care'
 
 const THEMES = Object.keys(THEME_LABEL) as CourseTheme[]
 // 태그 색: 순서대로 돌려 씀
@@ -162,7 +162,7 @@ export default function CoursePage() {
         })}
       </div>
 
-      {/* 산책 팁 (TODO: 날씨 API) */}
+      {/* 산책 팁 (날씨 API 연결 전 고정 문구) */}
       <section className="flex flex-col items-start justify-between gap-4 rounded-2xl bg-surface-container-low p-6 shadow-[0_4px_20px_-2px_rgba(74,52,38,0.04)] md:flex-row md:items-center">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary-container text-primary shadow-sm">
@@ -170,8 +170,8 @@ export default function CoursePage() {
           </div>
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2 text-label-sm">
-              <span className="rounded-full bg-surface-container-highest px-2 py-0.5 font-bold text-primary">실시간 산책 케어 팁</span>
-              <span className="text-outline">바닥 체감 {WALK_TIP.floorTemp}℃</span>
+              <span className="rounded-full bg-surface-container-highest px-2 py-0.5 font-bold text-primary">산책 케어 팁</span>
+              <span className="text-outline">{WALK_TIP.note}</span>
             </div>
             <p className="text-headline-sm font-bold">{WALK_TIP.title}</p>
             <p className="text-body-sm text-on-surface-variant">
