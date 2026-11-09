@@ -114,6 +114,10 @@ class ReviewSummaryServiceTest {
         assertThat(svc.isConfirmed(summary(9, known))).isFalse();        // 글 부족
         assertThat(svc.isConfirmed(summary(12, allUnknown))).isFalse();  // 조건 키워드 없음
         assertThat(svc.isConfirmed(null)).isFalse();
+        // 주차는 반려견 동반과 상관없어서 주차 키워드만으로는 확인 안 됨 (2026-11-09 사용자 결정)
+        var parkingOnly = Map.of("parking", new ConditionResult("yes", null, 3, 3, List.of()),
+                "leash_required", ConditionResult.unknown());
+        assertThat(svc.isConfirmed(summary(15, parkingOnly))).isFalse();
     }
 
     private static ReviewSummary summary(int sources, Map<String, ConditionResult> conditions) {

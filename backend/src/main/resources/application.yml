@@ -82,6 +82,8 @@ llm:
   consult-timeout-seconds: 15
 
 collect:
+  # 요약에 필요한 블로그 글 수(협찬 아님 + 반려견 문장 있음). 10건이면 동네 카페가 많이 빠져서 5건 (2026-11-09)
+  min-sources: 5
   schedule:
     # 매일 자동 수집을 켤 때만 true (.env 의 COLLECT_SCHEDULE_ENABLED)
     enabled: ${COLLECT_SCHEDULE_ENABLED:false}

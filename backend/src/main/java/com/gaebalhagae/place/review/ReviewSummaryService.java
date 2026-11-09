@@ -69,7 +69,7 @@ public class ReviewSummaryService {
     @Autowired
     public ReviewSummaryService(BlogPostStore blogPostStore, ReviewSummaryStore summaryStore,
                                 GroqClient groq, GeminiClient gemini, Clock clock,
-                                @Value("${collect.min-sources:10}") int minSources) {
+                                @Value("${collect.min-sources:5}") int minSources) {
         this(blogPostStore, summaryStore, (LlmClient) groq, (LlmClient) gemini, clock, minSources);   // Groq 메인, Gemini 대안
     }
 
@@ -85,14 +85,14 @@ public class ReviewSummaryService {
     }
 
     /**
-     * 확인된 애견동반 장소: 요약에 쓴 글이 minSources 건 이상이고, 조건 고정 키워드(#목줄필수, #소형견만 …)가 하나 이상.
-     * 카카오 검색 결과에는 일반 카페도 섞이므로 이것을 통과한 곳만 DB 에 넣습니다.
+     * 확인된 애견동반 장소: 요약에 쓴 글이 minSources 건 이상이고, 반려견 조건 키워드(#목줄필수, #소형견만 …)가 하나 이상.
+     * 주차는 반려견 동반과 상관없어서 세지 않음. 카카오 검색 결과에는 일반 카페도 섞이므로 이것을 통과한 곳만 DB 에 넣습니다.
      */
     public boolean isConfirmed(ReviewSummary s) {
         if (s == null || s.sourceCount() < minSources || s.conditions() == null) {
             return false;
         }
-        return Arrays.stream(ConditionKey.values()).anyMatch(k -> {
+        return Arrays.stream(ConditionKey.values()).filter(k -> k != ConditionKey.PARKING).anyMatch(k -> {
             ConditionResult r = s.conditions().get(k.key());
             return r != null && r.value() != null && k.tagOf(r.value()).isPresent();
         });
