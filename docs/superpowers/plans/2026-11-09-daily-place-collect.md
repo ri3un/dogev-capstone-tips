@@ -823,8 +823,8 @@ public class CollectJobController {
 
 > 끊기면: `docs/superpowers/plans/2026-11-09-daily-place-collect.md 의 "3단계" 첫 [ ] 부터 이어서 해 줘. 브랜치 feature/daily-collect, 디자인(className)은 그대로.`
 
-- [ ] 3-1 지도: "우리 강아지 기준" 끄면 목록·상세의 가능/확인 필요/어려움 배지 숨김 (`MapPage`, `PlaceDrawer` 에 `showVerdict`)
-- [ ] 3-2 코스 화면 산책 팁 섹션 삭제 (`CoursePage`, `constants/care.ts` 의 `WALK_TIP`)
+- [x] 3-1 지도: "우리 강아지 기준" 끄면 목록·상세의 가능/확인 필요/어려움 배지 숨김 (`MapPage`, `PlaceDrawer` 에 `showVerdict`)
+- [x] 3-2 코스 화면 산책 팁 섹션 삭제 (`CoursePage`, `constants/care.ts` 의 `WALK_TIP`)
 - [ ] 3-3 삭제 X 버튼: 건강 기록(이미 `DELETE /api/records/{id}` 있음 → `RecordsPage` 일별 목록), AI 상담 기록(백엔드 `DELETE /api/consultations/{id}` 새로 + 테스트 → `ConsultPage` 지난 상담 목록)
 - [ ] 3-4 장소 이미지: 지도 API 는 사진을 안 줌 → 네이버 이미지 검색 API(공식, 기존 NAVER_SEARCH 키)로 "이름 + 지역" 첫 이미지 → place.image_url (사용자 확인 후)
 - [ ] 3-5 lint·build·test → 브라우저 확인 → 커밋

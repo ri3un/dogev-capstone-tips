@@ -12,7 +12,8 @@ import { CATEGORY_LABEL, VERDICT_BG, VERDICT_LABEL } from '../../constants/place
 const TONES = ['bg-tertiary-container/20 text-tertiary', 'bg-secondary-container/60 text-on-secondary-container', 'bg-surface-container-high text-primary']
 
 // 장소 상세 드로어: 지도 오른쪽에 겹쳐 열립니다.
-export default function PlaceDrawer({ placeId, dogId, distanceM, onClose }: { placeId: number; dogId: number; distanceM: number | null; onClose: () => void }) {
+// showVerdict: 지도에서 "우리 강아지 기준"을 끄면 동반 판정 배지를 숨김
+export default function PlaceDrawer({ placeId, dogId, showVerdict, distanceM, onClose }: { placeId: number; dogId: number; showVerdict: boolean; distanceM: number | null; onClose: () => void }) {
   const [modal, setModal] = useState<'source' | 'edit' | null>(null)
   const [visited, setVisited] = useState(false)
   const [visiting, setVisiting] = useState(false)
@@ -42,7 +43,7 @@ export default function PlaceDrawer({ placeId, dogId, distanceM, onClose }: { pl
           <button type="button" aria-label="닫기" onClick={onClose} className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-surface-container-lowest/90 shadow-md backdrop-blur-sm transition-colors hover:bg-surface-container-lowest">
             <Icon name="close" className="text-[20px]" />
           </button>
-          {place.verdict && (
+          {showVerdict && place.verdict && (
             <div className={`absolute bottom-3 left-4 rounded-full px-2.5 py-0.5 text-[12px] font-bold text-white shadow-sm ${VERDICT_BG[place.verdict.level]}`}>
               동반 {VERDICT_LABEL[place.verdict.level]}
             </div>

@@ -16,11 +16,3 @@ export const THEME_LABEL: Record<CourseTheme, string> = {
   forest: '주말 힐링 숲길 코스 (1~2시간)',
   cafe: '카페 투어 코스',
 }
-
-// 산책 팁. shortcut: 날씨 API가 없어 고정 문구, 날씨 연동하면 기온·바닥 온도로 바꿀 것
-export const WALK_TIP = {
-  note: '날씨 연동 전 기본 팁',
-  title: '산책 전후로 물을 충분히 챙겨 주세요',
-  body: '발바닥과 관절을 위해 한낮의 뜨거운 아스팔트와 무리한 계단은 피해 주세요.',
-  checklist: ['물병 챙기기', '하네스 착용'],
-}
