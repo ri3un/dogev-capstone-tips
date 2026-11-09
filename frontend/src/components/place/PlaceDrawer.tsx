@@ -3,7 +3,6 @@ import { placeApi } from '../../api/endpoints'
 import { formatDistance, monthDay } from '../../api/format'
 import { useApi } from '../../hooks/useApi'
 import Icon from '../common/Icon'
-import Photo from '../common/Photo'
 import EditRequestModal from './EditRequestModal'
 import SourceModal from './SourceModal'
 import { CATEGORY_LABEL, VERDICT_BG, VERDICT_LABEL } from '../../constants/place'
@@ -38,16 +37,18 @@ export default function PlaceDrawer({ placeId, dogId, showVerdict, distanceM, on
   return (
     <aside className="absolute top-0 right-0 z-30 flex h-full w-full flex-col border-l border-outline-variant/30 bg-surface-container-lowest shadow-2xl sm:w-[420px]">
       <div className="flex-1 overflow-y-auto">
-        <div className="relative h-56 w-full bg-surface-container">
-          <Photo src={place.imageUrl ?? undefined} alt={place.name} className="h-full w-full" />
-          <button type="button" aria-label="닫기" onClick={onClose} className="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-full bg-surface-container-lowest/90 shadow-md backdrop-blur-sm transition-colors hover:bg-surface-container-lowest">
-            <Icon name="close" className="text-[20px]" />
-          </button>
-          {showVerdict && place.verdict && (
-            <div className={`absolute bottom-3 left-4 rounded-full px-2.5 py-0.5 text-[12px] font-bold text-white shadow-sm ${VERDICT_BG[place.verdict.level]}`}>
+        {/* 가게 사진은 지도 API 가 공식으로 주지 않아 사진 칸 없이: 동반 배지 + 닫기 버튼만 */}
+        <div className="flex items-center justify-between px-5 pt-4">
+          {showVerdict && place.verdict ? (
+            <div className={`rounded-full px-2.5 py-0.5 text-[12px] font-bold text-white shadow-sm ${VERDICT_BG[place.verdict.level]}`}>
               동반 {VERDICT_LABEL[place.verdict.level]}
             </div>
+          ) : (
+            <span />
           )}
+          <button type="button" aria-label="닫기" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-container-lowest/90 shadow-md backdrop-blur-sm transition-colors hover:bg-surface-container-lowest">
+            <Icon name="close" className="text-[20px]" />
+          </button>
         </div>
 
         <div className="border-b border-surface-container-high/60 p-5 pb-3">

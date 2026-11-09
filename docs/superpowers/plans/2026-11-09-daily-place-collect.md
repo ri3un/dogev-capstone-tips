@@ -826,5 +826,5 @@ public class CollectJobController {
 - [x] 3-1 지도: "우리 강아지 기준" 끄면 목록·상세의 가능/확인 필요/어려움 배지 숨김 (`MapPage`, `PlaceDrawer` 에 `showVerdict`)
 - [x] 3-2 코스 화면 산책 팁 섹션 삭제 (`CoursePage`, `constants/care.ts` 의 `WALK_TIP`)
 - [x] 3-3 삭제 X 버튼: 건강 기록(이미 `DELETE /api/records/{id}` 있음 → `RecordsPage` 일별 목록), AI 상담 기록(백엔드 `DELETE /api/consultations/{id}` 새로 + 테스트 → `ConsultPage` 지난 상담 목록)
-- [ ] 3-4 장소 이미지: 지도 API 는 사진을 공식으로 안 줌 → 사용자 결정 "가져올 수 없으면 이미지 칸을 없애줘" → `PlaceDrawer` 사진 칸 삭제, 닫기 버튼·동반 배지는 머리 줄로
+- [x] 3-4 장소 이미지: 지도 API 는 사진을 공식으로 안 줌 → 사용자 결정 "가져올 수 없으면 이미지 칸을 없애줘" → `PlaceDrawer` 사진 칸 삭제, 닫기 버튼·동반 배지는 머리 줄로
 - [ ] 3-5 lint·build·test → 브라우저 확인 → 커밋
