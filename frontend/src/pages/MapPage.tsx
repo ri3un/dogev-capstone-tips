@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router'
 import { placeApi } from '../api/endpoints'
-import { formatDistance, SIZE_LABEL } from '../api/format'
+import { formatDistance, SIZE_LABEL, spreadPins } from '../api/format'
 import type { PlaceCategory, PlaceItem } from '../api/types'
 import Icon from '../components/common/Icon'
 import Modal from '../components/common/Modal'
@@ -15,22 +15,10 @@ import { useMyLocation } from '../hooks/useMyLocation'
 const CATEGORIES: PlaceCategory[] = ['CAFE', 'RESTAURANT', 'PARK']
 const mapBtn = 'flex h-10 w-10 items-center justify-center transition-colors hover:bg-surface-container-low'
 
-// 지도 SDK 붙이기 전 임시 핀 위치: 목록의 위·경도 범위를 화면 10~90%에 펼침
-// shortcut: 실제 지도와 축척이 안 맞음, 네이버 지도 SDK를 붙이면 지울 것
+// 장소 id → 임시 핀 위치(%)·아이콘
 function pinsOf(list: PlaceItem[]) {
-  const lats = list.map((p) => p.lat)
-  const lngs = list.map((p) => p.lng)
-  const [minLat, maxLat, minLng, maxLng] = [Math.min(...lats), Math.max(...lats), Math.min(...lngs), Math.max(...lngs)]
-  return new Map(
-    list.map((p) => [
-      p.id,
-      {
-        top: `${maxLat === minLat ? 50 : 10 + (80 * (maxLat - p.lat)) / (maxLat - minLat)}%`,
-        left: `${maxLng === minLng ? 50 : 10 + (80 * (p.lng - minLng)) / (maxLng - minLng)}%`,
-        icon: CATEGORY_ICON[p.category],
-      },
-    ]),
-  )
+  const spots = spreadPins(list)
+  return new Map(list.map((p, i) => [p.id, { top: `${spots[i].top}%`, left: `${spots[i].left}%`, icon: CATEGORY_ICON[p.category] }]))
 }
 
 // 장소 지도 + 상세 드로어 (Stitch 02-map-drawer)

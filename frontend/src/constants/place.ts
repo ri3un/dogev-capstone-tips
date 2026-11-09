@@ -51,6 +51,10 @@ export const EDIT_STATUS: Record<EditStatus, { label: string; cls: string }> = {
   REJECTED: { label: '반려', cls: 'bg-status-hard text-white' },
 }
 
+// 코스 결과 지도 배경 (Stitch 임시 주소)
+export const COURSE_MAP_URL =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuCuaMjOOsHnDUSJUVnq_Sh1yoLkd2V9pvWtJOUzXjRbHLTqYXQZR0jN_R-uepgeq5RAlQBQt_x8jad11KzuEpjjGQpDrJ5LOQ6sWuRwGloPGNsWmmtk1Wv50v0OvPMPBdgFiY5PfJnDi-p7LbEIq8WjpLLpjHdeatFDaMBpVMMEK82rEnST8SdSes9qhejU27ui6xsYqc28Gmk9trGSSRCQ1MZoZcq_pGjz2UvZ10g'
+
 // 지도 SDK(네이버 지도) 붙이기 전까지 쓰는 배경 이미지. Stitch 임시 주소라 만료될 수 있음
 export const MAP_PLACEHOLDER_URL =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuDSbu8DAZ3vZHn5DD3kaNcg0KYELZjhPMnxCdbVU_rdGn-FNwvOus6Y18bn_vxuGhxEkbFDJyU0Eo2M8KLrj1jGpSESqjcYQNCJdpZMOAIq38z7P-wU_REEU-ImPM2_f9Fk5RIKfMzly1D480fbWnLHCljJQZq_XZb4DN0Pyy-MJJ_DsqhQOtJmGP7i2fwthr6onSypEzb74hQm6iiZXVyMvkFk4-xA6790_esLNME'
