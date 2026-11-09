@@ -87,9 +87,9 @@ collect:
   schedule:
     # 매일 자동 수집을 켤 때만 true (.env 의 COLLECT_SCHEDULE_ENABLED)
     enabled: ${COLLECT_SCHEDULE_ENABLED:false}
-    # 배포 전 노트북: 매일 15:00 (Asia/Seoul). 배포 서버는 아래 prod 구역에서 03:00.
+    # 매일 03:00 (Asia/Seoul)
     # 데이터가 충분히 쌓이면 .env 의 COLLECT_CRON 으로 한 달에 한 번 (예: 매월 1일 03:00 = 0 0 3 1 * *)
-    cron: "${COLLECT_CRON:0 0 15 * * *}"
+    cron: "${COLLECT_CRON:0 0 3 * * *}"
     daily-places: 30             # 하루에 블로그 수집·요약할 장소 수
     queries-per-day: 6           # 하루에 새로 돌릴 카카오 검색어 수 (검색 1번에 최대 45곳)
     address-prefix: 경기 안양시
@@ -131,10 +131,6 @@ spring:
   config:
     activate:
       on-profile: prod
-# 배포 서버는 새벽에 수집 (COLLECT_CRON 이 있으면 그 값)
-collect:
-  schedule:
-    cron: "${COLLECT_CRON:0 0 3 * * *}"
 springdoc:
   swagger-ui:
     enabled: false
