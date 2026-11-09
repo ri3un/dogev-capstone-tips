@@ -216,7 +216,7 @@ public final class CollectPlanner {
   - `CollectJobStore(ObjectMapper om, @Value("${collect.schedule.dir:data}") String dir)`
   - `State loadState()` (파일 없으면 `State(0, 0)`), `void saveState(State)`, `void appendLog(RunLog)`, `List<RunLog> recentLogs(int n)` (최신이 앞)
 
-- [ ] **Step 1: 실패하는 테스트 작성**
+- [x] **Step 1: 실패하는 테스트 작성**
 
 ```java
 package com.gaebalhagae.place.collect.schedule;
@@ -263,9 +263,9 @@ class CollectJobStoreTest {
 }
 ```
 
-- [ ] **Step 2: 실패 확인** — `cd backend && ./gradlew test --tests "*CollectJobStoreTest"` → 컴파일 오류
+- [x] **Step 2: 실패 확인** — `cd backend && ./gradlew test --tests "*CollectJobStoreTest"` → 컴파일 오류
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현**
 
 ```java
 package com.gaebalhagae.place.collect.schedule;
@@ -354,8 +354,8 @@ public class CollectJobStore {
 }
 ```
 
-- [ ] **Step 4: 통과 확인** — 2 tests PASS
-- [ ] **Step 5: 커밋** — `feat: 매일 수집의 진행 위치·실행 기록 파일 저장소 추가`
+- [x] **Step 4: 통과 확인** — 2 tests PASS
+- [x] **Step 5: 커밋** — `feat: 매일 수집의 진행 위치·실행 기록 파일 저장소 추가`
 
 ---
 
