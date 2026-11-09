@@ -94,4 +94,4 @@ cd backend && ./gradlew test             # 백엔드 테스트
 - [x] MapPage: 배경 이미지·`pinsOf`·`spreadPins` 대신 `NaverMap` (핀 버튼은 style top/left 만 빼고 그대로), 확대·축소·현재 위치 버튼 연결, 배경용 `bg-cream/20` 덮개 제거
 - [x] CoursePlanPage: 배경 이미지·SVG 경로 대신 `NaverMap` (출발+경유+도착 핀, path), 확대·축소 버튼 연결
 - [x] 안 쓰게 된 것 삭제: `api/format.ts` 의 `spreadPins`, `constants/place.ts` 의 `MAP_PLACEHOLDER_URL`·`COURSE_MAP_URL`
-- [ ] `npm run lint && npm run build` → 백엔드+프론트 띄워 /map, /course/plan?courseId=… 브라우저 확인 → 커밋 → 이 체크 갱신
+- [x] (2026-11-09 확인: /map 핀 클릭→상세, 확대 버튼, /course/plan 점선 경로·핀, 콘솔 오류 없음) `npm run lint && npm run build` → 백엔드+프론트 띄워 /map, /course/plan?courseId=… 브라우저 확인 → 커밋 → 이 체크 갱신
