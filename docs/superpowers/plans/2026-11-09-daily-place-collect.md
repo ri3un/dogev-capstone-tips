@@ -740,16 +740,16 @@ public class CollectJobController {
 
 ### Task 5: 노트북에서 실제로 한 번 돌려 확인
 
-- [ ] **Step 1:** 루트 `.env` 에 `COLLECT_SCHEDULE_ENABLED=true` 추가 (값 출력 금지)
-- [ ] **Step 2:** `cd backend && ./gradlew bootRun --args='--collect.schedule.daily-places=2 --collect.schedule.queries-per-day=1'` → `Started BackendApplication` (확인 동안만 2곳·검색어 1개)
-- [ ] **Step 3:** 개발용 로그인(관리자) 토큰으로 `POST /api/admin/collect/run` → `{"started":true}`, 몇 분 뒤 `GET /api/admin/collect/logs?n=1` → `newPlaces`·`summarized`·`imported` 확인, `error` 없음
-- [ ] **Step 4:** `GET /api/places` 에 새 장소가 늘었는지, 요약된 곳의 상세에 3줄 요약이 있는지 확인
-- [ ] **Step 5:** 백엔드 끄기, 이 계획 체크 갱신 후 커밋 (`docs: 매일 수집 노트북 확인`)
+- [x] **Step 1:** 루트 `.env` 에 `COLLECT_SCHEDULE_ENABLED=true` 추가 (값 출력 금지)
+- [x] **Step 2:** `cd backend && ./gradlew bootRun --args='--collect.schedule.daily-places=2 --collect.schedule.queries-per-day=1'` → `Started BackendApplication` (확인 동안만 2곳·검색어 1개)
+- [x] **Step 3:** 개발용 로그인(관리자) 토큰으로 `POST /api/admin/collect/run` → `{"started":true}`, 몇 분 뒤 `GET /api/admin/collect/logs?n=1` → `newPlaces`·`summarized`·`imported` 확인, `error` 없음
+- [x] **Step 4:** `GET /api/places` 에 새 장소가 늘었는지, 요약된 곳의 상세에 3줄 요약이 있는지 확인
+- [x] **Step 5:** 백엔드 끄기, 이 계획 체크 갱신 후 커밋 (`docs: 매일 수집 노트북 확인`)
 
 ### Task 6: 노트북에서 매일 돌리기 안내 + 마무리
 
-- [ ] **Step 1:** 이 문서 끝 "운영 메모"에 적기: ① `.env` 에 `COLLECT_SCHEDULE_ENABLED=true` ② 03:00 에 노트북이 켜져 있고 `./gradlew bootRun` 이 떠 있어야 함 ③ 진행은 `backend/data/collect-log.jsonl` 또는 `GET /api/admin/collect/logs` ④ 로그·`collect-state.json` 의 `rounds` 가 1 이 되면 안양 검색어 한 바퀴 완료 → 다른 시 추가(`areas`, `address-prefix`) ⑤ 배포 서버로 옮길 때: 서버 `.env` 에 네이버 검색·카카오·LLM 키 + `COLLECT_SCHEDULE_ENABLED=true`, `data/` 를 Docker 볼륨으로
-- [ ] **Step 2:** `./gradlew test` 통과 확인 → 커밋 → 사용자에게 push·PR 여부 묻기
+- [x] **Step 1:** 이 문서 끝 "운영 메모"에 적기: ① `.env` 에 `COLLECT_SCHEDULE_ENABLED=true` ② 03:00 에 노트북이 켜져 있고 `./gradlew bootRun` 이 떠 있어야 함 ③ 진행은 `backend/data/collect-log.jsonl` 또는 `GET /api/admin/collect/logs` ④ 로그·`collect-state.json` 의 `rounds` 가 1 이 되면 안양 검색어 한 바퀴 완료 → 다른 시 추가(`areas`, `address-prefix`) ⑤ 배포 서버로 옮길 때: 서버 `.env` 에 네이버 검색·카카오·LLM 키 + `COLLECT_SCHEDULE_ENABLED=true`, `data/` 를 Docker 볼륨으로
+- [x] **Step 2:** `./gradlew test` 통과 확인 → 커밋 → 사용자에게 push·PR 여부 묻기
 
 ---
 
@@ -758,3 +758,20 @@ public class CollectJobController {
 - 사용자 결정 ①(노트북 먼저·나중에 서버): Task 3 `enabled` + Task 6 ✔ ②(import 자동): Task 3 ③단계 ✔ ③(안양 안에서 넓히고 다 돌면 다른 시): Task 1 순환 + `rounds` + Task 6 ✔
 - 하루 30곳 `daily-places: 30` ✔, 실행 기록 Task 2·3 ✔
 - 타입 이름: `CollectPlanner.Queries`, `CollectJobStore.State/RunLog`, `CollectScheduleProperties`, `DailyCollectJob.runOnce(): CollectJobStore.RunLog` — Task 1~4 같은 이름 ✔
+
+---
+
+## 확인 결과 (2026-11-09, 노트북 local 프로필)
+
+`--collect.schedule.daily-places=2 --collect.schedule.queries-per-day=1` 로 띄우고 `POST /api/admin/collect/run`:
+검색어 `평촌 애견동반 카페` → 새 장소 38곳(모두 `경기 안양시`) → 블로그 2곳 수집 → 요약 1곳(킹박스커피), 후기 없음 1곳 → DB import 38곳(장소 2 → 40), 실패 0, 약 1분. `collect-state.json` = `{"queryCursor":1,"rounds":0}`
+
+## 운영 메모: 노트북에서 매일 돌리기
+
+1. 루트 `.env` 에 `COLLECT_SCHEDULE_ENABLED=true` (2026-11-09 넣어 둠). 끄려면 `false` 또는 줄 삭제
+2. 매일 03:00 에 노트북이 켜져 있고 `cd backend && ./gradlew bootRun` 이 떠 있어야 돔. 놓친 날은 다음 날 이어서(검색어 위치는 파일에 남음)
+3. 기다리지 않고 지금 돌리기: 관리자 로그인 후 `POST /api/admin/collect/run` (30곳이면 요약 사이 40초씩 쉬어 약 20~25분)
+4. 진행 보기: `GET /api/admin/collect/logs?n=7` 또는 `backend/data/collect-log.jsonl` (한 줄 = 하루). 서버 콘솔 로그는 Windows 인코딩이라 한글이 깨져 보일 수 있음 — 파일·API 는 정상
+5. 안양 다 돌았는지: `backend/data/collect-state.json` 의 `rounds` 가 1 이 되면 검색어(21개 지역 × 7개 키워드 = 147개, 하루 6개면 약 25일) 한 바퀴 완료 → `application.yml` 의 `collect.schedule.areas` 에 다른 시 지역을 더하고 `address-prefix` 를 바꿈(여러 시를 함께 받으려면 접두어를 목록으로 바꾸는 작은 수정 필요)
+6. 배포 서버로 옮길 때: 서버 `.env` 에 `NAVER_SEARCH_ID/SECRET`, `KAKAO_REST_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`, `COLLECT_SCHEDULE_ENABLED=true` 를 넣고, `docker-compose.yml` 의 backend 에 `data/` 볼륨을 붙여 컨테이너를 다시 만들어도 진행 위치·후기가 남게 함. 노트북 쪽은 그때 `false` 로 꺼서 두 곳이 같이 돌지 않게
+7. 한도: 카카오 키워드 검색 일 10만, 네이버 검색 일 2만 5천, 하루 사용은 각각 수십 번 수준. LLM 은 Groq 무료 한도 때문에 요약 사이 40초(결정 30)
