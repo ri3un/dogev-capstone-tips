@@ -6,7 +6,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,7 @@ import org.springframework.web.util.HtmlUtils;
 public class BlogCollectService {
 
     static final int MAX_POSTS = 30;
+    static final List<String> SEARCH_SUFFIXES = List.of("애견동반", "강아지", "반려견");
     private static final List<String> SPONSORED_WORDS = List.of("협찬", "원고료", "제공받아", "체험단", "소정의");
     private static final List<String> PET_WORDS = List.of(
             "강아지", "애견", "반려견", "댕댕", "멍멍", "대형견", "중형견", "소형견", "케이지", "이동장",
@@ -38,7 +41,12 @@ public class BlogCollectService {
 
     public CollectResult collect(String placeName) {
         LocalDate oneYearAgo = LocalDate.now(clock).minusYears(1);
-        List<NaverBlogClient.Item> items = naverBlogClient.search(placeName + " 애견동반", 100);
+        // 요약에 글 10건 이상이 필요해서 검색어 세 개로 모으고 같은 글(URL)은 한 번만
+        Map<String, NaverBlogClient.Item> byUrl = new LinkedHashMap<>();
+        for (String suffix : SEARCH_SUFFIXES) {
+            naverBlogClient.search(placeName + " " + suffix, 100).forEach(i -> byUrl.putIfAbsent(i.link(), i));
+        }
+        List<NaverBlogClient.Item> items = List.copyOf(byUrl.values());
 
         List<BlogPost> relevantPosts = items.stream()
                 .map(this::toPost)

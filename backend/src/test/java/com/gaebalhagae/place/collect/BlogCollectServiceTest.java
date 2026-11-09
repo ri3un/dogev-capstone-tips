@@ -75,6 +75,19 @@ class BlogCollectServiceTest {
     }
 
     @Test
+    void 애견동반_강아지_반려견_세_검색어로_모으고_같은_글은_한번만_저장한다() {
+        when(client.search(eq("카페A 애견동반"), anyInt())).thenReturn(List.of(item("u1", "강아지 동반", "20261001")));
+        when(client.search(eq("카페A 강아지"), anyInt())).thenReturn(List.of(
+                item("u1", "강아지 동반", "20261001"), item("u2", "소형견 입장 가능", "20261002")));
+        when(client.search(eq("카페A 반려견"), anyInt())).thenReturn(List.of(item("u3", "반려견 목줄 필수", "20261003")));
+
+        var result = service.collect("카페A");
+
+        assertThat(result.fetched()).isEqualTo(3);
+        assertThat(store.findByPlace("카페A")).extracting(BlogPost::url).containsExactlyInAnyOrder("u1", "u2", "u3");
+    }
+
+    @Test
     void 협찬_글은_표시하고_반려견_문장만_남긴다() {
         var post = service.toPost(item("u1",
                 "소정의 원고료를 받았어요. 대형견도 <b>실내</b> 동반 가능! 커피가 맛있어요.", "20261001"));
