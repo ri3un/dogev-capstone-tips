@@ -12,6 +12,7 @@ import com.gaebalhagae.place.collect.BlogPostStore;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -23,6 +24,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
@@ -60,23 +62,40 @@ public class ReviewSummaryService {
     private final LlmClient primary;
     private final LlmClient fallback;
     private final Clock clock;
+    private final int minSources;   // 요약에 필요한 최소 글 수 (협찬 아님 + 반려견 문장 있음)
     private final ObjectMapper objectMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     @Autowired
     public ReviewSummaryService(BlogPostStore blogPostStore, ReviewSummaryStore summaryStore,
-                                GroqClient groq, GeminiClient gemini, Clock clock) {
-        this(blogPostStore, summaryStore, (LlmClient) groq, (LlmClient) gemini, clock);   // Groq 메인, Gemini 대안
+                                GroqClient groq, GeminiClient gemini, Clock clock,
+                                @Value("${collect.min-sources:10}") int minSources) {
+        this(blogPostStore, summaryStore, (LlmClient) groq, (LlmClient) gemini, clock, minSources);   // Groq 메인, Gemini 대안
     }
 
     // 테스트에서 가짜 LLM을 넣기 위한 생성자
     ReviewSummaryService(BlogPostStore blogPostStore, ReviewSummaryStore summaryStore,
-                         LlmClient primary, LlmClient fallback, Clock clock) {
+                         LlmClient primary, LlmClient fallback, Clock clock, int minSources) {
         this.blogPostStore = blogPostStore;
         this.summaryStore = summaryStore;
         this.primary = primary;
         this.fallback = fallback;
         this.clock = clock;
+        this.minSources = minSources;
+    }
+
+    /**
+     * 확인된 애견동반 장소: 요약에 쓴 글이 minSources 건 이상이고, 조건 고정 키워드(#목줄필수, #소형견만 …)가 하나 이상.
+     * 카카오 검색 결과에는 일반 카페도 섞이므로 이것을 통과한 곳만 DB 에 넣습니다.
+     */
+    public boolean isConfirmed(ReviewSummary s) {
+        if (s == null || s.sourceCount() < minSources || s.conditions() == null) {
+            return false;
+        }
+        return Arrays.stream(ConditionKey.values()).anyMatch(k -> {
+            ConditionResult r = s.conditions().get(k.key());
+            return r != null && r.value() != null && k.tagOf(r.value()).isPresent();
+        });
     }
 
     /** LLM 응답 모양. 판정 한 건은 조건 키가 문장마다 달라서 Map 으로 받습니다. */
@@ -98,6 +117,9 @@ public class ReviewSummaryService {
                 .toList();
         if (posts.isEmpty()) {
             return new SummaryResult(placeName, "NO_SOURCE", 0, null);
+        }
+        if (posts.size() < minSources) {   // 글이 적으면 한 줄짜리·키워드 없는 요약이 나와서 LLM 을 부르지 않음
+            return new SummaryResult(placeName, "NOT_ENOUGH_SOURCE", posts.size(), null);
         }
         Optional<ReviewSummary> previous = summaryStore.findByPlace(placeName);
         if (!force && previous.isPresent() && isCurrentFormat(previous.get())

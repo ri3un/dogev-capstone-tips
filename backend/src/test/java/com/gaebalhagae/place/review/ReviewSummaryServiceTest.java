@@ -18,6 +18,7 @@ import java.time.ZoneId;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -86,8 +87,38 @@ class ReviewSummaryServiceTest {
         return new BlogPost("t", sentence, url, "b", LocalDate.of(2026, 10, 1), sponsored, List.of(sentence));
     }
 
+    // 기존 판정 테스트는 글 4건으로 보므로 최소 글 수 1, 10건 규칙은 아래 테스트에서 따로
     private ReviewSummaryService service(LlmClient primary, LlmClient fallback) {
-        return new ReviewSummaryService(blogStore, summaryStore, primary, fallback, clock);
+        return new ReviewSummaryService(blogStore, summaryStore, primary, fallback, clock, 1);
+    }
+
+    @Test
+    void 쓸_수_있는_글이_10건_미만이면_LLM을_부르지_않는다() {
+        FakeLlm groq = new FakeLlm("groq", GOOD);
+        var result = new ReviewSummaryService(blogStore, summaryStore, groq, new FakeLlm("gemini"), clock, 10)
+                .summarize("공원A", false);
+
+        assertThat(result.status()).isEqualTo("NOT_ENOUGH_SOURCE");
+        assertThat(result.sourceCount()).isEqualTo(4);
+        assertThat(groq.calls).isZero();
+        assertThat(summaryStore.findByPlace("공원A")).isEmpty();
+    }
+
+    @Test
+    void 글_10건_이상이고_조건_키워드가_있어야_확인된_애견동반_장소다() {
+        var svc = new ReviewSummaryService(blogStore, summaryStore, new FakeLlm("groq"), new FakeLlm("gemini"), clock, 10);
+        var known = Map.of("leash_required", new ConditionResult("yes", null, 3, 3, List.of()));
+        var allUnknown = Map.of("leash_required", ConditionResult.unknown());
+
+        assertThat(svc.isConfirmed(summary(10, known))).isTrue();
+        assertThat(svc.isConfirmed(summary(9, known))).isFalse();        // 글 부족
+        assertThat(svc.isConfirmed(summary(12, allUnknown))).isFalse();  // 조건 키워드 없음
+        assertThat(svc.isConfirmed(null)).isFalse();
+    }
+
+    private static ReviewSummary summary(int sources, Map<String, ConditionResult> conditions) {
+        return new ReviewSummary("공원A", List.of("요약"), List.of(), conditions, List.of(), sources, List.of(), "groq",
+                java.time.LocalDateTime.of(2026, 11, 9, 3, 0));
     }
 
     @Test

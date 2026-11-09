@@ -790,7 +790,7 @@ public class CollectJobController {
 
 - [x] 2-1 `application.yml`: `llm.gemini.model: gemini-3.5-flash-lite`, `llm.openrouter.model` 기본값 `nvidia/nemotron-3.5-super-vl:free` → 커밋
 - [x] 2-2 `BlogCollectService`: 검색어 `{이름} 애견동반`, `{이름} 강아지`, `{이름} 반려견` 세 번 검색해 URL 로 합침 (테스트 갱신) → 커밋
-- [ ] 2-3 `ReviewSummaryService`: 쓸 수 있는 글 < 10 이면 LLM 안 부르고 `NOT_ENOUGH_SOURCE` + `static boolean isConfirmed(ReviewSummary)` (sourceCount ≥ 10 && 조건 고정 태그 ≥ 1) (테스트) → 커밋
+- [x] 2-3 `ReviewSummaryService`: 쓸 수 있는 글 < 10 이면 LLM 안 부르고 `NOT_ENOUGH_SOURCE` + `static boolean isConfirmed(ReviewSummary)` (sourceCount ≥ 10 && 조건 고정 태그 ≥ 1) (테스트) → 커밋
 - [ ] 2-4 `DailyCollectJob`/`CollectPlanner`/`CollectJobStore`: 확인된 곳만 import, 미확인 장소 14일 쉬기(`State.retryAfter` 맵), 기록에 `confirmed` (테스트) → 커밋
 - [ ] 2-5 DB 정리: 점검 카페·점검 공원(+딸린 조건·출처·수정 요청·코스 지점) 삭제. 미확인 일반 카페 38곳 삭제는 사용자 확인 후
 - [ ] 2-6 다른 포트로 백엔드 띄워 AI 상담 3개 모델 응답·수집 한 번 확인 → 결과 기록·커밋
