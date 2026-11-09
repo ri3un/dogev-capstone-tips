@@ -81,6 +81,19 @@ llm:
   # AI 상담에서 모델 하나를 기다리는 최대 시간 (결정 14)
   consult-timeout-seconds: 15
 
+collect:
+  schedule:
+    # 매일 자동 수집을 켤 때만 true (.env 의 COLLECT_SCHEDULE_ENABLED)
+    enabled: ${COLLECT_SCHEDULE_ENABLED:false}
+    cron: "0 0 3 * * *"          # 매일 03:00 (Asia/Seoul)
+    daily-places: 30             # 하루에 블로그 수집·요약할 장소 수
+    queries-per-day: 6           # 하루에 새로 돌릴 카카오 검색어 수 (검색 1번에 최대 45곳)
+    address-prefix: 경기 안양시
+    summary-delay-ms: ${collect.summary-delay-ms:40000}
+    # 안양 안에서 넓혀 가는 순서. 다 돌면 처음으로 돌아가고 collect-state.json 의 rounds 가 1 늘어남 → 그때 다른 시 추가
+    areas: [평촌, 범계, 인덕원, 안양역, 안양1번가, 명학역, 비산동, 관양동, 부흥동, 귀인동, 호계동, 평안동, 신촌동, 달안동, 부림동, 갈산동, 석수동, 박달동, 안양동, 만안구, 동안구]
+    keywords: [애견동반 카페, 애견동반 식당, 반려견 동반, 애견카페, 강아지 공원, 반려견 놀이터, 펫프렌들리]
+
 ---
 spring:
   config:

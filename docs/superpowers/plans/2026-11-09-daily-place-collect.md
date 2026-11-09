@@ -375,7 +375,7 @@ public class CollectJobStore {
   - `CollectJobStore.RunLog DailyCollectJob.runOnce()` — 동기 실행. 이미 도는 중이면 `IllegalStateException`
   - `boolean DailyCollectJob.isRunning()`, `void DailyCollectJob.scheduled()` (`@Scheduled(cron = "${collect.schedule.cron}", zone = "Asia/Seoul")`, 예외는 로그만)
 
-- [ ] **Step 1: 설정** — `application.yml` 공통 구역에:
+- [x] **Step 1: 설정** — `application.yml` 공통 구역에:
 
 ```yaml
 collect:
@@ -399,7 +399,7 @@ collect:
 COLLECT_SCHEDULE_ENABLED=
 ```
 
-- [ ] **Step 2: 실패하는 테스트 작성**
+- [x] **Step 2: 실패하는 테스트 작성**
 
 ```java
 package com.gaebalhagae.place.collect.schedule;
@@ -501,9 +501,9 @@ class DailyCollectJobTest {
 }
 ```
 
-- [ ] **Step 3: 실패 확인** — `cd backend && ./gradlew test --tests "*DailyCollectJobTest"` → 컴파일 오류
+- [x] **Step 3: 실패 확인** — `cd backend && ./gradlew test --tests "*DailyCollectJobTest"` → 컴파일 오류
 
-- [ ] **Step 4: 구현**
+- [x] **Step 4: 구현**
 
 `CollectScheduleProperties.java`:
 
@@ -677,9 +677,9 @@ public class DailyCollectJob {
 }
 ```
 
-- [ ] **Step 5: 통과 확인** — 2 tests PASS
-- [ ] **Step 6: 전체 테스트** — `cd backend && ./gradlew test` → PASS (기존 111 + 새 8, 기본 enabled=false 라 다른 테스트 영향 없음)
-- [ ] **Step 7: 커밋** — `feat: 안양 장소 매일 자동 수집(검색어 순환→30곳 블로그·요약→DB import) 예약 작업 추가`
+- [x] **Step 5: 통과 확인** — 2 tests PASS
+- [x] **Step 6: 전체 테스트** — `cd backend && ./gradlew test` → PASS (기존 111 + 새 8, 기본 enabled=false 라 다른 테스트 영향 없음)
+- [x] **Step 7: 커밋** — `feat: 안양 장소 매일 자동 수집(검색어 순환→30곳 블로그·요약→DB import) 예약 작업 추가`
 
 ---
 
