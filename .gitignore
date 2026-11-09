@@ -15,7 +15,9 @@ backend/.gradle/
 backend/build/
 backend/out/
 backend/bin/
+# 수집한 블로그 글(JSON) - 저장소에 올리지 않음
 backend/data/
+backend/data-backup-*/
 
 # frontend (Node)
 node_modules/
@@ -24,3 +26,6 @@ frontend/dist/
 
 # Claude Code 개인 설정
 .claude/settings.local.json
+
+# 반려견 사진 업로드 (로컬 실행)
+backend/uploads/

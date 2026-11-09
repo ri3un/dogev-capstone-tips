@@ -1,37 +1,122 @@
-import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { recordApi } from '../api/endpoints'
+import { todayStr } from '../api/format'
+import type { RecordCategory, RecordInput, StoolStatus } from '../api/types'
 import Icon from '../components/common/Icon'
 import { card, chip, ghostBtn, primaryBtn } from '../components/common/styles'
-import { DOG } from '../mocks/dog'
-import { EXAMPLE_SENTENCES, PARSE_RESULT, PARSED_LABEL, PARSED_OPTIONS, type ParsedItem, type ParsedKind } from '../mocks/records'
+import { useCurrentDog } from '../hooks/useCurrentDog'
+import { EXAMPLE_SENTENCES, PARSED_LABEL, PARSED_OPTIONS, type ParsedKind } from '../constants/records'
 
 const KINDS = Object.keys(PARSED_LABEL) as ParsedKind[]
-const today = new Date().toISOString().slice(0, 10)
+
+interface ParsedItem {
+  id: number
+  kind: ParsedKind
+  category: RecordCategory // 서버 카테고리 (간식·병원처럼 화면 종류보다 자세한 값을 보존)
+  value: string // 선택지 값 또는 자유 입력
+  memo: string
+  needsCheck?: boolean
+}
+
+const KIND_OF: Record<RecordCategory, ParsedKind> = {
+  MEAL: 'meal', SNACK: 'meal', STOOL: 'poop', ACTIVITY: 'activity', SYMPTOM: 'symptom',
+  WEIGHT: 'weight', MEDICATION: 'medicine', HOSPITAL: 'medicine', QUESTION: 'question',
+}
+const CATEGORY_OF: Record<ParsedKind, RecordCategory> = {
+  meal: 'MEAL', poop: 'STOOL', activity: 'ACTIVITY', symptom: 'SYMPTOM', weight: 'WEIGHT', medicine: 'MEDICATION', question: 'QUESTION',
+}
+
+// 서버 후보 → 확인 카드 (값이 비어 있으면 '확인 필요'로 표시)
+function toItem(c: RecordInput, i: number): ParsedItem {
+  const kind = KIND_OF[c.category]
+  const value =
+    kind === 'poop' ? c.stoolStatus ?? ''
+      : kind === 'activity' ? (c.walkMinutes != null ? `${c.walkMinutes}분` : '')
+        : kind === 'weight' ? (c.weightKg != null ? `${c.weightKg}kg` : '')
+          : kind === 'meal' ? String((c.data as { amount?: string } | null)?.amount ?? 'NORMAL')
+            : ''
+  const needsCheck = (kind === 'poop' || kind === 'activity' || kind === 'weight') && !value
+  return { id: Date.now() + i, kind, category: c.category, value, memo: c.memo ?? '', needsCheck }
+}
+
+// 확인 카드 → 저장 요청
+function toInput(item: ParsedItem, date: string): RecordInput {
+  const num = parseFloat(item.value)
+  return {
+    category: item.category,
+    recordDate: date,
+    memo: item.memo || null,
+    stoolStatus: item.kind === 'poop' && item.value ? (item.value as StoolStatus) : null,
+    walkMinutes: item.kind === 'activity' && !Number.isNaN(num) ? Math.round(num) : null,
+    weightKg: item.kind === 'weight' && !Number.isNaN(num) ? num : null,
+    data: item.kind === 'meal' && item.value ? { amount: item.value } : null,
+  }
+}
 
 // 기록 입력: 1단계 글 입력 → 2단계 확인 카드 → 저장 (LLM 결과는 사용자가 확인한 뒤 저장)
 export default function RecordNewPage() {
   const [params] = useSearchParams()
+  const location = useLocation()
   const navigate = useNavigate()
+  const today = todayStr()
+  const { dog } = useCurrentDog()
+  const kindParam = params.get('kind') as ParsedKind | null
   const [date, setDate] = useState(params.get('date') ?? today)
-  const [text, setText] = useState('')
-  const [step, setStep] = useState<1 | 2>(1)
+  const [text, setText] = useState((location.state as { text?: string } | null)?.text ?? '')
+  // ?kind=weight 처럼 들어오면 글 없이 바로 그 항목 카드부터
+  const [step, setStep] = useState<1 | 2>(kindParam && PARSED_LABEL[kindParam] ? 2 : 1)
   const [loading, setLoading] = useState(false)
-  const [items, setItems] = useState<ParsedItem[]>([])
+  const [saving, setSaving] = useState(false)
+  const [warning, setWarning] = useState('')
+  const [error, setError] = useState('')
+  const [items, setItems] = useState<ParsedItem[]>(() =>
+    kindParam && PARSED_LABEL[kindParam] ? [{ id: 1, kind: kindParam, category: CATEGORY_OF[kindParam], value: '', memo: '' }] : [],
+  )
 
-  // TODO: POST /api/dogs/{dogId}/records/parse, 503이면 직접 입력 모드
-  const parse = () => {
+  const parse = async () => {
+    if (!dog || !text.trim()) return
     setLoading(true)
-    setTimeout(() => {
-      setItems(PARSE_RESULT.items)
-      setLoading(false)
-      setStep(2)
-    }, 600)
+    setError('')
+    try {
+      const res = await recordApi.parse(dog.id, text.trim(), date)
+      setItems(res.candidates.map(toItem))
+      setWarning(res.warnings.map((w) => w.message).join(' '))
+    } catch (e) {
+      // LLM이 모두 실패(503)해도 직접 입력으로 이어 갈 수 있게
+      setItems([])
+      setError(`${(e as { message?: string }).message ?? 'AI가 응답하지 않았어요'} 아래에서 항목을 직접 추가해 주세요.`)
+    }
+    setLoading(false)
+    setStep(2)
   }
+
+  // 홈에서 글을 들고 오면 바로 기록 후보로 바꿈 (한 번만)
+  const autoParsed = useRef(false)
+  useEffect(() => {
+    if (!autoParsed.current && dog && text && (location.state as { text?: string } | null)?.text) {
+      autoParsed.current = true
+      parse()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dog])
+
   const update = (id: number, patch: Partial<ParsedItem>) => setItems((list) => list.map((i) => (i.id === id ? { ...i, ...patch, needsCheck: false } : i)))
   const remove = (id: number) => setItems((list) => list.filter((i) => i.id !== id))
-  const add = (kind: ParsedKind) => setItems((list) => [...list, { id: Date.now(), kind, value: PARSED_OPTIONS[kind]?.options[1]?.value ?? '', memo: '' }])
-  // TODO: POST /api/dogs/{dogId}/records/batch
-  const save = () => navigate(`/records?date=${date}`)
+  const add = (kind: ParsedKind) => setItems((list) => [...list, { id: Date.now(), kind, category: CATEGORY_OF[kind], value: PARSED_OPTIONS[kind]?.options[1]?.value ?? '', memo: '' }])
+
+  const save = async () => {
+    if (!dog || saving) return
+    setSaving(true)
+    setError('')
+    try {
+      await recordApi.batch(dog.id, items.map((i) => toInput(i, date)))
+      navigate(`/records?date=${date}`)
+    } catch (e) {
+      setError((e as { message?: string }).message ?? '저장하지 못했어요')
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-[840px] flex-col gap-6 px-5 py-9 lg:px-6">
@@ -54,7 +139,7 @@ export default function RecordNewPage() {
         <section className={`${card} flex flex-col gap-5 p-6 md:p-8`}>
           <div className="inline-flex items-center gap-2 self-start rounded-full bg-surface-container px-3 py-1.5 text-label-md">
             <span className="h-2 w-2 rounded-full bg-primary-container" />
-            기록 대상: <strong>{DOG.name}</strong>
+            기록 대상: <strong>{dog?.name}</strong>
           </div>
           <textarea
             rows={6}
@@ -78,7 +163,7 @@ export default function RecordNewPage() {
               <Icon name="auto_awesome" className="text-[16px] text-primary" />
               AI가 식사·배변·활동 등으로 나눠 줘요. 저장 전에 직접 고칠 수 있어요.
             </span>
-            <button type="button" onClick={parse} disabled={!text.trim() || loading} className={primaryBtn}>
+            <button type="button" onClick={parse} disabled={!text.trim() || loading || !dog} className={primaryBtn}>
               <Icon name={loading ? 'refresh' : 'auto_awesome'} className={`text-[20px] ${loading ? 'animate-spin' : ''}`} />
               {loading ? '기록으로 정리하는 중' : '기록으로 바꾸기'}
             </button>
@@ -86,20 +171,23 @@ export default function RecordNewPage() {
         </section>
       ) : (
         <section className="flex flex-col gap-4">
-          <div className={`${card} flex items-start gap-3 p-5`}>
-            <Icon name="format_quote" className="text-[22px] text-primary-container" />
-            <p className="flex-1 leading-relaxed text-on-surface-variant">{text}</p>
-            <button type="button" onClick={() => setStep(1)} className="shrink-0 text-label-md text-primary hover:underline">
-              글 고치기
-            </button>
-          </div>
-
-          {PARSE_RESULT.warning && (
-            <div className="flex items-center gap-3 rounded-2xl bg-error-container px-5 py-4 text-on-error-container">
-              <Icon name="warning" className="text-[22px]" />
-              <p className="font-semibold">{PARSE_RESULT.warning}</p>
+          {text && (
+            <div className={`${card} flex items-start gap-3 p-5`}>
+              <Icon name="format_quote" className="text-[22px] text-primary-container" />
+              <p className="flex-1 leading-relaxed text-on-surface-variant">{text}</p>
+              <button type="button" onClick={() => setStep(1)} className="shrink-0 text-label-md text-primary hover:underline">
+                글 고치기
+              </button>
             </div>
           )}
+
+          {warning && (
+            <div className="flex items-center gap-3 rounded-2xl bg-error-container px-5 py-4 text-on-error-container">
+              <Icon name="warning" className="text-[22px]" />
+              <p className="font-semibold">{warning}</p>
+            </div>
+          )}
+          {error && <p role="alert" className="text-label-md text-error">{error}</p>}
 
           {items.map((item) => {
             const meta = PARSED_LABEL[item.kind]
@@ -158,7 +246,7 @@ export default function RecordNewPage() {
               <Link to="/records" className={ghostBtn}>
                 취소
               </Link>
-              <button type="button" onClick={save} disabled={items.length === 0} className={primaryBtn}>
+              <button type="button" onClick={save} disabled={items.length === 0 || saving} className={primaryBtn}>
                 <Icon name="task_alt" className="text-[20px]" />
                 {items.length}개 기록 저장
               </button>

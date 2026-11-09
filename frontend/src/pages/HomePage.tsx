@@ -1,9 +1,38 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, Navigate, useNavigate } from 'react-router'
+import { consultApi, dogApi, familyApi, placeApi, recordApi } from '../api/endpoints'
+import { addDays, ageText, formatDistance, localDate, SIZE_LABEL, todayStr } from '../api/format'
+import type { Dog, RecordSummary } from '../api/types'
 import Icon from '../components/common/Icon'
 import Photo from '../components/common/Photo'
-import { DOG, MONTHLY_SUMMARY, type Trend } from '../mocks/dog'
-import { PLACES, formatDistance } from '../mocks/places'
+import { useApi } from '../hooks/useApi'
+import { useCurrentDog } from '../hooks/useCurrentDog'
+
+type Trend = 'good' | 'watch' | 'keep'
+
+// 오늘의 맞춤 안내: 코스 추천과 같은 기준(노령견·관절이면 2km 이내)
+function tipOf(dog: Dog) {
+  if (dog.ageMonths >= 96) return { before: '노령견이라 오늘은 ', strong: '2km 이내', after: ' 산책을 추천해요 🐾' }
+  if (dog.diseases.includes('JOINT')) return { before: '관절 지병이 있어 오늘은 ', strong: '2km 이내', after: ' 산책을 추천해요 🐾' }
+  if (dog.activityLevel === 'HIGH') return { before: '활동량이 많아 오늘은 ', strong: '뛰어놀 수 있는 곳', after: '을 넣어 볼까요 🐾' }
+  return { before: '오늘도 ', strong: '가볍게 산책', after: '하고 기록을 남겨 보세요 🐾' }
+}
+
+// 이번 달 요약: 숫자는 서버 집계, 문장은 규칙으로 만듭니다(LLM 없음)
+function monthSummary(s: RecordSummary | undefined) {
+  if (!s) return { text: '', items: [] as { label: string; status: string; trend: Trend }[] }
+  const total = Object.values(s.byCategory).reduce((a, b) => a + (b ?? 0), 0)
+  if (total === 0) return { text: '이번 달 기록이 아직 없어요. 오늘 있었던 일을 아래에 적어 보세요.', items: [] }
+  const text = `이번 달 기록 ${total}개, 산책·활동 총 ${s.walkMinutesTotal}분이에요.` + (s.looseStoolCount ? ` 무른 변·설사가 ${s.looseStoolCount}번 있었어요.` : ' 배변은 안정적이에요.')
+  return {
+    text,
+    items: [
+      { label: '배변', status: s.looseStoolCount ? '지켜보기' : '좋아요', trend: (s.looseStoolCount ? 'watch' : 'good') as Trend },
+      { label: '활동', status: s.walkMinutesTotal ? `${s.walkMinutesTotal}분` : '기록 없음', trend: (s.walkMinutesTotal ? 'good' : 'watch') as Trend },
+      { label: '증상', status: s.byCategory.SYMPTOM ? `${s.byCategory.SYMPTOM}회` : '없음', trend: (s.byCategory.SYMPTOM ? 'watch' : 'keep') as Trend },
+    ],
+  }
+}
 
 const card = 'rounded-xl border border-outline-variant/30 bg-surface-container-lowest shadow-sm'
 const primaryBtn =
@@ -19,9 +48,43 @@ const TREND_STYLE: Record<Trend, { icon: string; className: string }> = {
 
 // 홈 대시보드 (Stitch 01-home)
 export default function HomePage() {
-  const [month, setMonth] = useState(() => new Date(2026, 9)) // TODO: 오늘 날짜로
+  const navigate = useNavigate()
+  const [month, setMonth] = useState(() => new Date())
   const [memo, setMemo] = useState('')
   const moveMonth = (d: number) => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + d))
+
+  const { dog, loading } = useCurrentDog()
+  const dogId = dog?.id
+  const from = localDate(new Date(month.getFullYear(), month.getMonth(), 1))
+  const to = localDate(new Date(month.getFullYear(), month.getMonth() + 1, 0))
+  const { data: nutrition } = useApi(() => (dogId ? dogApi.nutrition(dogId) : null), [dogId])
+  const { data: family } = useApi(() => familyApi.get(), [])
+  const { data: recent } = useApi(() => (dogId ? recordApi.list(dogId, { from: addDays(todayStr(), -6), to: todayStr() }) : null), [dogId])
+  const { data: summary } = useApi(() => (dogId ? recordApi.summary(dogId, { from, to }) : null), [dogId, from])
+  const { data: consults } = useApi(() => (dogId ? consultApi.list(dogId) : null), [dogId])
+  const { data: places } = useApi(() => (dogId ? placeApi.list({ dogId }) : null), [dogId])
+
+  if (loading) return null
+  if (!dog) return <Navigate to="/onboarding" replace />
+
+  const last = recent?.at(-1)
+  const DOG = {
+    name: dog.name, breed: dog.breed, size: SIZE_LABEL[dog.size], age: ageText(dog.ageMonths), weightKg: dog.weightKg,
+    photoUrl: dog.photoUrl ?? undefined,
+    stats: [
+      { icon: 'restaurant', label: '오늘 사료 권장량', value: nutrition?.foodGrams ? `${nutrition.foodGrams}g` : nutrition ? `${nutrition.derKcal}kcal` : '-' },
+      { icon: 'water_drop', label: '물 권장량', value: nutrition ? `${nutrition.waterMinMl}~${nutrition.waterMaxMl}ml` : '-' },
+      { icon: 'directions_walk', label: '최근 기록', value: last ? `${last.recordDate.slice(5)} ${last.memo ?? last.categoryLabel}` : '기록 없음' },
+    ],
+    family: (family?.members ?? []).map((m) => m.nickname.slice(0, 2)),
+    tip: tipOf(dog),
+  }
+  const MONTHLY_SUMMARY = {
+    ...monthSummary(summary),
+    consultCount: (consults ?? []).filter((c) => c.createdAt.slice(0, 10) >= from && c.createdAt.slice(0, 10) <= to).length,
+    recordCount: Object.values(summary?.byCategory ?? {}).reduce((a, b) => a + (b ?? 0), 0),
+  }
+  const nearby = (places ?? []).filter((p) => p.verdict?.level === 'OK').slice(0, 3)
 
   return (
     <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-9 px-10 py-9">
@@ -37,7 +100,7 @@ export default function HomePage() {
                 <span className="rounded-full bg-tertiary-fixed px-2.5 py-0.5 text-label-md text-on-tertiary-fixed">{DOG.size}</span>
               </div>
               <p className="font-medium text-on-surface-variant">
-                {DOG.age}살 · {DOG.weightKg}kg
+                {DOG.age} · {DOG.weightKg}kg
               </p>
             </div>
           </div>
@@ -65,7 +128,7 @@ export default function HomePage() {
               </div>
               <span className="text-body-sm text-on-surface-variant">가족 {DOG.family.length}명이 함께 돌봐요</span>
             </div>
-            <Link to="/dogs/1/edit" className="flex items-center gap-0.5 text-label-md text-on-surface-variant transition-colors hover:text-primary">
+            <Link to={`/dogs/${dog.id}/edit`} className="flex items-center gap-0.5 text-label-md text-on-surface-variant transition-colors hover:text-primary">
               프로필 자세히 보기
               <Icon name="chevron_right" className="text-[16px]" />
             </Link>
@@ -147,8 +210,8 @@ export default function HomePage() {
             placeholder={`오늘 ${DOG.name}에게 있었던 일을 편하게 적어주세요 (예: 아침에 사료 반만 먹고 산책 20분 했어)`}
             className="w-full resize-none rounded-xl border border-outline-variant/30 bg-surface-container-low p-4 transition-all placeholder:text-outline focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container focus:outline-none"
           />
-          {/* TODO: POST /api/records/parse 호출 후 /records/new 확인 화면으로 이동 */}
-          <button type="button" disabled={!memo.trim()} className={`${primaryBtn} w-full shrink-0 px-6 disabled:opacity-50 sm:w-auto`}>
+          {/* 기록 입력 화면이 글을 받아 바로 기록 후보로 바꿉니다 */}
+          <button type="button" disabled={!memo.trim()} onClick={() => navigate('/records/new', { state: { text: memo.trim() } })} className={`${primaryBtn} w-full shrink-0 px-6 disabled:opacity-50 sm:w-auto`}>
             <Icon name="auto_awesome" className="text-[20px]" />
             기록으로 바꾸기
           </button>
@@ -164,22 +227,20 @@ export default function HomePage() {
           </Link>
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {PLACES.filter((p) => p.status === 'OK').slice(0, 3).map((p) => (
+          {nearby.map((p) => (
             <Link key={p.id} to={`/map?placeId=${p.id}`} className={`group flex flex-col overflow-hidden ${card} transition-all hover:shadow-md`}>
-              <div className="relative h-44 overflow-hidden">
-                <Photo src={p.imageUrl} alt={p.name} className="h-full w-full transition-transform duration-500 group-hover:scale-105" />
-                <span className="absolute top-3 left-3 rounded-full bg-tertiary-fixed px-2.5 py-0.5 text-label-sm font-semibold text-on-tertiary-fixed shadow-sm">
-                  {DOG.size} OK
-                </span>
-              </div>
+              {/* 가게 사진은 지도 API 가 공식으로 주지 않아 사진 칸 없이 */}
               <div className="flex flex-1 flex-col justify-between gap-2 p-5">
                 <div>
+                  <span className="mb-2 inline-block rounded-full bg-tertiary-fixed px-2.5 py-0.5 text-label-sm font-semibold text-on-tertiary-fixed shadow-sm">
+                    {DOG.size} OK
+                  </span>
                   <h3 className="text-headline-sm font-bold transition-colors group-hover:text-primary">{p.name}</h3>
-                  <p className="mt-1 text-body-sm text-on-surface-variant">{p.summary[0]}</p>
+                  <p className="mt-1 text-body-sm text-on-surface-variant">{p.summaryFirstLine ?? p.keywords.join(' ')}</p>
                 </div>
                 <div className="flex items-center gap-1 pt-1 text-label-md font-semibold text-primary">
                   <Icon name="near_me" className="text-[16px]" />
-                  {formatDistance(p.distanceM)}
+                  {p.distanceM != null ? formatDistance(p.distanceM) : p.categoryLabel}
                 </div>
               </div>
             </Link>

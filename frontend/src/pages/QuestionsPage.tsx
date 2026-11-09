@@ -1,22 +1,39 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, Navigate } from 'react-router'
+import { familyApi, questionApi } from '../api/endpoints'
+import { localDate } from '../api/format'
 import Icon from '../components/common/Icon'
 import { card, input, primaryBtn } from '../components/common/styles'
-import { ME } from '../mocks/family'
-import { VET_QUESTIONS } from '../mocks/questions'
-
-const today = new Date().toISOString().slice(0, 10)
+import { useApi } from '../hooks/useApi'
+import { useCurrentDog } from '../hooks/useCurrentDog'
 
 // 수의사 질문 메모: 직접 쓴 메모 + AI 상담에서 저장한 질문 (리포트 9번 섹션에 들어감)
 export default function QuestionsPage() {
-  const [list, setList] = useState(VET_QUESTIONS)
+  const { dog, loading } = useCurrentDog()
+  const dogId = dog?.id
+  const { data, setData } = useApi(() => (dogId ? questionApi.list(dogId) : null), [dogId])
+  const { data: family } = useApi(() => familyApi.get(), [])
   const [text, setText] = useState('')
+  const [saving, setSaving] = useState(false)
 
-  // TODO: POST /api/dogs/{dogId}/vet-questions
-  const add = () => {
-    if (!text.trim()) return
-    setList((l) => [{ id: Date.now(), text: text.trim(), author: ME.nickname, date: today, source: 'MEMO' }, ...l])
-    setText('')
+  if (loading) return null
+  if (!dog) return <Navigate to="/onboarding" replace />
+
+  const list = data ?? []
+  const authorOf = (id: number) => family?.members.find((m) => m.memberId === id)?.nickname ?? '가족'
+
+  const add = async () => {
+    if (!text.trim() || saving) return
+    setSaving(true)
+    try {
+      const q = await questionApi.create(dog.id, text.trim())
+      setData([q, ...list])
+      setText('')
+    } catch {
+      alert('메모를 저장하지 못했어요. 잠시 후 다시 시도해 주세요')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -34,7 +51,7 @@ export default function QuestionsPage() {
         className={`${card} flex gap-2 p-4`}
       >
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="다음 병원 갈 때 물어볼 것" className={input} />
-        <button type="submit" disabled={!text.trim()} className={`${primaryBtn} h-12 shrink-0 px-5 whitespace-nowrap`}>
+        <button type="submit" disabled={!text.trim() || saving} className={`${primaryBtn} h-12 shrink-0 px-5 whitespace-nowrap`}>
           <Icon name="add" className="text-[20px]" />
           추가
         </button>
@@ -49,9 +66,9 @@ export default function QuestionsPage() {
               <li key={q.id} className="flex items-start gap-3 px-4 py-4">
                 <Icon name="help" className="mt-0.5 text-[22px] text-primary" />
                 <div className="flex-1">
-                  <p className="font-semibold">{q.text}</p>
+                  <p className="font-semibold">{q.content}</p>
                   <p className="mt-1 text-label-sm text-outline">
-                    {q.author} · {q.date}
+                    {authorOf(q.createdBy)} · {localDate(new Date(q.createdAt))}
                   </p>
                 </div>
                 <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-label-sm font-bold ${q.source === 'CONSULT' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container text-on-surface-variant'}`}>
