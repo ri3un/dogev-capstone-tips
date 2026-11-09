@@ -78,6 +78,7 @@ export const consultApi = {
   ask: (dogId: number, question: string) => api.post<Consultation>(`/dogs/${dogId}/consultations`, { question }),
   list: (dogId: number) => api.get<ConsultItem[]>(`/dogs/${dogId}/consultations`),
   get: (id: number) => api.get<Consultation>(`/consultations/${id}`),
+  remove: (id: number) => api.delete<void>(`/consultations/${id}`),
 }
 
 export const courseApi = {

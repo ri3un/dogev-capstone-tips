@@ -66,6 +66,23 @@ class ConsultApiTest extends ApiTestSupport {
     }
 
     @Test
+    void 상담_기록을_지우면_목록과_상세에서_사라지고_남은_지울_수_없다() throws Exception {
+        given(gemini.completeJson(anyString(), anyString())).willReturn(LOW);
+        given(groq.completeJson(anyString(), anyString())).willReturn(HIGH);
+        given(openRouter.completeJson(anyString(), anyString())).willThrow(new IllegalStateException("429"));
+        String token = login("다인");
+        long dogId = createDog(token, "콩이");
+        Number id = read(postApi(token, "/api/dogs/{id}/consultations", Map.of("question", "기침을 해요"), dogId)
+                .andExpect(status().isOk()), "$.data.id");
+
+        deleteApi(login("남"), "/api/consultations/{id}", id).andExpect(status().isNotFound());
+        deleteApi(token, "/api/consultations/{id}", id).andExpect(status().isOk());
+
+        getApi(token, "/api/consultations/{id}", id).andExpect(status().isNotFound());
+        getApi(token, "/api/dogs/{id}/consultations", dogId).andExpect(jsonPath("$.data", hasSize(0)));
+    }
+
+    @Test
     void 모두_실패하면_503() throws Exception {
         given(gemini.completeJson(anyString(), anyString())).willThrow(new IllegalStateException("x"));
         given(groq.completeJson(anyString(), anyString())).willReturn("JSON 아님");

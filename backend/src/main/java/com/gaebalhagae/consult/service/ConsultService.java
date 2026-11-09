@@ -79,6 +79,20 @@ public class ConsultService {
         return detail(memberId, id);
     }
 
+    /** 상담 기록 삭제: 그 반려견을 볼 수 있는 가족만, 아니면 있는지도 알려 주지 않고 404 */
+    @Transactional
+    public void delete(Long memberId, Long consultationId) {
+        Consultation c = consultationRepository.findById(consultationId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CONSULTATION_NOT_FOUND));
+        try {
+            access.checkDog(memberId, c.getDogId());
+        } catch (BusinessException e) {
+            throw new BusinessException(ErrorCode.CONSULTATION_NOT_FOUND);
+        }
+        answerRepository.deleteByConsultationId(c.getId());
+        consultationRepository.delete(c);
+    }
+
     @Transactional(readOnly = true)
     public ConsultResponses.Detail detail(Long memberId, Long consultationId) {
         Consultation c = consultationRepository.findById(consultationId)

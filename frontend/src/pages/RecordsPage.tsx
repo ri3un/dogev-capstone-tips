@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import { recordApi } from '../api/endpoints'
 import { addDays, localDate, todayStr } from '../api/format'
 import type { HealthRecord, RecordCategory } from '../api/types'
+import ConfirmModal from '../components/common/ConfirmModal'
 import Icon from '../components/common/Icon'
 import { useApi } from '../hooks/useApi'
 import { useCurrentDog } from '../hooks/useCurrentDog'
@@ -77,8 +78,21 @@ export default function RecordsPage() {
 
   const from = ymd(new Date(month.getFullYear(), month.getMonth(), 1))
   const to = ymd(new Date(month.getFullYear(), month.getMonth() + 1, 0))
-  const { data: records } = useApi(() => (dogId ? recordApi.list(dogId, { from, to }) : null), [dogId, from])
-  const { data: weights } = useApi(() => (dogId ? recordApi.weights(dogId, { from: addDays(todayStr(), -150), to: todayStr() }) : null), [dogId])
+  const { data: records, setData: setRecords } = useApi(() => (dogId ? recordApi.list(dogId, { from, to }) : null), [dogId, from])
+  const { data: weights, reload: reloadWeights } = useApi(() => (dogId ? recordApi.weights(dogId, { from: addDays(todayStr(), -150), to: todayStr() }) : null), [dogId])
+  const [deleting, setDeleting] = useState<HealthRecord | null>(null)
+
+  const remove = async (r: HealthRecord) => {
+    try {
+      await recordApi.remove(r.id)
+      setRecords((records ?? []).filter((x) => x.id !== r.id))
+      if (r.category === 'WEIGHT') reloadWeights()
+    } catch {
+      alert('기록을 지우지 못했어요')
+    } finally {
+      setDeleting(null)
+    }
+  }
 
   const moveMonth = (d: number) => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + d))
   const goToday = () => {
@@ -324,6 +338,9 @@ export default function RecordsPage() {
                         <div className="flex items-center gap-1.5 text-label-sm">
                           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-secondary-container text-[9px] font-bold text-on-secondary-container shadow-sm">{author[0]}</span>
                           <span className="font-medium text-on-surface-variant">{author}</span>
+                          <button type="button" aria-label="기록 삭제" onClick={() => setDeleting(r)} className="ml-1 flex h-6 w-6 items-center justify-center rounded-full text-outline transition-colors hover:bg-surface-container hover:text-error">
+                            <Icon name="close" className="text-[16px]" />
+                          </button>
                         </div>
                       </div>
                       <p className="pl-0.5 font-semibold">{r.memo ?? r.categoryLabel}</p>
@@ -346,6 +363,16 @@ export default function RecordsPage() {
         <span className="tracking-tight">기록 추가</span>
         <Icon name="pets" className="text-[18px] opacity-80" />
       </Link>
+      {deleting && (
+        <ConfirmModal
+          title="이 기록을 지울까요?"
+          body={`${deleting.recordDate} ${deleting.categoryLabel} 기록이 가족 모두에게서 사라지고 되돌릴 수 없어요.`}
+          confirmLabel="지우기"
+          danger
+          onConfirm={() => remove(deleting)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
     </div>
   )
 }
