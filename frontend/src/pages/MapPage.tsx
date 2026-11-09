@@ -1,25 +1,20 @@
 import { useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router'
 import { placeApi } from '../api/endpoints'
-import { formatDistance, SIZE_LABEL, spreadPins } from '../api/format'
-import type { PlaceCategory, PlaceItem } from '../api/types'
+import { formatDistance, SIZE_LABEL } from '../api/format'
+import type { PlaceCategory } from '../api/types'
 import Icon from '../components/common/Icon'
 import Modal from '../components/common/Modal'
+import NaverMap, { type NaverMapInstance } from '../components/common/NaverMap'
 import { chip, primaryBtn } from '../components/common/styles'
 import PlaceDrawer from '../components/place/PlaceDrawer'
-import { CATEGORY_ICON, CATEGORY_LABEL, FILTERS, MAP_PLACEHOLDER_URL, VERDICT_BG, VERDICT_LABEL } from '../constants/place'
+import { CATEGORY_ICON, CATEGORY_LABEL, FILTERS, VERDICT_BG, VERDICT_LABEL } from '../constants/place'
 import { useApi } from '../hooks/useApi'
 import { useCurrentDog } from '../hooks/useCurrentDog'
 import { useMyLocation } from '../hooks/useMyLocation'
 
 const CATEGORIES: PlaceCategory[] = ['CAFE', 'RESTAURANT', 'PARK']
 const mapBtn = 'flex h-10 w-10 items-center justify-center transition-colors hover:bg-surface-container-low'
-
-// 장소 id → 임시 핀 위치(%)·아이콘
-function pinsOf(list: PlaceItem[]) {
-  const spots = spreadPins(list)
-  return new Map(list.map((p, i) => [p.id, { top: `${spots[i].top}%`, left: `${spots[i].left}%`, icon: CATEGORY_ICON[p.category] }]))
-}
 
 // 장소 지도 + 상세 드로어 (Stitch 02-map-drawer)
 export default function MapPage() {
@@ -30,6 +25,7 @@ export default function MapPage() {
   const [dogBased, setDogBased] = useState(true)
   const [conds, setConds] = useState<string[]>([])
   const [filterOpen, setFilterOpen] = useState(false)
+  const [naverMap, setNaverMap] = useState<NaverMapInstance | null>(null)
   const toggleCond = (k: string) => setConds((c) => (c.includes(k) ? c.filter((x) => x !== k) : [...c, k]))
 
   const { dog, loading } = useCurrentDog()
@@ -45,7 +41,11 @@ export default function MapPage() {
   if (!dog) return <Navigate to="/onboarding" replace />
 
   const list = data ?? []
-  const pins = pinsOf(list)
+  const zoomBy = (d: number) => naverMap?.setZoom(naverMap.getZoom() + d, true)
+  const toMyLocation = () => {
+    const maps = window.naver?.maps
+    if (naverMap && maps && pos) naverMap.panTo(new maps.LatLng(pos.lat, pos.lng))
+  }
   const select = (id: number | null) => setParams(id ? { placeId: String(id) } : {})
   const selected = list.find((p) => p.id === selectedId)
 
@@ -161,35 +161,25 @@ export default function MapPage() {
         </div>
       </aside>
 
-      {/* 오른쪽: 지도 (TODO: 네이버 지도 SDK로 교체, 지금은 배경 이미지 + % 위치 핀) */}
+      {/* 오른쪽: 네이버 지도 (핀은 지도 마커 안에 그대로 그림) */}
       <div className="relative h-full flex-1 overflow-hidden bg-cream">
-        <div className="relative h-full w-full bg-cover bg-center" style={{ backgroundImage: `url('${MAP_PLACEHOLDER_URL}')` }}>
-          <div className="pointer-events-none absolute inset-0 bg-cream/20" />
-          <div className="absolute top-5 right-5 z-20 flex flex-col gap-2.5">
-            <button type="button" title="현재 위치" className={`${mapBtn} rounded-full bg-surface-container-lowest shadow-md`}>
-              <Icon name="my_location" className="text-[20px] text-primary" />
-            </button>
-            <div className="flex flex-col overflow-hidden rounded-full bg-surface-container-lowest shadow-md">
-              <button type="button" title="확대" className={mapBtn}>
-                <Icon name="add" className="text-[20px]" />
-              </button>
-              <div className="mx-auto h-px w-6 bg-surface-container" />
-              <button type="button" title="축소" className={mapBtn}>
-                <Icon name="remove" className="text-[20px]" />
-              </button>
-            </div>
-          </div>
-
-          {list.map((p) => {
-            const pin = pins.get(p.id)
-            if (!pin) return null
-            const active = p.id === selectedId
-            return (
+        <div className="relative h-full w-full bg-cover bg-center">
+          <NaverMap
+            className="absolute inset-0"
+            onReady={setNaverMap}
+            fitKey={list.map((p) => p.id).join()}
+            pins={list.map((p) => {
+              const active = p.id === selectedId
+              return {
+                id: p.id,
+                lat: p.lat,
+                lng: p.lng,
+                zIndex: active ? 2 : 1,
+                node: (
               <button
                 key={p.id}
                 type="button"
                 onClick={() => select(p.id)}
-                style={{ top: pin.top, left: pin.left }}
                 className={`absolute flex -translate-x-1/2 -translate-y-full flex-col items-center ${active ? 'z-20' : 'z-10 opacity-90 transition-opacity hover:opacity-100'}`}
               >
                 <span
@@ -197,13 +187,29 @@ export default function MapPage() {
                     active ? 'bg-primary-container px-3 py-1.5 text-[13px] text-white shadow-lg ring-2 ring-white' : 'border border-outline-variant/30 bg-white px-2.5 py-1 text-[12px] text-secondary shadow-md'
                   }`}
                 >
-                  <Icon name={pin.icon} className="text-[14px]" />
+                  <Icon name={CATEGORY_ICON[p.category]} className="text-[14px]" />
                   {p.name}
                 </span>
                 <span className={`-mt-1 rotate-45 ${active ? 'h-2.5 w-2.5 bg-primary-container shadow-md' : 'h-2 w-2 border-r border-b border-outline-variant/30 bg-white'}`} />
               </button>
-            )
-          })}
+                ),
+              }
+            })}
+          />
+          <div className="absolute top-5 right-5 z-20 flex flex-col gap-2.5">
+            <button type="button" title="현재 위치" onClick={toMyLocation} className={`${mapBtn} rounded-full bg-surface-container-lowest shadow-md`}>
+              <Icon name="my_location" className="text-[20px] text-primary" />
+            </button>
+            <div className="flex flex-col overflow-hidden rounded-full bg-surface-container-lowest shadow-md">
+              <button type="button" title="확대" onClick={() => zoomBy(1)} className={mapBtn}>
+                <Icon name="add" className="text-[20px]" />
+              </button>
+              <div className="mx-auto h-px w-6 bg-surface-container" />
+              <button type="button" title="축소" onClick={() => zoomBy(-1)} className={mapBtn}>
+                <Icon name="remove" className="text-[20px]" />
+              </button>
+            </div>
+          </div>
         </div>
 
         {selectedId && <PlaceDrawer key={selectedId} placeId={selectedId} dogId={dog.id} distanceM={selected?.distanceM ?? null} onClose={() => select(null)} />}
