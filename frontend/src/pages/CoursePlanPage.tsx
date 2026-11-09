@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Navigate, useSearchParams } from 'react-router'
 import { courseApi } from '../api/endpoints'
-import { ageText, formatDistance, spreadPins } from '../api/format'
+import { ageText, formatDistance } from '../api/format'
 import type { PlaceCategory } from '../api/types'
 import Icon from '../components/common/Icon'
-import { COURSE_MAP_URL } from '../constants/place'
+import NaverMap, { type NaverMapInstance } from '../components/common/NaverMap'
 import { useApi } from '../hooks/useApi'
 import { useCurrentDog } from '../hooks/useCurrentDog'
 import { FALLBACK_LOCATION, useMyLocation } from '../hooks/useMyLocation'
@@ -43,6 +43,7 @@ export default function CoursePlanPage() {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [completing, setCompleting] = useState(false)
+  const [naverMap, setNaverMap] = useState<NaverMapInstance | null>(null)
 
   const { dog, loading: dogLoading } = useCurrentDog()
   const pos = useMyLocation()
@@ -108,8 +109,6 @@ export default function CoursePlanPage() {
     const next = course?.stops[i]
     return next ? `도보 ${next.legMinutes}분 · ${formatDistance(next.legDistanceM)}` : '코스 끝'
   }
-  const pins = spreadPins(stops)
-  const routePath = pins.map((p, i) => `${i ? 'L' : 'M'} ${(p.left * 8).toFixed(0)} ${(p.top * 3.6).toFixed(0)}`).join(' ')
 
   return (
     <div className="mx-auto w-full max-w-[1440px] px-10 py-9">
@@ -256,25 +255,31 @@ export default function CoursePlanPage() {
             <p className="py-16 text-center text-body-sm text-outline">왼쪽에서 조건을 고르고 '코스 추천받기'를 눌러 주세요.</p>
           ) : (
             <>
-              {/* 경로 지도 (TODO: 네이버 지도 SDK 폴리라인으로 교체) */}
+              {/* 경로 지도: 네이버 지도 + 출발·경유·도착 핀 + 점선 경로 */}
               <div className="relative h-[320px] w-full overflow-hidden rounded-xl bg-surface-container-low shadow-inner sm:h-[360px]">
-                <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url('${COURSE_MAP_URL}')` }} />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-on-surface/40 via-transparent to-surface-container-lowest/30" />
-                <svg className="pointer-events-none absolute inset-0 h-full w-full" fill="none" preserveAspectRatio="none" viewBox="0 0 800 360">
-                  <path d={routePath} stroke="rgba(255,248,245,0.9)" strokeLinecap="round" strokeWidth="7" />
-                  <path d={routePath} stroke="var(--color-primary-container)" strokeDasharray="8 8" strokeLinecap="round" strokeWidth="4.5" />
-                </svg>
-                {stops.map((s, i) => (
-                  <div key={i} style={{ left: `${pins[i].left}%`, top: `${pins[i].top}%` }} className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-                    <div className={`mb-1 rounded-md px-2.5 py-1 text-label-sm font-bold whitespace-nowrap shadow-md ${STOP[s.kind].pinLabel}`}>
-                      [{i + 1}] {s.kind === 'start' ? '출발' : s.name}
-                    </div>
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-full text-label-md font-bold shadow-lg ring-4 ring-surface-container-lowest ${STOP[s.kind].pinNum}`}>{i + 1}</div>
-                  </div>
-                ))}
+                <NaverMap
+                  className="h-full w-full"
+                  onReady={setNaverMap}
+                  fitKey={`${course.id}:${start.lat}:${start.lng}`}
+                  path={stops}
+                  pins={stops.map((s, i) => ({
+                    id: i,
+                    lat: s.lat,
+                    lng: s.lng,
+                    zIndex: i + 1,
+                    node: (
+                      <div className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
+                        <div className={`mb-1 rounded-md px-2.5 py-1 text-label-sm font-bold whitespace-nowrap shadow-md ${STOP[s.kind].pinLabel}`}>
+                          [{i + 1}] {s.kind === 'start' ? '출발' : s.name}
+                        </div>
+                        <div className={`flex h-8 w-8 items-center justify-center rounded-full text-label-md font-bold shadow-lg ring-4 ring-surface-container-lowest ${STOP[s.kind].pinNum}`}>{i + 1}</div>
+                      </div>
+                    ),
+                  }))}
+                />
                 <div className="absolute right-4 bottom-4 flex flex-col gap-1.5">
                   {['add', 'remove'].map((n) => (
-                    <button key={n} type="button" aria-label={n === 'add' ? '지도 확대' : '지도 축소'} className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container-lowest/95 shadow-md transition-transform hover:bg-surface-container-lowest active:scale-95">
+                    <button key={n} type="button" onClick={() => naverMap?.setZoom(naverMap.getZoom() + (n === 'add' ? 1 : -1), true)} aria-label={n === 'add' ? '지도 확대' : '지도 축소'} className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-container-lowest/95 shadow-md transition-transform hover:bg-surface-container-lowest active:scale-95">
                       <Icon name={n} className="text-[18px]" />
                     </button>
                   ))}
