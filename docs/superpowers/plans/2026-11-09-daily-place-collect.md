@@ -775,3 +775,22 @@ public class CollectJobController {
 5. 안양 다 돌았는지: `backend/data/collect-state.json` 의 `rounds` 가 1 이 되면 검색어(21개 지역 × 7개 키워드 = 147개, 하루 6개면 약 25일) 한 바퀴 완료 → `application.yml` 의 `collect.schedule.areas` 에 다른 시 지역을 더하고 `address-prefix` 를 바꿈(여러 시를 함께 받으려면 접두어를 목록으로 바꾸는 작은 수정 필요)
 6. 배포 서버로 옮길 때: 서버 `.env` 에 `NAVER_SEARCH_ID/SECRET`, `KAKAO_REST_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`, `COLLECT_SCHEDULE_ENABLED=true` 를 넣고, `docker-compose.yml` 의 backend 에 `data/` 볼륨을 붙여 컨테이너를 다시 만들어도 진행 위치·후기가 남게 함. 노트북 쪽은 그때 `false` 로 꺼서 두 곳이 같이 돌지 않게
 7. 한도: 카카오 키워드 검색 일 10만, 네이버 검색 일 2만 5천, 하루 사용은 각각 수십 번 수준. LLM 은 Groq 무료 한도 때문에 요약 사이 40초(결정 30)
+
+---
+
+## 2단계: 애견동반 확인된 곳만 · 글 10건 이상 · 조건 키워드 필수 · LLM 모델 교체 (2026-11-09 사용자 요청)
+
+> 끊기면: `docs/superpowers/plans/2026-11-09-daily-place-collect.md 의 "2단계" 첫 [ ] 부터 이어서 해 줘. 브랜치 feature/daily-collect.`
+
+사용자 요청: ① Gemini·OpenRouter 응답 없음 고치기 ② 장소마다 블로그 글 10건 이상 모아서 요약 ③ 조건 키워드(목줄 필수, 소형견 입장 등) 꼭 뽑기 ④ 일반 카페가 아니라 애견동반 되는 곳만 ⑤ 점검 카페·점검 공원 삭제
+
+원인(①): 모델이 내려감 — Gemini `gemini-2.5-flash-lite` 404 "no longer available to new users", OpenRouter `deepseek/deepseek-chat-v3-0324:free` 404 "unavailable for free". 직접 호출로 확인한 대체: `gemini-3.5-flash-lite`(1.0초), OpenRouter `nvidia/nemotron-3.5-super-vl:free`(1.9초) — 둘 다 한국어 조건 판정 JSON 정답
+
+규칙: "확인된 애견동반 장소" = 요약에 쓴 글(협찬 아님 + 반려견 문장 있음) **10건 이상** + 조건 고정 키워드 **1개 이상**. DB 에는 이것만 import. 미확인 장소는 14일 뒤 다시 시도(매일 같은 곳만 고르지 않게)
+
+- [ ] 2-1 `application.yml`: `llm.gemini.model: gemini-3.5-flash-lite`, `llm.openrouter.model` 기본값 `nvidia/nemotron-3.5-super-vl:free` → 커밋
+- [ ] 2-2 `BlogCollectService`: 검색어 `{이름} 애견동반`, `{이름} 강아지`, `{이름} 반려견` 세 번 검색해 URL 로 합침 (테스트 갱신) → 커밋
+- [ ] 2-3 `ReviewSummaryService`: 쓸 수 있는 글 < 10 이면 LLM 안 부르고 `NOT_ENOUGH_SOURCE` + `static boolean isConfirmed(ReviewSummary)` (sourceCount ≥ 10 && 조건 고정 태그 ≥ 1) (테스트) → 커밋
+- [ ] 2-4 `DailyCollectJob`/`CollectPlanner`/`CollectJobStore`: 확인된 곳만 import, 미확인 장소 14일 쉬기(`State.retryAfter` 맵), 기록에 `confirmed` (테스트) → 커밋
+- [ ] 2-5 DB 정리: 점검 카페·점검 공원(+딸린 조건·출처·수정 요청·코스 지점) 삭제. 미확인 일반 카페 38곳 삭제는 사용자 확인 후
+- [ ] 2-6 다른 포트로 백엔드 띄워 AI 상담 3개 모델 응답·수집 한 번 확인 → 결과 기록·커밋
