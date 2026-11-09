@@ -180,7 +180,8 @@ public class ReviewSummaryService {
         }
         List<Judgement> out = new ArrayList<>();
         for (Map<String, Object> j : result.judgements()) {
-            if (!(j.get("sentence") instanceof Number n) || n.intValue() < 1 || n.intValue() > sentenceCount) {
+            Integer sentence = sentenceNumber(j.get("sentence"));
+            if (sentence == null || sentence < 1 || sentence > sentenceCount) {
                 continue;
             }
             Map<String, String> values = new LinkedHashMap<>();
@@ -195,9 +196,20 @@ public class ReviewSummaryService {
                     ? tags.stream().filter(String.class::isInstance).map(String.class::cast)
                         .map(t -> "#" + t.replace("#", "").replace(" ", "")).filter(t -> t.length() > 1).toList()
                     : List.of();
-            out.add(new Judgement(n.intValue(), values, kg, mood));
+            out.add(new Judgement(sentence, values, kg, mood));
         }
         return out;
+    }
+
+    // 문장 번호: 숫자 또는 "12" 같은 숫자 문자열 (Groq 이 가끔 문자로 줌). 그 밖은 null
+    private static Integer sentenceNumber(Object raw) {
+        if (raw instanceof Number n) {
+            return n.intValue();
+        }
+        if (raw instanceof String s && s.strip().matches("\\d{1,4}")) {
+            return Integer.parseInt(s.strip());
+        }
+        return null;
     }
 
     // 조건마다 unknown 이 아닌 판정만 세서 다수결. 60% 이상이면 그 값, 아니면 NEEDS_CHECK

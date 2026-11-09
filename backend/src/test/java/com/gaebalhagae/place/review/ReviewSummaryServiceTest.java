@@ -148,6 +148,20 @@ class ReviewSummaryServiceTest {
     }
 
     @Test
+    void 문장_번호가_문자로_와도_판정을_버리지_않는다() {
+        // Groq 이 "sentence":"1" 처럼 문자로 줄 때가 있음 (2026-11-09 실제 응답) → 예전엔 판정이 통째로 버려져 키워드 0개
+        String stringNumbers = """
+                {"judgements":[{"sentence":"1","indoor":"indoor"},{"sentence":"2","parking":"yes","mood_tags":["넓음"]}],
+                 "summary":["실내 동반이 돼요."]}
+                """;
+        var result = service(new FakeLlm("groq", stringNumbers), new FakeLlm("gemini")).summarize("공원A", false);
+
+        assertThat(result.summary().conditions().get("indoor").value()).isEqualTo("indoor");
+        assertThat(result.summary().conditions().get("parking").value()).isEqualTo("yes");
+        assertThat(result.summary().keywords()).containsExactly("#실내동반", "#주차가능", "#넓음");
+    }
+
+    @Test
     void 새_글이_없으면_LLM을_다시_부르지_않는다() {
         FakeLlm groq = new FakeLlm("groq", GOOD, GOOD);
         var svc = service(groq, new FakeLlm("gemini"));
