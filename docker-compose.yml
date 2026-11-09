@@ -38,7 +38,10 @@ services:
       - uploads:/data/uploads
 
   nginx:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_NCP_MAP_KEY_ID: ${VITE_NCP_MAP_KEY_ID}
     restart: unless-stopped
     ports:
       - "80:80"
