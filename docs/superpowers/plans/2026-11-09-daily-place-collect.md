@@ -792,5 +792,5 @@ public class CollectJobController {
 - [x] 2-2 `BlogCollectService`: 검색어 `{이름} 애견동반`, `{이름} 강아지`, `{이름} 반려견` 세 번 검색해 URL 로 합침 (테스트 갱신) → 커밋
 - [x] 2-3 `ReviewSummaryService`: 쓸 수 있는 글 < 10 이면 LLM 안 부르고 `NOT_ENOUGH_SOURCE` + `static boolean isConfirmed(ReviewSummary)` (sourceCount ≥ 10 && 조건 고정 태그 ≥ 1) (테스트) → 커밋
 - [x] 2-4 `DailyCollectJob`/`CollectPlanner`/`CollectJobStore`: 확인된 곳만 import, 미확인 장소 14일 쉬기(`State.retryAfter` 맵), 기록에 `confirmed` (테스트) → 커밋
-- [ ] 2-5 DB 정리: 점검 카페·점검 공원(+딸린 조건·출처·수정 요청·코스 지점) 삭제. 미확인 일반 카페 38곳 삭제는 사용자 확인 후
+- [x] 2-5 DB 정리: 사용자 요청("데이터베이스를 지우고 … 30곳을 수집해봐")으로 장소 관련 6개 테이블(place·place_condition·place_source·place_edit_request·course·course_place) 비움, 회원·반려견은 유지. 백업: DB 는 mysqldump(작업용 임시 폴더), 수집 파일은 `backend/data-backup-20261109/`(git 제외)
 - [ ] 2-6 다른 포트로 백엔드 띄워 AI 상담 3개 모델 응답·수집 한 번 확인 → 결과 기록·커밋
