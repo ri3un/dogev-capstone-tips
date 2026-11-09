@@ -80,3 +80,18 @@ cd backend && ./gradlew test             # 백엔드 테스트
 | 조건 key size/space/carrier/leash/manner/seat/offleash/water/parking | size_allowed/indoor/carrier_required/leash_required/manner_belt_required/seat_allowed/off_leash_area/water_or_pet_menu/parking |
 | 기록 kind meal/poop/activity/symptom/weight/medicine/question | MEAL(+SNACK)/STOOL/ACTIVITY/SYMPTOM/WEIGHT/MEDICATION(+HOSPITAL)/QUESTION |
 | 초대 상태 OK/ALONE_WITH_DOGS/WITH_OTHERS/... | preview(memberCount, full) + accept 오류 코드 FAMILY_FULL/FAMILY_ALREADY_JOINED/INVITE_NOT_FOUND |
+
+## 추가 작업: 실제 네이버 지도로 바꾸기 (2026-11-09 시작)
+
+> 끊기면 새 세션에 이렇게 넣기:
+> `docs/superpowers/plans/2026-11-08-frontend-connect.md 의 "추가 작업: 실제 네이버 지도" 남은 [ ] 부터 이어서 해 줘. 브랜치 feature/connect-api, 디자인(className)은 그대로.`
+
+- 키: 루트 `.env` 의 `VITE_NCP_MAP_KEY_ID` (커밋 8f394f8, vite `envDir: '..'`, Docker build arg). localhost:5173 에서 SDK 인증·타일 로드 확인함
+- 공용 컴포넌트: `frontend/src/components/common/NaverMap.tsx` (SDK 한 번만 로드, 핀은 마커 안에 React portal 로 기존 JSX 그대로, `path` 는 흰 테두리+점선 폴리라인, `fitKey` 바뀌면 전부 보이게 맞춤, `onReady` 로 지도 객체 받아 확대·축소·현재 위치 버튼 연결)
+
+- [x] 키 칸 추가·SDK 동작 확인·커밋
+- [x] `NaverMap.tsx` 작성
+- [ ] MapPage: 배경 이미지·`pinsOf`·`spreadPins` 대신 `NaverMap` (핀 버튼은 style top/left 만 빼고 그대로), 확대·축소·현재 위치 버튼 연결, 배경용 `bg-cream/20` 덮개 제거
+- [ ] CoursePlanPage: 배경 이미지·SVG 경로 대신 `NaverMap` (출발+경유+도착 핀, path), 확대·축소 버튼 연결
+- [ ] 안 쓰게 된 것 삭제: `api/format.ts` 의 `spreadPins`, `constants/place.ts` 의 `MAP_PLACEHOLDER_URL`·`COURSE_MAP_URL`
+- [ ] `npm run lint && npm run build` → 백엔드+프론트 띄워 /map, /course/plan?courseId=… 브라우저 확인 → 커밋 → 이 체크 갱신
