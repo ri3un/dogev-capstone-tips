@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios'
-import type { ApiError, ApiResponse } from '../types/api'
+import type { ApiError, ApiResponse } from './types'
 
 // 모든 요청에 JWT를 붙이고, 응답에서는 ApiResponse의 data만 꺼내 줍니다.
 export const client = axios.create({ baseURL: '/api' })
@@ -21,7 +21,13 @@ client.interceptors.response.use(
     }
     let body = err.response?.data
     // PDF처럼 blob으로 받은 요청의 오류는 JSON으로 다시 읽음
-    if (body instanceof Blob) body = JSON.parse(await body.text()) as ApiResponse<unknown>
+    if (body instanceof Blob) {
+      try {
+        body = JSON.parse(await body.text()) as ApiResponse<unknown>
+      } catch {
+        body = undefined // 502 HTML 페이지처럼 JSON이 아니면 기본 메시지
+      }
+    }
     const error: ApiError = body?.error ?? { code: 'NETWORK', message: '서버에 연결하지 못했어요' }
     return Promise.reject(error)
   },

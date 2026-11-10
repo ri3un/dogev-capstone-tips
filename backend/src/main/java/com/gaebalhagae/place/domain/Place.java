@@ -52,9 +52,6 @@ public class Place extends BaseTimeEntity {
     @Column(nullable = false)
     private double lng;
 
-    @Column(name = "tour_content_id", length = 30)
-    private String tourContentId;
-
     @Column(name = "kakao_place_id", unique = true, length = 30)
     private String kakaoPlaceId;
 

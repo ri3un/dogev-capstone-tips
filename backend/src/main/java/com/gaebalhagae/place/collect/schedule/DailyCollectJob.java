@@ -109,7 +109,7 @@ public class DailyCollectJob {
             Function<String, ReviewSummary> summaryFor = name -> ReviewSummaryService.forCategory(
                     summaries.findByPlace(name).orElse(null), categoryOf.get(name));
             List<CollectedPlace> candidates = props.onlyCategory() == null || props.onlyCategory().isBlank() ? places
-                    : places.stream().filter(p -> PlaceCategory.of(p.categoryGroupCode(), p.name(), p.category()).name()
+                    : places.stream().filter(p -> categoryOf.get(p.name()).name()
                             .equals(props.onlyCategory().strip())).toList();
             List<String> picked = CollectPlanner.pickPlaces(candidates, summaries::findByPlace,
                     Set.copyOf(retryAfter.keySet()), props.dailyPlaces());
