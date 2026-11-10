@@ -96,16 +96,17 @@ export default function CoursePage() {
         {cards.map((c, i) => {
           const top = i === 0 // 가장 최근 코스만 강조
           return (
-            <article key={c.id} className="group relative flex flex-col justify-between overflow-hidden rounded-2xl bg-surface-container-lowest p-6 shadow-[0_4px_20px_-2px_rgba(74,52,38,0.06)] transition-all duration-300 hover:shadow-[0_8px_28px_-4px_rgba(74,52,38,0.12)]">
-              {top && (
-                <div className="absolute top-0 right-0 flex items-center gap-1 rounded-bl-xl bg-primary-container px-4 py-1.5 text-label-sm font-bold text-on-primary shadow-sm">
-                  <Icon name="auto_awesome" className="text-[14px]" />
-                  {dog.name} 최근 추천
-                </div>
-              )}
+            <article key={c.id} className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border bg-surface-container-lowest p-6 ${top ? 'border-primary-container' : 'border-outline-variant'} shadow-[0_4px_20px_-2px_rgba(74,52,38,0.06)] transition-all duration-300 hover:shadow-[0_8px_28px_-4px_rgba(74,52,38,0.12)]`}>
               <div className="flex flex-col gap-4">
                 <div className="relative h-44 w-full overflow-hidden rounded-xl bg-surface-container">
                   <Photo src={undefined} alt={c.name} className="h-full w-full transition-transform duration-500 group-hover:scale-105" />
+                  {/* 가장 최근 코스 표시: 사진 칸 안쪽에 두어 카드 모서리에 잘리지 않게 */}
+                  {top && (
+                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1 rounded-md bg-primary-container px-2.5 py-1 text-label-sm font-bold text-on-primary">
+                      <Icon name="auto_awesome" className="text-[15px]!" />
+                      {dog.name} 최근 추천
+                    </div>
+                  )}
                   <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 rounded-md bg-surface-container-lowest/90 px-3 py-1 shadow-sm backdrop-blur-md">
                     <Icon name={c.imageTag.icon} className="text-[16px] text-tertiary" />
                     <span className="text-label-sm font-bold">{c.imageTag.label}</span>

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router'
 import Icon from '../common/Icon'
-import Photo from '../common/Photo'
 import { adminApi, authApi } from '../../api/endpoints'
 import { logout } from '../../api/session'
 import { useApi } from '../../hooks/useApi'
@@ -75,22 +74,18 @@ export default function AppHeader() {
           ))}
         </nav>
 
-        {/* 프로필 메뉴: 반려견 사진을 누르면 열리고, 밖을 누르면 닫힘 */}
+        {/* 더보기 메뉴: 햄버거를 누르면 열리고, 밖을 누르면 닫힘 */}
         <div ref={menuRef} className="relative ml-auto">
           <button
             type="button"
-            aria-label="반려견 프로필 메뉴"
+            aria-label="메뉴 열기"
             aria-expanded={open}
             onClick={() => setOpen((v) => !v)}
-            className="flex items-center gap-2 rounded-md py-1 pr-1.5 pl-1 transition-colors hover:bg-surface-container-low"
+            className="relative flex h-10 w-10 items-center justify-center rounded-md transition-colors hover:bg-surface-container-low"
           >
-            <span className="relative">
-              <Photo src={dog?.photoUrl ?? undefined} alt={dog ? `${dog.name} 사진` : '반려견 사진'} dog className="h-9 w-9 rounded-full ring-1 ring-primary-container" />
-              {isAdmin && PENDING > 0 && <span aria-label={`대기 중인 수정 요청 ${PENDING}건`} className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-error ring-2 ring-surface" />}
-            </span>
-            {dog && <span className="text-label-lg font-semibold">{dog.name}</span>}
             {/* 햄버거 아이콘: 열리면 X로 바뀜 */}
-            <Icon name={open ? 'close' : 'menu'} className="ml-1 text-[26px]! text-on-surface" />
+            <Icon name={open ? 'close' : 'menu'} className="text-[28px]! text-on-surface" />
+            {isAdmin && PENDING > 0 && <span aria-label={`대기 중인 수정 요청 ${PENDING}건`} className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-error ring-2 ring-surface" />}
           </button>
           <div className={`absolute top-full right-0 z-50 mt-2 w-52 rounded-md border border-outline-variant bg-surface-container-lowest py-2 shadow-[0_8px_24px_-8px_rgba(51,34,22,0.18)] transition-all duration-200 ${open ? 'opacity-100' : 'pointer-events-none invisible opacity-0'}`}>
             {[...MENU, ...(isAdmin ? [ADMIN_ITEM, ADMIN_MEMBERS] : [])].map(({ to, icon, label }) => (
