@@ -30,8 +30,13 @@ public class JwtProvider {
     @Autowired
     public JwtProvider(@Value("${app.jwt.secret:}") String secret,
                        @Value("${app.jwt.expire-hours:168}") long expireHours,
-                       Clock clock) {
+                       Clock clock,
+                       @Value("#{environment.matchesProfiles('prod')}") boolean prod) {
         if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            if (prod) {
+                // 배포에서 임시 키를 쓰면 재배포할 때마다 전원 로그아웃되므로 시작을 막음
+                throw new IllegalStateException("prod 에서는 32바이트 이상의 JWT_SECRET 이 필요합니다");
+            }
             log.warn("JWT_SECRET 이 없거나 32바이트보다 짧아 임시 키를 사용합니다. 서버를 재시작하면 로그인이 풀립니다.");
             this.key = Jwts.SIG.HS256.key().build();
         } else {

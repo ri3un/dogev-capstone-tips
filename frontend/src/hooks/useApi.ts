@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { ApiError } from '../types/api'
+import type { ApiError } from '../api/types'
 
 /**
  * 화면에서 서버 데이터를 불러오는 공통 훅. deps가 바뀌면 다시 부르고, 늦게 온 옛 응답은 버립니다.

@@ -1,6 +1,7 @@
 package com.gaebalhagae.global.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.gaebalhagae.member.domain.Role;
 import java.time.Clock;
@@ -16,7 +17,7 @@ class JwtProviderTest {
 
     @Test
     void 발급한_토큰에서_회원_번호와_권한을_되찾는다() {
-        JwtProvider provider = new JwtProvider(SECRET, 168, now);
+        JwtProvider provider = new JwtProvider(SECRET, 168, now, false);
 
         String token = provider.issue(7L, Role.ADMIN);
 
@@ -25,24 +26,29 @@ class JwtProviderTest {
 
     @Test
     void 다른_키로_서명한_토큰은_거부한다() {
-        String token = new JwtProvider("another-secret-another-secret-another-secret-0000", 168, now).issue(1L, Role.USER);
+        String token = new JwtProvider("another-secret-another-secret-another-secret-0000", 168, now, false).issue(1L, Role.USER);
 
-        assertThat(new JwtProvider(SECRET, 168, now).parse(token)).isEmpty();
+        assertThat(new JwtProvider(SECRET, 168, now, false).parse(token)).isEmpty();
     }
 
     @Test
     void 만료된_토큰은_거부한다() {
-        String token = new JwtProvider(SECRET, 1, now).issue(1L, Role.USER);
+        String token = new JwtProvider(SECRET, 1, now, false).issue(1L, Role.USER);
         Clock later = Clock.offset(now, Duration.ofHours(2));
 
-        assertThat(new JwtProvider(SECRET, 1, later).parse(token)).isEmpty();
+        assertThat(new JwtProvider(SECRET, 1, later, false).parse(token)).isEmpty();
     }
 
     @Test
     void 키가_없으면_임시_키로도_동작한다() {
-        JwtProvider provider = new JwtProvider("", 168, now);
+        JwtProvider provider = new JwtProvider("", 168, now, false);
 
         assertThat(provider.parse(provider.issue(3L, Role.USER))).isPresent();
         assertThat(provider.parse("not-a-token")).isEmpty();
+    }
+
+    @Test
+    void 배포에서_키가_없으면_시작하지_않는다() {
+        assertThatThrownBy(() -> new JwtProvider("", 168, now, true)).isInstanceOf(IllegalStateException.class);
     }
 }
