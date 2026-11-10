@@ -10,6 +10,7 @@ export const authApi = {
   devLogin: (nickname: string, admin = false) =>
     api.post<{ token: string; member: Me }>('/auth/dev-login', { nickname, admin }),
   me: () => api.get<Me>('/members/me'),
+  withdraw: () => api.delete<void>('/members/me'),
 }
 
 export const dogApi = {

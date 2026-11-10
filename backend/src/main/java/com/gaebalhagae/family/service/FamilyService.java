@@ -134,6 +134,31 @@ public class FamilyService {
         moveToNewPersonalGroup(me);
     }
 
+    /** 혼자인 그룹인지 (탈퇴 시 반려견까지 지울지 판단) */
+    @Transactional(readOnly = true)
+    public boolean isAlone(Long memberId) {
+        return familyMemberRepository.countByFamilyGroupId(access.groupIdOf(memberId)) == 1;
+    }
+
+    /** 회원 탈퇴: 혼자면 그룹 삭제, 관리자면 가장 먼저 들어온 가족에게 관리자를 넘기고 빠짐 */
+    public void withdraw(Long memberId) {
+        FamilyMember me = access.membership(memberId);
+        Long groupId = me.getFamilyGroupId();
+        List<FamilyMember> others = familyMemberRepository.findByFamilyGroupIdOrderByJoinedAtAsc(groupId).stream()
+                .filter(m -> !m.getMemberId().equals(memberId))
+                .toList();
+        familyMemberRepository.delete(me);
+        if (others.isEmpty()) {
+            groupRepository.deleteById(groupId);
+            return;
+        }
+        if (me.isOwner()) {
+            FamilyMember next = others.get(0);
+            next.changeRole(FamilyRole.OWNER);
+            group(groupId).changeOwner(next.getMemberId());
+        }
+    }
+
     private void moveToNewPersonalGroup(FamilyMember fm) {
         FamilyGroup group = newGroup(fm.getMemberId());
         fm.moveTo(group.getId(), FamilyRole.OWNER, now());
