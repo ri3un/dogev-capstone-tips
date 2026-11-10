@@ -13,7 +13,7 @@ public final class RegionFilter {
     // 안양 시·구·동네 이름 (하나라도 있으면 안양 글)
     static final List<String> LOCAL_WORDS = List.of(
             "안양", "평촌", "범계", "인덕원", "동안구", "만안구", "명학", "석수", "호계", "비산",
-            "관양", "박달", "부림", "귀인", "달안", "부흥", "신촌동", "벌말");
+            "관양", "박달", "부림", "귀인", "달안", "부흥", "신촌동", "갈산", "평안", "벌말");
 
     // 같은 이름 가게가 많은 다른 지역 (시·구·유명 상권)
     static final List<String> OTHER_WORDS = List.of(
