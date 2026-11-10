@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import EmptyState from '../components/common/EmptyState'
+import PawLoading from '../components/common/PawLoading'
 import { Link } from 'react-router'
 import ConfirmModal from '../components/common/ConfirmModal'
 import Icon from '../components/common/Icon'
@@ -18,12 +20,12 @@ export default function AdminEditRequestsPage() {
   const [tab, setTab] = useState<EditStatus>('PENDING')
   const { data: me, loading } = useApi(() => authApi.me(), [])
   const isAdmin = me?.role === 'ADMIN'
-  const { data, setData } = useApi(() => (isAdmin ? adminApi.requests() : null), [isAdmin])
+  const { data, setData, loading: listLoading } = useApi(() => (isAdmin ? adminApi.requests() : null), [isAdmin])
   const [approving, setApproving] = useState<EditRequest | null>(null)
   const [rejecting, setRejecting] = useState<EditRequest | null>(null)
   const [reason, setReason] = useState('')
 
-  if (loading) return null
+  if (loading) return <PawLoading />
   // shortcut: 화면 안에서만 막음(서버도 ADMIN 아니면 403). 관리자 화면이 늘면 라우트 가드로
   if (!isAdmin)
     return <p className="py-20 text-center text-on-surface-variant">관리자만 볼 수 있는 화면이에요.</p>
@@ -58,8 +60,14 @@ export default function AdminEditRequestsPage() {
         ))}
       </div>
 
-      {shown.length === 0 ? (
-        <p className={`${card} py-14 text-center text-label-md text-outline`}>{EDIT_STATUS[tab].label} 요청이 없어요</p>
+      {listLoading && !data ? (
+        <div className={card}>
+          <PawLoading compact />
+        </div>
+      ) : shown.length === 0 ? (
+        <div className={card}>
+          <EmptyState title={`${EDIT_STATUS[tab].label} 요청이 없어요`} />
+        </div>
       ) : (
         <ul className="flex flex-col gap-3">
           {shown.map((r) => (
@@ -80,7 +88,7 @@ export default function AdminEditRequestsPage() {
               </div>
               {r.status === 'PENDING' && (
                 <div className="flex shrink-0 gap-2">
-                  <button type="button" onClick={() => setRejecting(r)} className="rounded-full border border-beige px-5 py-2.5 text-label-lg font-semibold text-error hover:bg-error-container/40">
+                  <button type="button" onClick={() => setRejecting(r)} className="rounded-md border border-beige px-5 py-2.5 text-label-lg font-semibold text-error hover:bg-error-container/40">
                     반려
                   </button>
                   <button type="button" onClick={() => setApproving(r)} className={`${primaryBtn} h-11`}>

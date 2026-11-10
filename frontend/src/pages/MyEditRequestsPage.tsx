@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import PawLoading from '../components/common/PawLoading'
 import Icon from '../components/common/Icon'
 import { card } from '../components/common/styles'
 import { placeApi } from '../api/endpoints'
@@ -9,7 +10,7 @@ import { useApi } from '../hooks/useApi'
 // 내 수정 요청: 내가 보낸 장소 정보 수정 요청과 처리 상태 (가족과 공유하지 않음)
 export default function MyEditRequestsPage() {
   const { data, loading } = useApi(() => placeApi.myRequests(), [])
-  if (loading) return null
+  if (loading) return <PawLoading />
   const mine = data ?? []
 
   return (
@@ -32,7 +33,7 @@ export default function MyEditRequestsPage() {
                 <Link to={`/map?placeId=${r.placeId}`} className="font-bold hover:text-primary">
                   {r.placeName}
                 </Link>
-                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-label-sm font-bold ${EDIT_STATUS[r.status].cls}`}>{EDIT_STATUS[r.status].label}</span>
+                <span className={`shrink-0 rounded-md px-2.5 py-0.5 text-label-sm font-bold ${EDIT_STATUS[r.status].cls}`}>{EDIT_STATUS[r.status].label}</span>
               </div>
               <p className="text-on-surface-variant">
                 {r.conditionLabel ?? conditionLabel(r.conditionKey)}: <span className="text-outline line-through">{valueLabel(r.conditionKey, r.currentValue)}</span> → <strong>{valueLabel(r.conditionKey, r.requestedValue)}</strong>

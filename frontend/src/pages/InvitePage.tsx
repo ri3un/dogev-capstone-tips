@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import PawLoading from '../components/common/PawLoading'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { TOKEN_KEY } from '../api/client'
 import { dogApi, familyApi } from '../api/endpoints'
@@ -63,21 +64,21 @@ export default function InvitePage() {
     }
   }
 
-  if (loading) return null
+  if (loading) return <PawLoading />
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-5 py-12">
       <Link to="/" className="flex items-center gap-2 text-primary">
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
+        <span className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary-container text-on-secondary-container">
           <Icon name="pets" className="text-[22px]" />
         </span>
         <span className="text-headline-lg font-bold tracking-tight">킁킁</span>
       </Link>
 
-      <div className={`${card} flex w-full max-w-[460px] flex-col items-center gap-5 rounded-[28px] px-8 py-10 text-center shadow-[0_12px_40px_-8px_rgba(74,52,38,0.08)]`}>
+      <div className={`${card} flex w-full max-w-[460px] flex-col items-center gap-5 rounded-md px-8 py-10 text-center shadow-[0_12px_40px_-8px_rgba(74,52,38,0.08)]`}>
         {blocked ? (
           <>
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-container text-primary">
+            <span className="flex h-16 w-16 items-center justify-center rounded-md bg-surface-container text-primary">
               <Icon name={blocked.icon} className="text-[30px]" />
             </span>
             <div>
@@ -95,7 +96,7 @@ export default function InvitePage() {
           </>
         ) : (
           <>
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
+            <span className="flex h-16 w-16 items-center justify-center rounded-md bg-secondary-container text-on-secondary-container">
               <Icon name="family_restroom" filled className="text-[32px]" />
             </span>
             <div>
@@ -108,10 +109,10 @@ export default function InvitePage() {
             {state === 'GUEST' ? (
               <div className="flex w-full flex-col gap-2.5">
                 <p className="mb-1 text-label-md text-on-surface-variant">로그인하고 참여하기</p>
-                <a href="/oauth2/authorization/kakao" className="flex h-[52px] items-center justify-center rounded-[14px] bg-[#FEE500] text-label-lg font-semibold text-black/85">
+                <a href="/oauth2/authorization/kakao" className="flex h-[52px] items-center justify-center rounded-md bg-[#FEE500] text-label-lg font-semibold text-black/85">
                   카카오로 시작하기
                 </a>
-                <a href="/oauth2/authorization/naver" className="flex h-[52px] items-center justify-center rounded-[14px] bg-[#03C75A] text-label-lg font-semibold text-white">
+                <a href="/oauth2/authorization/naver" className="flex h-[52px] items-center justify-center rounded-md bg-[#03C75A] text-label-lg font-semibold text-white">
                   네이버로 시작하기
                 </a>
                 {import.meta.env.DEV && (
@@ -141,7 +142,7 @@ export default function InvitePage() {
         // 개발 중 화면 확인용 상태 전환 (배포 빌드에는 안 보임)
         <div className="flex flex-wrap justify-center gap-1.5 text-label-sm">
           {STATES.map((s) => (
-            <button key={s} type="button" onClick={() => setParams({ state: s })} className={`rounded-full px-2.5 py-1 ${s === state ? 'bg-on-surface text-surface' : 'bg-surface-container text-on-surface-variant'}`}>
+            <button key={s} type="button" onClick={() => setParams({ state: s })} className={`rounded-md px-2.5 py-1 ${s === state ? 'bg-on-surface text-surface' : 'bg-surface-container text-on-surface-variant'}`}>
               {s}
             </button>
           ))}

@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { toast } from '../components/common/toast'
+import PawLoading from '../components/common/PawLoading'
 import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import { consultApi, questionApi } from '../api/endpoints'
 import { ageText, localDate, monthDay, todayStr } from '../api/format'
@@ -39,7 +41,7 @@ export default function ConsultPage() {
   const dogId = dog?.id
   const { data: history, reload: reloadHistory } = useApi(() => (dogId ? consultApi.list(dogId) : null), [dogId])
   const { data: memos } = useApi(() => (dogId ? questionApi.list(dogId) : null), [dogId])
-  const { data: loaded, setData: setResult } = useApi(() => (consultId ? consultApi.get(consultId) : null), [consultId])
+  const { data: loaded, setData: setResult, loading: resultLoading } = useApi(() => (consultId ? consultApi.get(consultId) : null), [consultId])
   const R = consultId ? loaded : undefined // '새 상담'으로 /consult 에 오면 이전 답변을 숨김
   const [deleting, setDeleting] = useState<number | null>(null)
   const removeConsult = async (id: number) => {
@@ -58,7 +60,7 @@ export default function ConsultPage() {
     setCompareOpen(false)
   }
 
-  if (loading) return null
+  if (loading) return <PawLoading />
   if (!dog) return <Navigate to="/onboarding" replace />
 
   // 과거 상담·질문 메모에서 검색어가 들어간 것
@@ -91,6 +93,7 @@ export default function ConsultPage() {
     try {
       await questionApi.create(dog.id, R.question, 'CONSULT')
       setSaved(true)
+      toast('킁킁, 질문 메모에 담았어요!')
     } catch {
       alert('질문 메모에 저장하지 못했어요')
     }
@@ -102,7 +105,7 @@ export default function ConsultPage() {
       <aside className="group fixed top-20 bottom-0 left-0 z-40 flex w-16 flex-col overflow-hidden bg-surface-container-lowest shadow-[8px_0_32px_rgba(74,52,38,0.07)] transition-all duration-300 hover:w-72">
         <div className="flex h-full flex-col p-3.5">
           <div className="mb-6 flex items-center gap-3.5 px-1 py-1">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-container text-primary transition-transform group-hover:scale-105">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-container text-primary transition-transform group-hover:scale-105">
               <Icon name="history" className="text-[20px]" />
             </div>
             <div className="flex min-w-0 flex-col whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover:opacity-100">
@@ -126,7 +129,7 @@ export default function ConsultPage() {
                           e.preventDefault() // 링크(상담 열기)로 넘어가지 않게
                           setDeleting(h.id)
                         }}
-                        className="flex h-5 w-5 items-center justify-center rounded-full text-outline transition-colors hover:bg-surface-container hover:text-error"
+                        className="flex h-5 w-5 items-center justify-center rounded-md text-outline transition-colors hover:bg-surface-container hover:text-error"
                       >
                         <Icon name="close" className="text-[14px]" />
                       </button>
@@ -154,7 +157,7 @@ export default function ConsultPage() {
 
       <div className="mx-auto flex w-full max-w-[840px] flex-col gap-6 px-5 py-8 md:py-10 lg:px-6">
         <div className="flex w-full items-center gap-3 rounded-2xl bg-secondary-container/30 px-4 py-3.5 shadow-[0_2px_12px_rgba(74,52,38,0.03)] sm:px-5 sm:py-4">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary-container">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-secondary-container">
             <Icon name="verified_user" className="text-[18px] text-secondary" />
           </div>
           <p className="flex-1 leading-relaxed text-on-secondary-container">
@@ -164,7 +167,7 @@ export default function ConsultPage() {
 
         {/* 증상 검색 + 과거 상담·질문 메모 (TODO: GET /api/consults?keyword=) */}
         <section className="flex w-full flex-col gap-3">
-          <div className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 shadow-[0_2px_12px_rgba(74,52,38,0.03)] transition-all focus-within:border-primary-container focus-within:shadow-[0_4px_16px_rgba(200,134,75,0.12)] ${softBorder}`}>
+          <div className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 shadow-[0_2px_12px_rgba(74,52,38,0.03)] transition-all focus-within:border-primary-container focus-within: ${softBorder}`}>
             <Icon name="search" className="shrink-0 text-[22px] text-primary-container" />
             <input aria-label="증상 검색" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="증상으로 검색해보세요 (예: 구토, 다리 절뚝임, 기침)" className="w-full bg-transparent placeholder:text-outline/70 focus:outline-none" />
             {keyword && (
@@ -182,7 +185,7 @@ export default function ConsultPage() {
                   key={s}
                   type="button"
                   onClick={() => setKeyword(s)}
-                  className={`shrink-0 rounded-full border px-3 py-1.5 text-label-md transition-all ${
+                  className={`shrink-0 rounded-md border px-3 py-1.5 text-label-md transition-all ${
                     on ? 'border-primary-container/40 bg-secondary-container/60 font-bold text-primary shadow-[0_1px_6px_rgba(74,52,38,0.04)]' : 'border-beige bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container hover:text-primary'
                   }`}
                 >
@@ -209,7 +212,7 @@ export default function ConsultPage() {
                     <div className="flex min-w-0 flex-col gap-1">
                       <div className="flex items-center gap-2 text-label-sm">
                         <span className="text-outline">{m.date}</span>
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-semibold ${m.strong ? 'bg-secondary-container/60 text-secondary' : 'bg-surface-container text-on-surface-variant'}`}>{m.level}</span>
+                        <span className={`inline-flex items-center rounded-md px-2 py-0.5 font-semibold ${m.strong ? 'bg-secondary-container/60 text-secondary' : 'bg-surface-container text-on-surface-variant'}`}>{m.level}</span>
                       </div>
                       <p className="line-clamp-1 font-medium">{m.text}</p>
                     </div>
@@ -225,9 +228,9 @@ export default function ConsultPage() {
         </section>
 
         {/* 질문 입력 */}
-        <div className="flex w-full flex-col gap-4 rounded-2xl bg-surface-container-lowest p-5 shadow-[0_8px_30px_rgba(74,52,38,0.04)] transition-all focus-within:shadow-[0_12px_36px_rgba(200,134,75,0.1)] md:p-6">
+        <div className="flex w-full flex-col gap-4 rounded-2xl bg-surface-container-lowest p-5 shadow-[0_8px_30px_rgba(74,52,38,0.04)] transition-all focus-within: md:p-6">
           <div className="flex items-center justify-between">
-            <div className="inline-flex items-center gap-2 rounded-full bg-surface-container px-3 py-1.5 text-label-md">
+            <div className="inline-flex items-center gap-2 rounded-md bg-surface-container px-3 py-1.5 text-label-md">
               <span className="h-2 w-2 rounded-full bg-primary-container" />
               <span>
                 상담 대상: <strong>{dog.name}</strong> ({dog.breed} · {ageText(dog.ageMonths)})
@@ -250,22 +253,29 @@ export default function ConsultPage() {
               <Icon name="tune" className="text-[16px]" />
               무료 AI 3개 교차 검증
             </div>
-            <button type="button" onClick={ask} disabled={!question.trim() || asking} className="inline-flex items-center gap-2 rounded-full bg-primary-container px-6 py-3 text-label-lg text-on-primary shadow-[0_4px_16px_rgba(200,134,75,0.25)] transition-all hover:bg-primary hover:shadow-[0_6px_20px_rgba(200,134,75,0.35)] active:scale-[0.98] disabled:opacity-50">
+            <button type="button" onClick={ask} disabled={!question.trim() || asking} className="inline-flex items-center gap-2 rounded-md bg-primary-container px-6 py-3 text-label-lg text-on-primary transition-all hover:bg-primary active:scale-[0.98] disabled:opacity-50">
               <Icon name="neurology" className="text-[18px]" />
               {asking ? 'AI 3개에게 묻는 중…' : '3개 AI에게 물어보기'}
             </button>
           </div>
         </div>
 
+        {/* AI 답변을 기다리는 동안: 발바닥 로딩 */}
+        {(asking || (!!consultId && !R && resultLoading)) && (
+          <div className="w-full rounded-md border border-outline-variant bg-surface-container-lowest">
+            <PawLoading compact label={asking ? '킁킁, AI 3개가 답을 찾는 중이에요… 조금만 기다려 주세요' : '킁킁, 상담 기록을 가져오는 중…'} />
+          </div>
+        )}
+
         {/* 답변 카드 */}
         {R && (
         <article className="flex w-full flex-col gap-6 rounded-2xl bg-surface-container-lowest p-6 shadow-[0_10px_32px_rgba(74,52,38,0.06)] md:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-secondary-container/50 px-3.5 py-1.5 text-label-lg font-bold text-on-secondary-container">
+            <div className="inline-flex items-center gap-1.5 rounded-md bg-secondary-container/50 px-3.5 py-1.5 text-label-lg font-bold text-on-secondary-container">
               <Icon name="visibility" className="text-[18px] text-secondary" />
               {R.urgencyLabel}
             </div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-surface-container-low px-3 py-1.5 text-label-md text-on-surface-variant">
+            <div className="inline-flex items-center gap-2 rounded-md bg-surface-container-low px-3 py-1.5 text-label-md text-on-surface-variant">
               <div className="flex items-center gap-1">
                 {Array.from({ length: R.totalModels }, (_, i) => (
                   <span key={i} className={`h-2 w-2 rounded-full ${i < R.answeredCount ? 'bg-tertiary' : 'bg-outline-variant'}`} />
@@ -321,7 +331,7 @@ export default function ConsultPage() {
               <button
                 type="button"
                 onClick={save}
-                className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-label-lg transition-all active:scale-[0.98] ${saved ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container hover:bg-surface-container-high'}`}
+                className={`inline-flex items-center justify-center gap-2 rounded-md px-5 py-2.5 text-label-lg transition-all active:scale-[0.98] ${saved ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-surface-container hover:bg-surface-container-high'}`}
               >
                 <Icon name={saved ? 'bookmark' : 'bookmark_border'} filled={saved} className="text-[18px] text-primary" />
                 {saved ? '메모 저장 완료' : '질문 메모에 저장'}

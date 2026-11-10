@@ -1,4 +1,7 @@
+import PawLoading from '../components/common/PawLoading'
 import { useState } from 'react'
+import { BoneIcon } from '../components/common/Paw'
+import EmptyState from '../components/common/EmptyState'
 import { Link, useSearchParams } from 'react-router'
 import { recordApi } from '../api/endpoints'
 import { addDays, localDate, todayStr } from '../api/format'
@@ -78,7 +81,7 @@ export default function RecordsPage() {
 
   const from = ymd(new Date(month.getFullYear(), month.getMonth(), 1))
   const to = ymd(new Date(month.getFullYear(), month.getMonth() + 1, 0))
-  const { data: records, setData: setRecords } = useApi(() => (dogId ? recordApi.list(dogId, { from, to }) : null), [dogId, from])
+  const { data: records, setData: setRecords, loading: recordsLoading } = useApi(() => (dogId ? recordApi.list(dogId, { from, to }) : null), [dogId, from])
   const { data: weights, reload: reloadWeights } = useApi(() => (dogId ? recordApi.weights(dogId, { from: addDays(todayStr(), -150), to: todayStr() }) : null), [dogId])
   const [deleting, setDeleting] = useState<HealthRecord | null>(null)
 
@@ -124,14 +127,12 @@ export default function RecordsPage() {
 
   return (
     <div className="relative mx-auto w-full max-w-[1440px] px-10 py-6">
-      <div className="pointer-events-none absolute -top-12 right-20 -z-10 h-96 w-96 rounded-full bg-primary-fixed/25 blur-3xl" />
-      <div className="pointer-events-none absolute top-48 left-12 -z-10 h-80 w-80 rounded-full bg-secondary-container/20 blur-3xl" />
 
       {/* 제목 + 탭 */}
       <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-1 text-label-sm">
-            <span className="inline-flex items-center rounded-full bg-surface-container-high px-2.5 py-0.5 tracking-wider text-primary uppercase">Health &amp; Wellness Log</span>
+            <span className="inline-flex items-center rounded-md bg-surface-container-high px-2.5 py-0.5 tracking-wider text-primary uppercase">Health &amp; Wellness Log</span>
             <span className="h-1.5 w-1.5 rounded-full bg-primary/40" />
             <span className="text-outline">실시간 가족 동기화</span>
           </div>
@@ -140,13 +141,13 @@ export default function RecordsPage() {
             <p className="hidden text-on-surface-variant sm:inline-block">가족과 함께 소중한 일상을 기록하고 건강 변화를 살펴봐요</p>
           </div>
         </div>
-        <div className="inline-flex rounded-full bg-surface-container-low p-1 shadow-sm">
+        <div className="inline-flex rounded-md bg-surface-container-low p-1 shadow-sm">
           {TABS.map((t, i) => (
             <Link
               key={t.to}
               to={t.to}
               aria-current={i === 0 ? 'page' : undefined}
-              className={`flex items-center gap-1.5 rounded-full px-5 py-2 text-label-lg transition-all ${i === 0 ? 'bg-primary-container text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high/60 hover:text-on-surface'}`}
+              className={`flex items-center gap-1.5 rounded-md px-5 py-2 text-label-lg transition-all ${i === 0 ? 'bg-primary-container text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container-high/60 hover:text-on-surface'}`}
             >
               <Icon name={t.icon} className="text-[18px]" />
               {t.label}
@@ -159,13 +160,13 @@ export default function RecordsPage() {
       <div className={`${card} mb-6 p-5 transition-all hover:shadow-[0_8px_28px_-4px_rgba(74,52,38,0.08)]`}>
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
           <div className="flex min-w-0 items-center gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary-container/40">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-secondary-container/40">
               <Icon name="monitor_weight" className="text-[26px] text-primary" />
             </div>
             <div>
               <div className="flex items-center gap-2.5">
                 <span className="text-label-md text-outline">최근 측정한 체중</span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-tertiary-fixed px-2 py-0.5 text-label-sm text-on-tertiary-fixed-variant">
+                <span className="inline-flex items-center gap-1 rounded-md bg-tertiary-fixed px-2 py-0.5 text-label-sm text-on-tertiary-fixed-variant">
                   <Icon name="trending_up" className="text-[13px]" />
                   5개월 전 대비 {WEIGHT.diff}
                 </span>
@@ -199,7 +200,7 @@ export default function RecordsPage() {
                 ))}
               </div>
             </div>
-            <Link to="/records/new?kind=weight" className="hidden items-center gap-1 rounded-full bg-surface-container-low px-3 py-1.5 text-label-md text-primary transition-colors hover:bg-surface-container-high xl:flex">
+            <Link to="/records/new?kind=weight" className="hidden items-center gap-1 rounded-md bg-surface-container-low px-3 py-1.5 text-label-md text-primary transition-colors hover:bg-surface-container-high xl:flex">
               기록
               <Icon name="chevron_right" className="text-[16px]" />
             </Link>
@@ -220,12 +221,12 @@ export default function RecordsPage() {
                   ['chevron_left', '이전 달', -1],
                   ['chevron_right', '다음 달', 1],
                 ].map(([icon, label, d]) => (
-                  <button key={icon} type="button" aria-label={String(label)} onClick={() => moveMonth(Number(d))} className="flex h-8 w-8 items-center justify-center rounded-full text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface">
+                  <button key={icon} type="button" aria-label={String(label)} onClick={() => moveMonth(Number(d))} className="flex h-8 w-8 items-center justify-center rounded-md text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface">
                     <Icon name={String(icon)} className="text-[20px]" />
                   </button>
                 ))}
               </div>
-              <button type="button" onClick={goToday} className="rounded-full bg-surface-container-low px-2.5 py-1 text-label-sm text-primary transition-colors hover:bg-surface-container-high">
+              <button type="button" onClick={goToday} className="rounded-md bg-surface-container-low px-2.5 py-1 text-label-sm text-primary transition-colors hover:bg-surface-container-high">
                 오늘
               </button>
             </div>
@@ -270,7 +271,7 @@ export default function RecordsPage() {
                   </div>
                   <div className="flex flex-wrap items-center gap-1">
                     {kinds.map((k) => (
-                      <span key={k} title={KIND_LABEL[k]} className={`rounded-full ${KIND_DOT[k]} ${isSel ? 'h-2 w-2 shadow-sm' : 'h-1.5 w-1.5'}`} />
+                      <span key={k} title={KIND_LABEL[k]} className={`rounded-md ${KIND_DOT[k]} ${isSel ? 'h-2 w-2 shadow-sm' : 'h-1.5 w-1.5'}`} />
                     ))}
                   </div>
                 </button>
@@ -280,7 +281,7 @@ export default function RecordsPage() {
 
           <div className="mt-4 flex items-center justify-between gap-4 rounded-xl bg-surface-container-low p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-container/20">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-container/20">
                 <Icon name="insights" className="text-[20px] text-primary" />
               </div>
               <div>
@@ -308,7 +309,7 @@ export default function RecordsPage() {
                     {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 {WEEK[selectedDate.getDay()]}요일
                   </h3>
                 </div>
-                <button type="button" aria-label="닫기" onClick={() => setSelected(null)} className="flex h-8 w-8 items-center justify-center rounded-full text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface">
+                <button type="button" aria-label="닫기" onClick={() => setSelected(null)} className="flex h-8 w-8 items-center justify-center rounded-md text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface">
                   <Icon name="close" className="text-[20px]" />
                 </button>
               </div>
@@ -318,7 +319,7 @@ export default function RecordsPage() {
                   <span className="inline-flex h-2 w-2 rounded-full bg-tertiary" />
                   <span className="text-label-md font-semibold">총 기록 {dayRecords.length}건</span>
                 </div>
-                {dayRecords.length > 0 && !dayRecords.some((r) => r.category === 'SYMPTOM') && <span className="rounded-full bg-tertiary-fixed px-2 py-0.5 text-label-sm font-medium text-tertiary">{dog?.name} 컨디션 좋음 🐶</span>}
+                {dayRecords.length > 0 && !dayRecords.some((r) => r.category === 'SYMPTOM') && <span className="rounded-md bg-tertiary-fixed px-2 py-0.5 text-label-sm font-medium text-tertiary">{dog?.name} 컨디션 좋음 🐶</span>}
               </div>
 
               <div className="flex flex-col gap-3">
@@ -329,16 +330,16 @@ export default function RecordsPage() {
                     <div key={r.id} className="flex flex-col gap-2 rounded-xl bg-surface p-3.5 transition-all hover:bg-surface-container-low/70">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-label-sm font-semibold ${KIND_BADGE[kind]}`}>
+                          <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-label-sm font-semibold ${KIND_BADGE[kind]}`}>
                             <span className={`h-1.5 w-1.5 rounded-full ${KIND_DOT[kind]}`} />
                             {r.categoryLabel}
                           </span>
                           <span className="text-label-sm text-outline">{timeOf(r.createdAt)}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-label-sm">
-                          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-secondary-container text-[9px] font-bold text-on-secondary-container shadow-sm">{author[0]}</span>
+                          <span className="flex h-5 w-5 items-center justify-center rounded-md bg-secondary-container text-[9px] font-bold text-on-secondary-container shadow-sm">{author[0]}</span>
                           <span className="font-medium text-on-surface-variant">{author}</span>
-                          <button type="button" aria-label="기록 삭제" onClick={() => setDeleting(r)} className="ml-1 flex h-6 w-6 items-center justify-center rounded-full text-outline transition-colors hover:bg-surface-container hover:text-error">
+                          <button type="button" aria-label="기록 삭제" onClick={() => setDeleting(r)} className="ml-1 flex h-6 w-6 items-center justify-center rounded-md text-outline transition-colors hover:bg-surface-container hover:text-error">
                             <Icon name="close" className="text-[16px]" />
                           </button>
                         </div>
@@ -348,7 +349,8 @@ export default function RecordsPage() {
                     </div>
                   )
                 })}
-                {dayRecords.length === 0 && <p className="py-6 text-center text-body-sm text-outline">이 날의 상세 기록이 없어요.</p>}
+                {recordsLoading && !records && <PawLoading compact />}
+                {!(recordsLoading && !records) && dayRecords.length === 0 && <EmptyState title="이 날은 발자국이 없어요" className="py-6">있었던 일을 한 줄 적어 보세요</EmptyState>}
               </div>
             </div>
             <Link to={`/records/new?date=${selected}`} className="flex w-full items-center justify-center gap-2 rounded-xl bg-surface-container-low px-4 py-3 text-label-lg text-primary transition-colors hover:bg-surface-container-high">
@@ -358,10 +360,10 @@ export default function RecordsPage() {
         )}
       </div>
 
-      <Link to="/records/new" className="fixed right-8 bottom-8 z-40 flex items-center gap-2.5 rounded-full bg-primary-container px-6 py-3.5 text-label-lg text-on-primary shadow-[0_12px_28px_-6px_rgba(200,134,75,0.45)] transition-all hover:scale-105 hover:bg-primary active:scale-95">
+      <Link to="/records/new" className="fixed right-8 bottom-8 z-40 flex items-center gap-2.5 rounded-md bg-primary-container px-6 py-3.5 text-label-lg text-on-primary transition-all hover:scale-105 hover:bg-primary active:scale-95">
         <Icon name="add" filled className="text-[20px]" />
         <span className="tracking-tight">기록 추가</span>
-        <Icon name="pets" className="text-[18px] opacity-80" />
+        <BoneIcon className="h-5 w-5 opacity-90" />
       </Link>
       {deleting && (
         <ConfirmModal

@@ -1,3 +1,4 @@
+import PawLoading from '../components/common/PawLoading'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { authApi, familyApi } from '../api/endpoints'
@@ -15,7 +16,7 @@ type Pending = { kind: 'kick' | 'owner'; member: Member } | { kind: 'leave' }
 // 가족 그룹 관리: 관리자(OWNER)만 이름 변경·내보내기·관리자 넘기기·링크 재발급
 export default function FamilyPage() {
   const navigate = useNavigate()
-  const { data: FAMILY, reload } = useApi(() => familyApi.get(), [])
+  const { data: FAMILY, reload, loading } = useApi(() => familyApi.get(), [])
   const { data: invite, setData: setInvite } = useApi(() => familyApi.invite(), [])
   const { data: me } = useApi(() => authApi.me(), [])
   const { dogs, reload: reloadDogs } = useCurrentDog()
@@ -35,7 +36,7 @@ export default function FamilyPage() {
     return () => document.removeEventListener('mousedown', onDown)
   }, [menuFor])
 
-  if (!FAMILY) return null
+  if (!FAMILY) return loading ? <PawLoading /> : null
   const members = FAMILY.members
   const isOwner = FAMILY.myRole === 'OWNER'
   const mustHandOver = isOwner && members.length > 1 // 관리자는 혼자가 아니면 넘긴 뒤에 나갈 수 있음
@@ -98,7 +99,7 @@ export default function FamilyPage() {
               className="flex items-center gap-2"
             >
               <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} autoFocus className={`${input} w-56 text-headline-sm font-bold`} />
-              <button type="submit" className="rounded-full bg-primary-container px-4 py-2 text-label-md font-bold text-white">
+              <button type="submit" className="rounded-md bg-primary-container px-4 py-2 text-label-md font-bold text-white">
                 저장
               </button>
             </form>
@@ -106,7 +107,7 @@ export default function FamilyPage() {
             <h1 className="flex items-center gap-2 text-headline-lg font-bold tracking-tight">
               {FAMILY.name}
               {isOwner && (
-                <button type="button" aria-label="이름 바꾸기" onClick={() => { setName(FAMILY.name); setEditing(true) }} className="flex h-9 w-9 items-center justify-center rounded-full text-outline hover:bg-surface-container-low hover:text-primary">
+                <button type="button" aria-label="이름 바꾸기" onClick={() => { setName(FAMILY.name); setEditing(true) }} className="flex h-9 w-9 items-center justify-center rounded-md text-outline hover:bg-surface-container-low hover:text-primary">
                   <Icon name="edit" className="text-[20px]" />
                 </button>
               )}
@@ -114,7 +115,7 @@ export default function FamilyPage() {
           )}
           {error && <p role="alert" className="mt-1 text-label-sm text-error">{error}</p>}
         </div>
-        <span className="rounded-full bg-secondary-container px-4 py-1.5 text-label-lg font-bold text-on-secondary-container">
+        <span className="rounded-md bg-secondary-container px-4 py-1.5 text-label-lg font-bold text-on-secondary-container">
           가족 {members.length}/{FAMILY.maxMembers}명
         </span>
       </div>
@@ -131,8 +132,8 @@ export default function FamilyPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-1.5 font-semibold">
                       {m.nickname}
-                      {isMe && <span className="rounded-full bg-surface-container-high px-2 py-0.5 text-label-sm text-on-surface-variant">나</span>}
-                      {m.role === 'OWNER' && <span className="rounded-full bg-primary-container px-2 py-0.5 text-label-sm font-bold text-white">관리자</span>}
+                      {isMe && <span className="rounded-md bg-surface-container-high px-2 py-0.5 text-label-sm text-on-surface-variant">나</span>}
+                      {m.role === 'OWNER' && <span className="rounded-md bg-primary-container px-2 py-0.5 text-label-sm font-bold text-white">관리자</span>}
                     </div>
                     <span className="text-label-sm text-outline">{m.joinedAt.slice(0, 10)} 참여</span>
                   </div>
@@ -208,7 +209,7 @@ export default function FamilyPage() {
             )}
           </section>
 
-          <button type="button" onClick={() => setPending({ kind: 'leave' })} className="flex items-center justify-center gap-1.5 rounded-full py-3 text-label-lg font-semibold text-error hover:bg-error-container/50">
+          <button type="button" onClick={() => setPending({ kind: 'leave' })} className="flex items-center justify-center gap-1.5 rounded-md py-3 text-label-lg font-semibold text-error hover:bg-error-container/50">
             <Icon name="logout" className="text-[20px]" />
             가족 그룹 나가기
           </button>

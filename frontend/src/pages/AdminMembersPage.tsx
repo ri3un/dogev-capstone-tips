@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import PawLoading from '../components/common/PawLoading'
 import { adminApi, authApi } from '../api/endpoints'
 import type { AdminMemberRow } from '../api/types'
 import Icon from '../components/common/Icon'
@@ -18,9 +19,9 @@ export default function AdminMembersPage() {
   const { data: detail } = useApi(() => (selected ? adminApi.member(selected.id) : null), [selected?.id])
   const [hideWithdrawn, setHideWithdrawn] = useState(true)
 
-  if (loading) return null
+  if (loading) return <PawLoading />
   if (!isAdmin) return <p className="py-20 text-center text-on-surface-variant">관리자만 볼 수 있는 화면이에요.</p>
-  if (!data) return null
+  if (!data) return <PawLoading />
 
   const rows = hideWithdrawn ? data.members.filter((m) => !m.withdrawn) : data.members
   const SUMMARY = [
@@ -73,7 +74,7 @@ export default function AdminMembersPage() {
               <tr key={m.id} className={m.withdrawn ? 'text-outline' : ''}>
                 <td className="py-3 font-semibold">
                   {m.nickname}
-                  {m.role === 'ADMIN' && <span className="ml-1.5 rounded-full bg-primary-container px-2 py-0.5 text-label-sm font-bold text-white">관리자</span>}
+                  {m.role === 'ADMIN' && <span className="ml-1.5 rounded-md bg-primary-container px-2 py-0.5 text-label-sm font-bold text-white">관리자</span>}
                 </td>
                 <td>{PROVIDER[m.provider]}</td>
                 <td>{dateText(m.joinedAt)}</td>

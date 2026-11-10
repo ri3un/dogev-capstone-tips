@@ -1,4 +1,5 @@
 import { Link, Navigate, useNavigate } from 'react-router'
+import PawLoading from '../components/common/PawLoading'
 import { courseApi } from '../api/endpoints'
 import { monthDay, SIZE_LABEL } from '../api/format'
 import type { Course } from '../api/types'
@@ -41,7 +42,7 @@ export default function CoursePage() {
   const dogId = dog?.id
   const { data: courses } = useApi(() => (dogId ? courseApi.list(dogId) : null), [dogId])
 
-  if (loading) return null
+  if (loading) return <PawLoading />
   if (!dog) return <Navigate to="/onboarding" replace />
 
   const latest = courses?.[0]
@@ -52,7 +53,7 @@ export default function CoursePage() {
       <header className="flex flex-col gap-6">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div className="flex flex-col gap-1">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full bg-secondary-container/50 px-3 py-1 text-label-md text-on-secondary-container">
+            <div className="inline-flex w-fit items-center gap-2 rounded-md bg-secondary-container/50 px-3 py-1 text-label-md text-on-secondary-container">
               <Icon name="favorite" filled className="text-[16px] text-primary" />
               {latest?.reasons[0] ?? `${dog.name} 기준 맞춤 추천`}
             </div>
@@ -61,7 +62,7 @@ export default function CoursePage() {
               {SIZE_LABEL[dog.size]}({dog.weightKg}kg) 기준으로 동반하기 어려운 곳은 빼고 이어 드려요.
             </p>
           </div>
-          <div className="flex items-center gap-2 rounded-full bg-surface-container-lowest px-4 py-2.5 shadow-[0_4px_20px_-2px_rgba(74,52,38,0.05)]">
+          <div className="flex items-center gap-2 rounded-md bg-surface-container-lowest px-4 py-2.5 shadow-[0_4px_20px_-2px_rgba(74,52,38,0.05)]">
             <div className="h-2.5 w-2.5 animate-pulse rounded-full bg-tertiary" />
             <span className="text-label-md">현재 위치 기준 추천</span>
             {latest && <span className="text-label-sm text-outline">{monthDay(latest.createdAt)} 마지막 추천</span>}
@@ -75,7 +76,7 @@ export default function CoursePage() {
               key={t}
               type="button"
               onClick={() => navigate(`/course/plan?theme=${t}`)}
-              className="rounded-full bg-surface-container-lowest px-5 py-2.5 text-label-lg text-on-surface-variant transition-all hover:bg-surface-container-low hover:text-primary"
+              className="rounded-md bg-surface-container-lowest px-5 py-2.5 text-label-lg text-on-surface-variant transition-all hover:bg-surface-container-low hover:text-primary"
             >
               {THEME_LABEL[t]}
             </button>
@@ -105,7 +106,7 @@ export default function CoursePage() {
               <div className="flex flex-col gap-4">
                 <div className="relative h-44 w-full overflow-hidden rounded-xl bg-surface-container">
                   <Photo src={undefined} alt={c.name} className="h-full w-full transition-transform duration-500 group-hover:scale-105" />
-                  <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 rounded-full bg-surface-container-lowest/90 px-3 py-1 shadow-sm backdrop-blur-md">
+                  <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 rounded-md bg-surface-container-lowest/90 px-3 py-1 shadow-sm backdrop-blur-md">
                     <Icon name={c.imageTag.icon} className="text-[16px] text-tertiary" />
                     <span className="text-label-sm font-bold">{c.imageTag.label}</span>
                   </div>
@@ -141,7 +142,7 @@ export default function CoursePage() {
 
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {c.tags.map((t, j) => (
-                    <span key={t} className={`rounded-full px-2.5 py-1 text-label-sm font-semibold ${TONES[j % TONES.length]}`}>
+                    <span key={t} className={`rounded-md px-2.5 py-1 text-label-sm font-semibold ${TONES[j % TONES.length]}`}>
                       {t}
                     </span>
                   ))}
@@ -150,8 +151,8 @@ export default function CoursePage() {
 
               <Link
                 to={`/course/plan?courseId=${c.id}`}
-                className={`mt-6 flex h-[52px] w-full items-center justify-center gap-2 rounded-full text-label-lg font-bold transition-all active:scale-[0.98] ${
-                  top ? 'bg-primary-container text-on-primary shadow-[0_4px_16px_rgba(200,134,75,0.25)] hover:bg-primary' : 'bg-surface-container-low hover:bg-surface-container-high'
+                className={`mt-6 flex h-[52px] w-full items-center justify-center gap-2 rounded-md text-label-lg font-bold transition-all active:scale-[0.98] ${
+                  top ? 'bg-primary-container text-on-primary hover:bg-primary' : 'bg-surface-container-low hover:bg-surface-container-high'
                 }`}
               >
                 <Icon name={top ? 'directions_walk' : 'map'} className={`text-[20px] ${top ? '' : 'text-primary'}`} />
