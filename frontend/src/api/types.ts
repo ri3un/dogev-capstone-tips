@@ -113,3 +113,14 @@ export interface ReportData {
   walkMinutesTotal: number; activities: ReportRow[]; weights: WeightPoint[]; medical: ReportRow[]
   questions: { content: string; askedOn: string | null; resolved: boolean }[]
 }
+
+// 관리자 회원 현황: 입력 내용 없이 개수·마지막 입력일만
+export interface AdminDataCount { key: string; label: string; count: number; lastAt: string | null }
+export interface AdminMemberRow {
+  id: number; nickname: string; provider: Me['provider']; role: Role; joinedAt: string
+  withdrawn: boolean; totalCount: number; lastActivityAt: string | null
+}
+export interface AdminMemberList { memberCount: number; activeCount: number; withdrawnCount: number; members: AdminMemberRow[] }
+export interface AdminMemberDetail {
+  member: AdminMemberRow; familyName: string | null; familyRole: FamilyRole | null; familySize: number | null; counts: AdminDataCount[]
+}

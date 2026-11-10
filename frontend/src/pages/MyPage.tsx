@@ -87,7 +87,7 @@ export default function MyPage() {
       </section>
 
       <section className={`${card} p-2`}>
-        {[...MENU, ...(isAdmin ? [ADMIN_MENU] : [])].map((m) => (
+        {[...MENU, ...(isAdmin ? [ADMIN_MENU, { to: '/admin/members', icon: 'manage_accounts', label: '회원 현황', sub: undefined }] : [])].map((m) => (
           <Link key={m.to} to={m.to} className="flex items-center gap-3 rounded-xl px-4 py-3.5 hover:bg-surface-container-low">
             <Icon name={m.icon} className="text-[22px] text-primary" />
             <span className="flex-1 font-semibold">{m.label}</span>
