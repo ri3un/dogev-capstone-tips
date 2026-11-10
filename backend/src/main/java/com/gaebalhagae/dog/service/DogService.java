@@ -57,6 +57,12 @@ public class DogService {
         photoStorage.delete(dog.getPhotoUrl());
     }
 
+    /** 회원 탈퇴(혼자인 그룹)일 때 그룹의 반려견과 딸린 기록을 모두 삭제 */
+    public void deleteAllInMyGroup(Long memberId) {
+        dogRepository.findByFamilyGroupIdOrderByIdAsc(access.groupIdOf(memberId))
+                .forEach(dog -> delete(memberId, dog.getId()));
+    }
+
     public DogResponse changePhoto(Long memberId, Long dogId, MultipartFile file) {
         Dog dog = access.checkDog(memberId, dogId);
         String old = dog.getPhotoUrl();

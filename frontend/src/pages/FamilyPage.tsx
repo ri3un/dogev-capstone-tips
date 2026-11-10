@@ -7,6 +7,7 @@ import Icon from '../components/common/Icon'
 import { card, input } from '../components/common/styles'
 import { useApi } from '../hooks/useApi'
 import { useCurrentDog } from '../hooks/useCurrentDog'
+import { copyText } from '../utils/clipboard'
 
 type Member = FamilyMemberItem
 type Pending = { kind: 'kick' | 'owner'; member: Member } | { kind: 'leave' }
@@ -42,13 +43,9 @@ export default function FamilyPage() {
   const link = `${location.origin}/invite/${code}`
 
   const copy = async (text: string, what: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(what)
-    } catch {
-      setCopied(`${what}-fail`) // 클립보드를 못 쓰면 '복사됨'이라고 하지 않음
-    }
-    setTimeout(() => setCopied(''), 1500)
+    const ok = await copyText(text)
+    setCopied(ok ? what : `${what}-fail`) // 클립보드를 못 쓰면 '복사됨'이라고 하지 않음
+    setTimeout(() => setCopied(''), ok ? 1500 : 4000)
   }
 
   const run = async (job: () => Promise<unknown>) => {
@@ -193,14 +190,15 @@ export default function FamilyPage() {
             <p className="text-label-md text-outline">링크나 코드를 보내면 바로 참여할 수 있어요. (최대 {FAMILY.maxMembers}명)</p>
             <button type="button" onClick={() => copy(link, 'link')} className="flex items-center gap-2 rounded-xl border border-beige bg-surface-container-low px-4 py-3 text-left text-label-md hover:bg-surface-container">
               <Icon name="link" className="text-[18px] text-primary" />
-              <span className="flex-1 truncate">{link}</span>
+              <span className="flex-1 select-all truncate">{link}</span>
               <span className="shrink-0 font-bold text-primary">{copyLabel('link')}</span>
             </button>
             <button type="button" onClick={() => copy(code, 'code')} className="flex items-center gap-2 rounded-xl border border-beige bg-surface-container-low px-4 py-3 text-left hover:bg-surface-container">
               <Icon name="key" className="text-[18px] text-primary" />
-              <span className="flex-1 font-mono text-body-lg font-bold tracking-[0.25em]">{code}</span>
+              <span className="flex-1 select-all font-mono text-body-lg font-bold tracking-[0.25em]">{code}</span>
               <span className="shrink-0 text-label-md font-bold text-primary">{copyLabel('code')}</span>
             </button>
+            {copied.endsWith('-fail') && <p className="text-label-sm text-error">자동 복사가 안 돼요. 코드를 길게 눌러 직접 복사해 주세요.</p>}
             {isOwner && (
               // 새로 만들면 기존 코드는 바로 막힘
               <button type="button" onClick={() => run(async () => setInvite(await familyApi.resetInvite()))} className="flex items-center gap-1 self-start text-label-md text-on-surface-variant hover:text-primary">

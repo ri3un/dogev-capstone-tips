@@ -7,6 +7,7 @@ import com.gaebalhagae.global.security.CustomOAuth2UserService;
 import com.gaebalhagae.global.security.JwtAuthFilter;
 import com.gaebalhagae.global.security.JwtProvider;
 import com.gaebalhagae.global.security.OAuth2SuccessHandler;
+import com.gaebalhagae.member.repository.MemberRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
@@ -35,6 +36,7 @@ public class SecurityConfig {
 
     private final ObjectMapper objectMapper;
     private final JwtProvider jwtProvider;
+    private final MemberRepository memberRepository;
     private final CustomOAuth2UserService oAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
@@ -58,7 +60,7 @@ public class SecurityConfig {
                         .userInfoEndpoint(u -> u.userService(oAuth2UserService))
                         .successHandler(oAuth2SuccessHandler)
                         .failureHandler((req, res, ex) -> res.sendRedirect(frontUrl + "/login?error=oauth")))
-                .addFilterBefore(new JwtAuthFilter(jwtProvider), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthFilter(jwtProvider, memberRepository::existsByIdAndDeletedAtIsNull), UsernamePasswordAuthenticationFilter.class)
                 // 401·403도 필터 단계에서 공통 응답 형식으로 내려줍니다.
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint((req, res, ex) -> writeError(res, ErrorCode.UNAUTHORIZED))

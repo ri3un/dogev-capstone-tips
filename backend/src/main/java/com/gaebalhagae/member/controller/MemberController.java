@@ -6,6 +6,7 @@ import com.gaebalhagae.member.dto.MeResponse;
 import com.gaebalhagae.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,5 +19,12 @@ public class MemberController {
     @GetMapping("/api/members/me")
     public ApiResponse<MeResponse> me(@AuthenticationPrincipal LoginMember me) {
         return ApiResponse.ok(memberService.me(me.id()));
+    }
+
+    /** 회원 탈퇴 */
+    @DeleteMapping("/api/members/me")
+    public ApiResponse<Void> withdraw(@AuthenticationPrincipal LoginMember me) {
+        memberService.withdraw(me.id());
+        return ApiResponse.ok();
     }
 }

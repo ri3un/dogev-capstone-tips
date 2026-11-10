@@ -96,4 +96,26 @@ class BlogCollectServiceTest {
         assertThat(post.title()).isEqualTo("카페A 후기");
         assertThat(post.petSentences()).containsExactly("대형견도 실내 동반 가능!");
     }
+
+    @Test
+    void 다른_지역의_같은_이름_가게_글은_저장하지_않는다() {
+        when(client.search(eq("카페A 애견동반"), anyInt())).thenReturn(List.of(
+                new NaverBlogClient.Item("카페A 강남점 후기", "u1", "강아지 동반 가능", "b", "20261001"),       // 다른 지역만
+                new NaverBlogClient.Item("카페A 평촌 후기", "u2", "강아지 동반 가능", "b", "20261001"),         // 안양 동네
+                new NaverBlogClient.Item("카페A 후기", "u3", "강아지 동반 가능", "b", "20261001")));           // 지역 모름
+
+        var result = service.collect("카페A");
+
+        assertThat(result.relevant()).isEqualTo(2);
+        assertThat(store.findByPlace("카페A")).extracting(BlogPost::url).containsExactlyInAnyOrder("u2", "u3");
+    }
+
+    @Test
+    void 안양_검색어로도_한번_더_모은다() {
+        when(client.search(eq("카페A 안양"), anyInt())).thenReturn(List.of(item("u9", "강아지 동반", "20261001")));
+
+        service.collect("카페A");
+
+        assertThat(store.findByPlace("카페A")).extracting(BlogPost::url).containsExactly("u9");
+    }
 }

@@ -1,7 +1,9 @@
-import { Link } from 'react-router'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router'
 import { adminApi, authApi, familyApi } from '../api/endpoints'
 import { ageText } from '../api/format'
 import { logout } from '../api/session'
+import ConfirmModal from '../components/common/ConfirmModal'
 import Icon from '../components/common/Icon'
 import Photo from '../components/common/Photo'
 import { card } from '../components/common/styles'
@@ -14,14 +16,29 @@ const PROVIDER = {
   DEV: { label: '개발용', cls: 'bg-surface-container-high text-on-surface-variant' },
 }
 
-// 마이페이지: 내 정보, 반려견, 메뉴, 로그아웃
+// 마이페이지: 내 정보, 반려견, 메뉴, 로그아웃·회원 탈퇴
 export default function MyPage() {
   const { data: ME } = useApi(() => authApi.me(), [])
   const { data: FAMILY } = useApi(() => familyApi.get(), [])
   const { dogs } = useCurrentDog()
   const isAdmin = ME?.role === 'ADMIN'
   const { data: pendingList } = useApi(() => (isAdmin ? adminApi.requests('PENDING') : null), [isAdmin])
+  const navigate = useNavigate()
+  const [askWithdraw, setAskWithdraw] = useState(false)
+  const [error, setError] = useState('')
   if (!ME) return null
+
+  const alone = (FAMILY?.members.length ?? 1) <= 1
+  const withdraw = async () => {
+    setAskWithdraw(false)
+    try {
+      await authApi.withdraw()
+      logout()
+      navigate('/login', { replace: true })
+    } catch (e) {
+      setError((e as { message?: string }).message ?? '탈퇴하지 못했어요')
+    }
+  }
 
   const MENU = [
     { to: '/my/family', icon: 'group', label: '가족 관리', sub: FAMILY ? `${FAMILY.name} · ${FAMILY.members.length}명` : undefined },
@@ -70,7 +87,7 @@ export default function MyPage() {
       </section>
 
       <section className={`${card} p-2`}>
-        {[...MENU, ...(isAdmin ? [ADMIN_MENU] : [])].map((m) => (
+        {[...MENU, ...(isAdmin ? [ADMIN_MENU, { to: '/admin/members', icon: 'manage_accounts', label: '회원 현황', sub: undefined }] : [])].map((m) => (
           <Link key={m.to} to={m.to} className="flex items-center gap-3 rounded-xl px-4 py-3.5 hover:bg-surface-container-low">
             <Icon name={m.icon} className="text-[22px] text-primary" />
             <span className="flex-1 font-semibold">{m.label}</span>
@@ -84,6 +101,25 @@ export default function MyPage() {
         <Icon name="logout" className="text-[20px]" />
         로그아웃
       </Link>
+      <button type="button" onClick={() => setAskWithdraw(true)} className="self-center text-label-md text-outline underline-offset-4 hover:text-error hover:underline">
+        회원 탈퇴
+      </button>
+      {error && <p role="alert" className="text-center text-label-sm text-error">{error}</p>}
+
+      {askWithdraw && (
+        <ConfirmModal
+          title="정말 탈퇴할까요?"
+          body={
+            alone
+              ? '반려견 프로필과 모든 기록·상담·코스가 삭제되고 되돌릴 수 없어요.'
+              : `반려견과 기록은 가족에게 남고, 작성자는 '탈퇴한 회원'으로 표시돼요.${FAMILY?.myRole === 'OWNER' ? ' 관리자는 가장 먼저 참여한 가족에게 넘어가요.' : ''}`
+          }
+          confirmLabel="탈퇴하기"
+          danger
+          onConfirm={withdraw}
+          onClose={() => setAskWithdraw(false)}
+        />
+      )}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { api } from './client'
 import type {
-  Consultation, ConsultItem, Course, Dog, DogInput, EditRequest, EditStatus, Family, HealthRecord, Invite,
+  AdminMemberDetail, AdminMemberList, Consultation, ConsultItem, Course, Dog, DogInput, EditRequest, EditStatus, Family, HealthRecord, Invite,
   InvitePreview, Me, NutritionCard, Parsed, PlaceCategory, PlaceDetail, PlaceItem, RecordCategory, RecordInput,
   RecordSummary, ReportData, VetQuestion, WeightPoint,
 } from './types'
@@ -10,6 +10,7 @@ export const authApi = {
   devLogin: (nickname: string, admin = false) =>
     api.post<{ token: string; member: Me }>('/auth/dev-login', { nickname, admin }),
   me: () => api.get<Me>('/members/me'),
+  withdraw: () => api.delete<void>('/members/me'),
 }
 
 export const dogApi = {
@@ -72,6 +73,8 @@ export const adminApi = {
   requests: (status?: EditStatus) => api.get<EditRequest[]>('/admin/edit-requests', { status }),
   approve: (id: number) => api.post<EditRequest>(`/admin/edit-requests/${id}/approve`),
   reject: (id: number, reason: string) => api.post<EditRequest>(`/admin/edit-requests/${id}/reject`, { reason }),
+  members: () => api.get<AdminMemberList>('/admin/members'),
+  member: (id: number) => api.get<AdminMemberDetail>(`/admin/members/${id}`),
 }
 
 export const consultApi = {

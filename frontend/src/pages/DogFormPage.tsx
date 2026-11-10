@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import { dogApi, familyApi } from '../api/endpoints'
 import { todayStr } from '../api/format'
 import type { Dog, DogInput } from '../api/types'
+import BreedSearch from '../components/common/BreedSearch'
 import ConfirmModal from '../components/common/ConfirmModal'
 import Icon from '../components/common/Icon'
 import Photo from '../components/common/Photo'
@@ -26,7 +27,6 @@ interface Form {
   carrier: boolean
 }
 
-const BREEDS = ['말티즈', '푸들', '포메라니안', '시츄', '비숑 프리제', '진돗개', '골든 리트리버', '믹스']
 const thisMonth = todayStr().slice(0, 7)
 const DISEASES = ['신장', '췌장염', '비만', '관절', '피부']
 // 화면 지병 이름 ↔ 서버 키 (영양 카드·코스 규칙이 키로 읽음)
@@ -147,12 +147,7 @@ export default function DogFormPage() {
             <input value={form.name} onChange={(e) => set('name', e.target.value)} maxLength={20} placeholder="예: 꿍" className={input} />
           </Field>
           <Field label="견종" error={err('breed')}>
-            <input value={form.breed} onChange={(e) => set('breed', e.target.value)} list="breeds" placeholder="검색하거나 직접 입력" className={input} />
-            <datalist id="breeds">
-              {BREEDS.map((b) => (
-                <option key={b} value={b} />
-              ))}
-            </datalist>
+            <BreedSearch value={form.breed} onChange={(v) => set('breed', v)} />
           </Field>
           <Field label="몸무게" error={err('weight')}>
             <div className="relative">

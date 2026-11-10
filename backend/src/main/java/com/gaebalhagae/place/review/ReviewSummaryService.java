@@ -10,6 +10,7 @@ import com.gaebalhagae.llm.LlmClient;
 import com.gaebalhagae.place.collect.BlogPost;
 import com.gaebalhagae.place.domain.PlaceCategory;
 import com.gaebalhagae.place.collect.BlogPostStore;
+import com.gaebalhagae.place.collect.RegionFilter;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -49,6 +50,8 @@ public class ReviewSummaryService {
             너는 반려견 동반 장소 정보를 정리하는 도우미다.
             사용자가 주는 문장들은 한 장소에 대한 블로그 글에서 뽑았고, 앞에 [번호]가 붙어 있다.
             문장 번호별로 아래 조건을 판정한다. 문장에 근거가 없으면 반드시 unknown 이다. 추측하지 않는다.
+            장소는 사용자가 준 지역(경기도 안양시)에 있는 가게다. 다른 지역 지점이나 이름만 같은 다른 가게 이야기로 보이는
+            문장은 judgements 에 넣지 않고 summary 에도 쓰지 않는다.
             조건 (키(설명): 가능한 값):
             %s
             mood_tags(분위기): "조용함", "넓음"처럼 짧은 태그 최대 3개
@@ -132,6 +135,7 @@ public class ReviewSummaryService {
         List<BlogPost> posts = blogPostStore.findByPlace(placeName).stream()
                 .filter(p -> !p.sponsored())                 // 협찬 글 제외
                 .filter(p -> !p.petSentences().isEmpty())
+                .filter(RegionFilter::isLocalOrUnknown)      // 예전에 저장된 다른 지역 글도 요약에서 제외
                 .toList();
         if (posts.isEmpty()) {
             return new SummaryResult(placeName, "NO_SOURCE", 0, null);
@@ -146,7 +150,8 @@ public class ReviewSummaryService {
         }
 
         List<String> sentences = numberedSentences(posts);
-        String userPrompt = "장소: " + placeName + "\n문장:\n" + String.join("\n", sentences);
+        String userPrompt = "장소: " + placeName + "\n지역: " + RegionFilter.HOME_REGION
+                + "\n문장:\n" + String.join("\n", sentences);
 
         Called called = callWithFallback(userPrompt);
         List<Judgement> judgements = validJudgements(called.result(), sentences.size());

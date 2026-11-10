@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router'
 import AppLayout from './components/layout/AppLayout'
 import AdminEditRequestsPage from './pages/AdminEditRequestsPage'
+import AdminMembersPage from './pages/AdminMembersPage'
 import CoursesPage from './pages/CoursesPage'
 import LegalPage from './pages/LegalPage'
 import MyEditRequestsPage from './pages/MyEditRequestsPage'
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
       { path: '/my/family', element: <FamilyPage /> },
       { path: '/my/edit-requests', element: <MyEditRequestsPage /> },
       { path: '/admin/edit-requests', element: <AdminEditRequestsPage /> },
+      { path: '/admin/members', element: <AdminMembersPage /> },
       { path: '/terms', element: <LegalPage kind="terms" /> },
       { path: '/privacy', element: <LegalPage kind="privacy" /> },
     ],

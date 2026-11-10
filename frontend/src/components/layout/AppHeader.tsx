@@ -21,6 +21,7 @@ const menuOf = (dogId?: number) => [
   { to: '/questions', icon: 'help', label: '수의사 질문 메모' },
 ]
 const ADMIN_ITEM = { to: '/admin/edit-requests', icon: 'admin_panel_settings', label: '수정 요청 관리' }
+const ADMIN_MEMBERS = { to: '/admin/members', icon: 'manage_accounts', label: '회원 현황' }
 
 export default function AppHeader() {
   const [open, setOpen] = useState(false)
@@ -91,7 +92,7 @@ export default function AppHeader() {
             <Icon name="expand_more" className={`text-[18px] text-outline transition-transform ${open ? 'rotate-180 text-on-surface' : ''}`} />
           </button>
           <div className={`absolute top-full right-0 z-50 mt-2 w-52 rounded-xl border border-outline-variant/30 bg-surface-container-lowest py-2 shadow-[0_16px_40px_-8px_rgba(74,52,38,0.12)] transition-all duration-200 ${open ? 'opacity-100' : 'pointer-events-none invisible opacity-0'}`}>
-            {[...MENU, ...(isAdmin ? [ADMIN_ITEM] : [])].map(({ to, icon, label }) => (
+            {[...MENU, ...(isAdmin ? [ADMIN_ITEM, ADMIN_MEMBERS] : [])].map(({ to, icon, label }) => (
               <Link key={to} to={to} onClick={() => setOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface">
                 <Icon name={icon} className="text-[18px] text-primary" />
                 {label}
