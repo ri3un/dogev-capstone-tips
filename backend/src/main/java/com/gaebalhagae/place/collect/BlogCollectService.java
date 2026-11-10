@@ -16,7 +16,7 @@ import org.springframework.web.util.HtmlUtils;
 
 /**
  * 장소 하나의 블로그 글을 검색해 걸러 낸 뒤 저장합니다. (기능별_구현방법 5-3 전처리 1~4단계)
- * 장소 이름이 제목이나 요약에 들어간 글만 남겨 다른 지역 글이 섞이지 않게 합니다.
+ * 장소 이름이 제목이나 요약에 들어간 글만 남기고, 안양이 아닌 같은 이름 가게 글은 RegionFilter 로 뺍니다.
  * LLM 요약(5단계)은 저장된 글을 읽어 처리하는 다음 단계에서 붙입니다.
  */
 @Service
@@ -25,6 +25,7 @@ public class BlogCollectService {
 
     static final int MAX_POSTS = 30;
     static final List<String> SEARCH_SUFFIXES = List.of("애견동반", "강아지", "반려견");
+    static final String REGION_QUERY = "안양";
     private static final List<String> SPONSORED_WORDS = List.of("협찬", "원고료", "제공받아", "체험단", "소정의");
     private static final List<String> PET_WORDS = List.of(
             "강아지", "애견", "반려견", "댕댕", "멍멍", "대형견", "중형견", "소형견", "케이지", "이동장",
@@ -46,11 +47,13 @@ public class BlogCollectService {
         for (String suffix : SEARCH_SUFFIXES) {
             naverBlogClient.search(placeName + " " + suffix, 100).forEach(i -> byUrl.putIfAbsent(i.link(), i));
         }
+        naverBlogClient.search(placeName + " " + REGION_QUERY, 100).forEach(i -> byUrl.putIfAbsent(i.link(), i));   // 안양 글을 더 모음
         List<NaverBlogClient.Item> items = List.copyOf(byUrl.values());
 
         List<BlogPost> relevantPosts = items.stream()
                 .map(this::toPost)
                 .filter(p -> mentionsPlace(placeName, p))                                    // 장소 이름이 있는 글만
+                .filter(RegionFilter::isLocalOrUnknown)                                      // 다른 지역 같은 이름 가게 제외
                 .toList();
 
         List<BlogPost> newPosts = relevantPosts.stream()
