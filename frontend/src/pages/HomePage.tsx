@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router'
-import { consultApi, dogApi, familyApi, placeApi, recordApi } from '../api/endpoints'
+import { authApi, consultApi, dogApi, familyApi, placeApi, recordApi } from '../api/endpoints'
 import { addDays, ageText, formatDistance, localDate, SIZE_LABEL, todayStr } from '../api/format'
 import type { Dog, RecordSummary } from '../api/types'
 import Icon from '../components/common/Icon'
 import Photo from '../components/common/Photo'
+import FamilyMembersModal from '../components/family/FamilyMembersModal'
 import { useApi } from '../hooks/useApi'
 import { useCurrentDog } from '../hooks/useCurrentDog'
 
@@ -51,6 +52,7 @@ export default function HomePage() {
   const navigate = useNavigate()
   const [month, setMonth] = useState(() => new Date())
   const [memo, setMemo] = useState('')
+  const [showFamily, setShowFamily] = useState(false)
   const moveMonth = (d: number) => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + d))
 
   const { dog, loading } = useCurrentDog()
@@ -59,6 +61,7 @@ export default function HomePage() {
   const to = localDate(new Date(month.getFullYear(), month.getMonth() + 1, 0))
   const { data: nutrition } = useApi(() => (dogId ? dogApi.nutrition(dogId) : null), [dogId])
   const { data: family } = useApi(() => familyApi.get(), [])
+  const { data: me } = useApi(() => authApi.me(), [])
   const { data: recent } = useApi(() => (dogId ? recordApi.list(dogId, { from: addDays(todayStr(), -6), to: todayStr() }) : null), [dogId])
   const { data: summary } = useApi(() => (dogId ? recordApi.summary(dogId, { from, to }) : null), [dogId, from])
   const { data: consults } = useApi(() => (dogId ? consultApi.list(dogId) : null), [dogId])
@@ -76,7 +79,7 @@ export default function HomePage() {
       { icon: 'water_drop', label: '물 권장량', value: nutrition ? `${nutrition.waterMinMl}~${nutrition.waterMaxMl}ml` : '-' },
       { icon: 'directions_walk', label: '최근 기록', value: last ? `${last.recordDate.slice(5)} ${last.memo ?? last.categoryLabel}` : '기록 없음' },
     ],
-    family: (family?.members ?? []).map((m) => m.nickname.slice(0, 2)),
+    family: (family?.members ?? []).map((m) => ({ id: m.memberId, short: m.nickname.slice(0, 2), name: m.nickname })),
     tip: tipOf(dog),
   }
   const MONTHLY_SUMMARY = {
@@ -118,20 +121,27 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center justify-between border-t border-outline-variant/30 pt-2">
-            <div className="flex items-center gap-2.5">
+            {/* 누르면 가족 구성원 창이 뜸 */}
+            <button type="button" onClick={() => setShowFamily(true)} className="flex items-center gap-2.5 rounded-full py-1 pr-2 hover:bg-surface-container-low">
               <div className="flex -space-x-2">
-                {DOG.family.map((name) => (
-                  <div key={name} className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary-container text-[11px] font-bold text-on-secondary-container ring-2 ring-surface-container-lowest">
-                    {name}
+                {DOG.family.map((m) => (
+                  <div key={m.id} title={m.name} className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary-container text-[11px] font-bold text-on-secondary-container ring-2 ring-surface-container-lowest">
+                    {m.short}
                   </div>
                 ))}
               </div>
               <span className="text-body-sm text-on-surface-variant">가족 {DOG.family.length}명이 함께 돌봐요</span>
+            </button>
+            <div className="flex items-center gap-3">
+              <Link to={`/dogs/${dog.id}/edit`} className="flex items-center gap-0.5 text-label-md text-on-surface-variant transition-colors hover:text-primary">
+                <Icon name="edit" className="text-[16px]" />
+                반려견 정보 수정
+              </Link>
+              <button type="button" onClick={() => setShowFamily(true)} className="flex items-center gap-0.5 text-label-md text-on-surface-variant transition-colors hover:text-primary">
+                프로필 자세히 보기
+                <Icon name="chevron_right" className="text-[16px]" />
+              </button>
             </div>
-            <Link to={`/dogs/${dog.id}/edit`} className="flex items-center gap-0.5 text-label-md text-on-surface-variant transition-colors hover:text-primary">
-              프로필 자세히 보기
-              <Icon name="chevron_right" className="text-[16px]" />
-            </Link>
           </div>
         </div>
 
@@ -247,6 +257,8 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {showFamily && family && <FamilyMembersModal family={family} myId={me?.id} onClose={() => setShowFamily(false)} />}
     </div>
   )
 }
