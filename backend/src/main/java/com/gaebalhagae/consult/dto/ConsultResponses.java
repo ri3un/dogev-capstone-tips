@@ -18,7 +18,7 @@ public final class ConsultResponses {
     public record Detail(Long id, Long dogId, String question, boolean emergency, Urgency urgency, String urgencyLabel,
                          boolean visitVet, boolean crossChecked, int answeredCount, int totalModels,
                          List<String> summary, List<String> notices, List<ModelItem> answers, Long createdBy,
-                         LocalDateTime createdAt) {
+                         LocalDateTime createdAt, List<String> contextLines) {
     }
 
     public record ModelItem(String model, LlmParallelCaller.Status status, Urgency urgency, Boolean visitVet,

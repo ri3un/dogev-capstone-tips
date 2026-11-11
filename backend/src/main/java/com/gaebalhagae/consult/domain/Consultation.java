@@ -62,9 +62,15 @@ public class Consultation extends BaseTimeEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     private List<String> notices = new ArrayList<>();
 
+    /** 이번 답변에 함께 보낸 최근 14일 기록 집계 (화면 "사용한 내 기록", 90일 정리 때도 남김) */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "context_lines")
+    private List<String> contextLines = new ArrayList<>();
+
     public Consultation(Long dogId, Long createdBy, String question, boolean emergencyFlag, int answeredCount,
                         Urgency urgency, boolean visitVet, boolean crossChecked, List<String> summary,
-                        List<String> notices) {
+                        List<String> notices, List<String> contextLines) {
+        this.contextLines = new ArrayList<>(contextLines);
         this.dogId = dogId;
         this.createdBy = createdBy;
         this.question = question;

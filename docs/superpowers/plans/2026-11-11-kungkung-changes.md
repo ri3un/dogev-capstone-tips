@@ -93,19 +93,19 @@ void 코스를_삭제해도_다녀온_활동_기록은_남는다() throws Except
 **Files:** Create `consult/service/RecentContextBuilder.java`; Modify `consult/domain/Consultation.java`(contextLines), `consult/service/ConsultService.java`, `consult/dto/ConsultResponses.java`(Detail 에 `List<String> contextLines`); Test `backend/src/test/java/com/gaebalhagae/consult/RecentContextBuilderTest.java`, `ConsultApiTest.java`
 **Produces:** `List<String> RecentContextBuilder.build(Long dogId, LocalDate today)` (빈 리스트 = 기록 없음), `Detail.contextLines`
 
-- [ ] Step 1: 실패 테스트
+- [x] Step 1: 실패 테스트
   - 기록 없음 → 빈 리스트
   - 식사 2·무른 변 1·증상 1(메모 "왼쪽 다리를 절어요")·산책 30분 → "식사 2회", "무른 변 1회", "증상 1회(마지막 M월 d일)", "산책·활동 하루 평균" 포함, **어느 줄에도 "다리를 절어요" 없음**
   - 체중 2건 4.0→4.4 → "체중 4 → 4.4kg" + ReportSignals 의 "10% 늘었어요" 문장
-- [ ] Step 2: 실패 확인
-- [ ] Step 3: 구현
+- [x] Step 2: 실패 확인
+- [x] Step 3: 구현
   - 기간 `today.minusDays(13)..today`, `HealthRecordRepository.findByDogIdAndRecordDateBetweenOrderByRecordDateAscIdAsc`
   - 줄1 "식사 n회, 간식 n회, 배변 n회(무른 변 n회), 증상 n회(마지막 M월 d일)", 줄2 "투약·접종 n회, 병원 n회, 산책·활동 하루 평균 n분"(0 항목 생략), 줄3 체중, 그 뒤 `ReportSignals.of(...)`
   - 기록 0건이면 `List.of()`
   - `Consultation`: `@JdbcTypeCode(SqlTypes.JSON) @Column(name="context_lines") List<String> contextLines` + 생성자 인자
   - `ConsultService.prompt(dog, q, lines)`: lines 있으면 반려견 정보 다음에 "최근 14일 기록: …" + "기록은 참고용이고 판단은 질문 기준으로 하세요"
-- [ ] Step 4: `./gradlew test` 통과
-- [ ] Step 5: 커밋 `feat: 상담에 최근 14일 기록 집계를 함께 보냄`
+- [x] Step 4: `./gradlew test` 통과
+- [x] Step 5: 커밋 `feat: 상담에 최근 14일 기록 집계를 함께 보냄`
 
 ### Task 5: 상담 원문 90일 정리 (항목 6)
 **Files:** Create `consult/service/ConsultArchiveJob.java`; Modify `Consultation.java`(archivedAt + `archive(LocalDateTime)`), `ConsultationRepository.java`, `ConsultationAnswerRepository.java`, `ConsultResponses.java`(Detail·Item 에 `LocalDateTime archivedAt`), `application.yml`(`consult.retention-days: 90`); Test `backend/src/test/java/com/gaebalhagae/consult/ConsultArchiveJobTest.java`
