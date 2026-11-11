@@ -10,7 +10,7 @@ const OAUTH = {
   kakao: '/oauth2/authorization/kakao',
   naver: '/oauth2/authorization/naver',
 }
-const socialBtn = 'flex h-[52px] w-full items-center justify-center gap-2.5 rounded-[14px] text-label-lg transition-all duration-150 active:scale-[0.98]'
+const socialBtn = 'flex h-[52px] w-full items-center justify-center gap-2.5 rounded-md text-label-lg transition-all duration-150 active:scale-[0.98]'
 
 // 개발 모드(npm run dev)에서만 보이는 로그인: SNS 키 없이 닉네임으로 들어갑니다. 배포 빌드에는 없음
 function DevLogin() {
@@ -29,7 +29,7 @@ function DevLogin() {
     }
   }
   return (
-    <form onSubmit={submit} className="mt-2 flex flex-col gap-2 rounded-[14px] border border-dashed border-outline-variant p-3 text-left">
+    <form onSubmit={submit} className="mt-2 flex flex-col gap-2 rounded-md border border-dashed border-outline-variant p-3 text-left">
       <span className="text-label-sm text-outline">개발용 로그인 (배포에는 없음)</span>
       <input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="닉네임" aria-label="개발용 닉네임" className="rounded-lg bg-surface-container-low px-3 py-2 text-body-sm" />
       <label className="flex items-center gap-2 text-label-sm text-on-surface-variant">
@@ -44,27 +44,23 @@ function DevLogin() {
 export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col justify-between selection:bg-secondary-container selection:text-on-secondary-container">
-      <header className="fixed top-0 left-0 z-50 w-full bg-surface/85 shadow-[0_1px_8px_rgba(74,52,38,0.04)] backdrop-blur-xl">
+      <header className="fixed top-0 left-0 z-50 w-full border-b border-outline-variant bg-surface">
         <div className="mx-auto flex h-20 max-w-[1440px] items-center justify-between px-5 lg:px-10">
-          <Link to="/login" className="group flex items-center gap-2 text-primary transition-transform active:scale-[0.98]">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container transition-colors group-hover:bg-primary group-hover:text-on-primary">
-              <Icon name="pets" className="text-[22px]" />
-            </span>
-            <span className="text-headline-lg font-bold tracking-tight">킁킁</span>
+          <Link to="/login" className="flex items-end gap-1 text-[26px] leading-none font-bold tracking-tight">
+            킁킁
+            <span className="mb-1 h-1.5 w-1.5 rounded-full bg-primary-container" />
           </Link>
-          <span className="inline-flex items-center rounded-full bg-surface-container-low px-3 py-1 text-label-md text-secondary">반려견 케어</span>
+          <span className="inline-flex items-center rounded-md bg-surface-container-low px-3 py-1 text-label-md text-secondary">반려견 케어</span>
         </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col items-center justify-center px-5 pt-20 pb-9 lg:px-10">
         <div className="relative flex w-full max-w-[460px] items-center justify-center py-2 sm:py-6">
-          <div className="pointer-events-none absolute -top-12 -left-10 h-44 w-44 rounded-full bg-secondary-container/40 blur-2xl" />
-          <div className="pointer-events-none absolute -right-8 -bottom-10 h-48 w-48 rounded-full bg-primary-fixed/50 blur-2xl" />
 
-          <div className="relative flex w-full max-w-[440px] flex-col items-center rounded-[28px] bg-surface-container-lowest px-7 py-9 text-center shadow-[0_12px_40px_-8px_rgba(74,52,38,0.08)] sm:px-9 sm:py-10">
+          <div className="relative flex w-full max-w-[440px] flex-col items-center rounded-md bg-surface-container-lowest px-7 py-9 text-center shadow-[0_12px_40px_-8px_rgba(74,52,38,0.08)] sm:px-9 sm:py-10">
             <div className="mb-5 flex flex-col items-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-container-low shadow-[0_4px_16px_rgba(200,134,75,0.12)] transition-transform duration-300 hover:scale-105">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container">
+              <div className="flex h-16 w-16 items-center justify-center rounded-md bg-surface-container-low transition-transform duration-300 hover:scale-105">
+                <div className="flex h-12 w-12 items-center justify-center rounded-md bg-secondary-container text-on-secondary-container">
                   <Icon name="pets" filled className="text-[28px]" />
                 </div>
               </div>

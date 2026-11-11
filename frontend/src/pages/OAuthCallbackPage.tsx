@@ -21,7 +21,7 @@ export default function OAuthCallbackPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4">
-      <span className="h-10 w-10 animate-spin rounded-full border-4 border-secondary-container border-t-primary-container" />
+      <span className="h-10 w-10 animate-spin rounded-md border-4 border-secondary-container border-t-primary-container" />
       <p className="text-label-md text-on-surface-variant">로그인하는 중이에요</p>
     </div>
   )

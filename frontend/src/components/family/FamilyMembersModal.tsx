@@ -16,11 +16,11 @@ export default function FamilyMembersModal({ family, myId, onClose }: { family: 
             <div className="flex-1">
               <div className="flex items-center gap-1.5 font-semibold">
                 {m.nickname}
-                {m.memberId === myId && <span className="rounded-full bg-surface-container-high px-2 py-0.5 text-label-sm text-on-surface-variant">나</span>}
+                {m.memberId === myId && <span className="rounded-md bg-surface-container-high px-2 py-0.5 text-label-sm text-on-surface-variant">나</span>}
                 {m.role === 'OWNER' ? (
-                  <span className="rounded-full bg-primary-container px-2 py-0.5 text-label-sm font-bold text-white">관리자</span>
+                  <span className="rounded-md bg-primary-container px-2 py-0.5 text-label-sm font-bold text-white">관리자</span>
                 ) : (
-                  <span className="rounded-full bg-surface-container px-2 py-0.5 text-label-sm text-on-surface-variant">편집 가족</span>
+                  <span className="rounded-md bg-surface-container px-2 py-0.5 text-label-sm text-on-surface-variant">편집 가족</span>
                 )}
               </div>
               <span className="text-label-sm text-outline">{m.joinedAt.slice(0, 10)} 참여</span>
@@ -28,7 +28,7 @@ export default function FamilyMembersModal({ family, myId, onClose }: { family: 
           </li>
         ))}
       </ul>
-      <Link to="/my/family" className="mt-4 flex items-center justify-center gap-1 rounded-full bg-surface-container-low py-3 text-label-lg font-semibold text-on-surface-variant hover:bg-surface-container">
+      <Link to="/my/family" className="mt-4 flex items-center justify-center gap-1 rounded-md bg-surface-container-low py-3 text-label-lg font-semibold text-on-surface-variant hover:bg-surface-container">
         <Icon name="group_add" className="text-[20px]" />
         가족 관리·초대하기
       </Link>

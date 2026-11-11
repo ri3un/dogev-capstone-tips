@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import EmptyState from '../components/common/EmptyState'
+import PawLoading from '../components/common/PawLoading'
 import { Navigate, useSearchParams } from 'react-router'
 import { placeApi } from '../api/endpoints'
 import { formatDistance, SIZE_LABEL } from '../api/format'
@@ -32,12 +34,12 @@ export default function MapPage() {
   const pos = useMyLocation()
   const dogId = dog?.id
   const q = keyword.trim()
-  const { data } = useApi(
+  const { data, loading: listLoading } = useApi(
     () => (dogId && pos ? placeApi.list({ dogId, category: category ?? undefined, q: q || undefined, lat: pos.lat, lng: pos.lng, fitOnly: dogBased, conditions: conds }) : null),
     [dogId, pos, category, q, dogBased, conds.join()],
   )
 
-  if (loading) return null
+  if (loading) return <PawLoading />
   if (!dog) return <Navigate to="/onboarding" replace />
 
   const list = data ?? []
@@ -64,7 +66,7 @@ export default function MapPage() {
                 className="w-full min-w-0 bg-transparent text-[13px] placeholder:text-outline focus:outline-none"
               />
               {keyword && (
-                <button type="button" title="지우기" onClick={() => setKeyword('')} className="flex items-center justify-center rounded-full p-0.5 text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface">
+                <button type="button" title="지우기" onClick={() => setKeyword('')} className="flex items-center justify-center rounded-md p-0.5 text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface">
                   <Icon name="cancel" className="text-[16px]" />
                 </button>
               )}
@@ -115,7 +117,7 @@ export default function MapPage() {
                   key={c}
                   type="button"
                   onClick={() => setCategory(category === c ? null : c)}
-                  className={`rounded-full px-3.5 py-1.5 text-[13px] whitespace-nowrap transition-colors ${
+                  className={`rounded-md px-3.5 py-1.5 text-[13px] whitespace-nowrap transition-colors ${
                     category === c ? 'bg-primary-container font-bold text-white shadow-xs' : 'border border-outline-variant/30 bg-surface-container-lowest font-medium hover:bg-surface-container-high'
                   }`}
                 >
@@ -123,14 +125,16 @@ export default function MapPage() {
                 </button>
               ))}
             </div>
-            <button type="button" onClick={() => setFilterOpen(true)} className="flex shrink-0 items-center gap-1 rounded-full border border-outline-variant/30 px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface">
+            <button type="button" onClick={() => setFilterOpen(true)} className="flex shrink-0 items-center gap-1 rounded-md border border-outline-variant/30 px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface">
               <Icon name="tune" className="text-[15px]" />
-              필터 더보기{conds.length > 0 && <span className="ml-0.5 rounded-full bg-primary-container px-1.5 text-[11px] font-bold text-white">{conds.length}</span>}
+              필터 더보기{conds.length > 0 && <span className="ml-0.5 rounded-md bg-primary-container px-1.5 text-[11px] font-bold text-white">{conds.length}</span>}
             </button>
           </div>
         </div>
 
         <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+          {/* 장소를 찾는 동안(위치 확인 포함) */}
+          {(!data || listLoading) && list.length === 0 && <PawLoading compact label="킁킁, 근처 장소를 찾는 중…" />}
           {list.map((p) => {
             const active = p.id === selectedId
             return (
@@ -153,11 +157,11 @@ export default function MapPage() {
                     <span className={active ? 'font-medium text-primary' : 'text-outline'}>{p.distanceM != null && formatDistance(p.distanceM)}</span>
                   </div>
                 </div>
-                {dogBased && p.verdict && <span className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-bold text-white ${VERDICT_BG[p.verdict.level]}`}>{VERDICT_LABEL[p.verdict.level]}</span>}
+                {dogBased && p.verdict && <span className={`shrink-0 rounded-md px-2.5 py-1 text-[12px] font-bold text-white ${VERDICT_BG[p.verdict.level]}`}>{VERDICT_LABEL[p.verdict.level]}</span>}
               </button>
             )
           })}
-          {data && list.length === 0 && <p className="py-10 text-center text-body-sm text-outline">조건에 맞는 장소가 없어요.</p>}
+          {data && !listLoading && list.length === 0 && <EmptyState title="조건에 맞는 장소가 없어요">조건을 하나 빼고 다시 킁킁 찾아볼까요?</EmptyState>}
         </div>
       </aside>
 
@@ -183,7 +187,7 @@ export default function MapPage() {
                 className={`absolute flex -translate-x-1/2 -translate-y-full flex-col items-center ${active ? 'z-20' : 'z-10 opacity-90 transition-opacity hover:opacity-100'}`}
               >
                 <span
-                  className={`flex items-center gap-1 rounded-full font-bold ${
+                  className={`flex items-center gap-1 rounded-md font-bold ${
                     active ? 'bg-primary-container px-3 py-1.5 text-[13px] text-white shadow-lg ring-2 ring-white' : 'border border-outline-variant/30 bg-white px-2.5 py-1 text-[12px] text-secondary shadow-md'
                   }`}
                 >
@@ -197,10 +201,10 @@ export default function MapPage() {
             })}
           />
           <div className="absolute top-5 right-5 z-20 flex flex-col gap-2.5">
-            <button type="button" title="현재 위치" onClick={toMyLocation} className={`${mapBtn} rounded-full bg-surface-container-lowest shadow-md`}>
+            <button type="button" title="현재 위치" onClick={toMyLocation} className={`${mapBtn} rounded-md bg-surface-container-lowest shadow-md`}>
               <Icon name="my_location" className="text-[20px] text-primary" />
             </button>
-            <div className="flex flex-col overflow-hidden rounded-full bg-surface-container-lowest shadow-md">
+            <div className="flex flex-col overflow-hidden rounded-md bg-surface-container-lowest shadow-md">
               <button type="button" title="확대" onClick={() => zoomBy(1)} className={mapBtn}>
                 <Icon name="add" className="text-[20px]" />
               </button>

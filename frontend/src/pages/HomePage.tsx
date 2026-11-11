@@ -1,260 +1,266 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router'
-import { authApi, consultApi, dogApi, familyApi, placeApi, recordApi } from '../api/endpoints'
-import { addDays, ageText, formatDistance, localDate, SIZE_LABEL, todayStr } from '../api/format'
-import type { Dog, RecordSummary } from '../api/types'
+import { authApi, dogApi, familyApi, placeApi, recordApi } from '../api/endpoints'
+import { formatDistance, todayStr } from '../api/format'
+import type { Dog, HealthRecord, RecordCategory, RecordInput } from '../api/types'
 import Icon from '../components/common/Icon'
+import { BoneIcon, PawIcon } from '../components/common/Paw'
+import PawLoading from '../components/common/PawLoading'
 import Photo from '../components/common/Photo'
+import { toast } from '../components/common/toast'
 import FamilyMembersModal from '../components/family/FamilyMembersModal'
 import { useApi } from '../hooks/useApi'
 import { useCurrentDog } from '../hooks/useCurrentDog'
 
-type Trend = 'good' | 'watch' | 'keep'
-
 // 오늘의 맞춤 안내: 코스 추천과 같은 기준(노령견·관절이면 2km 이내)
 function tipOf(dog: Dog) {
-  if (dog.ageMonths >= 96) return { before: '노령견이라 오늘은 ', strong: '2km 이내', after: ' 산책을 추천해요 🐾' }
-  if (dog.diseases.includes('JOINT')) return { before: '관절 지병이 있어 오늘은 ', strong: '2km 이내', after: ' 산책을 추천해요 🐾' }
-  if (dog.activityLevel === 'HIGH') return { before: '활동량이 많아 오늘은 ', strong: '뛰어놀 수 있는 곳', after: '을 넣어 볼까요 🐾' }
-  return { before: '오늘도 ', strong: '가볍게 산책', after: '하고 기록을 남겨 보세요 🐾' }
+  if (dog.ageMonths >= 96) return '노령견이라 오늘은 2km 이내 산책을 추천해요.'
+  if (dog.diseases.includes('JOINT')) return '관절 지병이 있어 오늘은 2km 이내 산책을 추천해요.'
+  if (dog.activityLevel === 'HIGH') return '활동량이 많으니 뛰어놀 수 있는 곳을 넣어 보세요.'
+  return '오늘도 가볍게 산책하고 기록을 남겨 보세요.'
 }
 
-// 이번 달 요약: 숫자는 서버 집계, 문장은 규칙으로 만듭니다(LLM 없음)
-function monthSummary(s: RecordSummary | undefined) {
-  if (!s) return { text: '', items: [] as { label: string; status: string; trend: Trend }[] }
-  const total = Object.values(s.byCategory).reduce((a, b) => a + (b ?? 0), 0)
-  if (total === 0) return { text: '이번 달 기록이 아직 없어요. 오늘 있었던 일을 아래에 적어 보세요.', items: [] }
-  const text = `이번 달 기록 ${total}개, 산책·활동 총 ${s.walkMinutesTotal}분이에요.` + (s.looseStoolCount ? ` 무른 변·설사가 ${s.looseStoolCount}번 있었어요.` : ' 배변은 안정적이에요.')
-  return {
-    text,
-    items: [
-      { label: '배변', status: s.looseStoolCount ? '지켜보기' : '좋아요', trend: (s.looseStoolCount ? 'watch' : 'good') as Trend },
-      { label: '활동', status: s.walkMinutesTotal ? `${s.walkMinutesTotal}분` : '기록 없음', trend: (s.walkMinutesTotal ? 'good' : 'watch') as Trend },
-      { label: '증상', status: s.byCategory.SYMPTOM ? `${s.byCategory.SYMPTOM}회` : '없음', trend: (s.byCategory.SYMPTOM ? 'watch' : 'keep') as Trend },
-    ],
-  }
-}
+// 하루 요약에 아이콘으로 두는 항목 (누르면 그 자리에서 기록 1건 저장)
+const DAILY: { category: RecordCategory; label: string; icon: string; extra?: Partial<RecordInput> }[] = [
+  { category: 'MEAL', label: '밥', icon: 'restaurant' },
+  { category: 'ACTIVITY', label: '산책', icon: 'directions_walk' },
+  { category: 'STOOL', label: '배변', icon: 'eco', extra: { stoolStatus: 'NORMAL' } },
+  { category: 'SNACK', label: '간식', icon: 'cookie' },
+]
+const SLOTS = 3
 
-const card = 'rounded-xl border border-outline-variant/30 bg-surface-container-lowest shadow-sm'
-const primaryBtn =
-  'inline-flex h-[52px] items-center justify-center gap-2 rounded-full bg-primary-container text-label-lg text-on-primary shadow-sm transition-all hover:scale-[1.02] hover:bg-primary active:scale-[0.98]'
-const linkArrow = 'inline-flex items-center gap-0.5 text-label-md font-semibold text-primary transition-colors hover:text-on-primary-fixed-variant'
+// 홈 바로가기 아이콘 줄
+const SHORTCUTS = [
+  { to: '/map', label: '장소 지도', icon: 'location_on' },
+  { to: '/course', label: '코스 추천', icon: 'route' },
+  { to: '/consult', label: 'AI 상담', icon: 'chat' },
+  { to: '/records', label: '건강 기록', icon: 'bone' },
+  { to: '/report', label: '병원용 리포트', icon: 'description' },
+  { to: '/my/family', label: '가족 그룹', icon: 'group' },
+]
 
-// 건강 상태 칩 색상·아이콘
-const TREND_STYLE: Record<Trend, { icon: string; className: string }> = {
-  good: { icon: 'check_circle', className: 'bg-tertiary-fixed text-on-tertiary-fixed' },
-  watch: { icon: 'visibility', className: 'bg-secondary-fixed text-on-secondary-fixed-variant' },
-  keep: { icon: 'horizontal_rule', className: 'bg-tertiary-fixed text-on-tertiary-fixed' },
-}
+// 배경에 연하게 찍힌 발자국 위치 (오른쪽 위 빈 자리)
+const TRAIL = [
+  { right: 40, top: 62, rotate: -38 },
+  { right: 82, top: 30, rotate: -62 },
+  { right: 128, top: 54, rotate: -50 },
+  { right: 172, top: 22, rotate: -70 },
+  { right: 218, top: 42, rotate: -58 },
+  { right: 262, top: 12, rotate: -76 },
+]
 
-// 홈 대시보드 (Stitch 01-home)
+const lowCard = 'flex flex-col gap-4 rounded-md bg-surface-container-lowest p-6'
+const moreLink = 'text-label-md font-semibold text-primary-container hover:underline'
+
+// 홈: 한 줄 기록 → 바로가기 → 오늘 하루 요약·권장량·근처 장소 (스크롤 없이 한 화면)
 export default function HomePage() {
   const navigate = useNavigate()
-  const [month, setMonth] = useState(() => new Date())
   const [memo, setMemo] = useState('')
   const [showFamily, setShowFamily] = useState(false)
-  const moveMonth = (d: number) => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + d))
+  const [busy, setBusy] = useState<RecordCategory | null>(null)
 
   const { dog, loading } = useCurrentDog()
   const dogId = dog?.id
-  const from = localDate(new Date(month.getFullYear(), month.getMonth(), 1))
-  const to = localDate(new Date(month.getFullYear(), month.getMonth() + 1, 0))
+  const today = todayStr()
   const { data: nutrition } = useApi(() => (dogId ? dogApi.nutrition(dogId) : null), [dogId])
   const { data: family } = useApi(() => familyApi.get(), [])
   const { data: me } = useApi(() => authApi.me(), [])
-  const { data: recent } = useApi(() => (dogId ? recordApi.list(dogId, { from: addDays(todayStr(), -6), to: todayStr() }) : null), [dogId])
-  const { data: summary } = useApi(() => (dogId ? recordApi.summary(dogId, { from, to }) : null), [dogId, from])
-  const { data: consults } = useApi(() => (dogId ? consultApi.list(dogId) : null), [dogId])
+  const { data: todayRecords, setData: setTodayRecords } = useApi(() => (dogId ? recordApi.list(dogId, { from: today, to: today }) : null), [dogId, today])
   const { data: places } = useApi(() => (dogId ? placeApi.list({ dogId }) : null), [dogId])
 
-  if (loading) return null
+  if (loading) return <PawLoading />
   if (!dog) return <Navigate to="/onboarding" replace />
 
-  const last = recent?.at(-1)
-  const DOG = {
-    name: dog.name, breed: dog.breed, size: SIZE_LABEL[dog.size], age: ageText(dog.ageMonths), weightKg: dog.weightKg,
-    photoUrl: dog.photoUrl ?? undefined,
-    stats: [
-      { icon: 'restaurant', label: '오늘 사료 권장량', value: nutrition?.foodGrams ? `${nutrition.foodGrams}g` : nutrition ? `${nutrition.derKcal}kcal` : '-' },
-      { icon: 'water_drop', label: '물 권장량', value: nutrition ? `${nutrition.waterMinMl}~${nutrition.waterMaxMl}ml` : '-' },
-      { icon: 'directions_walk', label: '최근 기록', value: last ? `${last.recordDate.slice(5)} ${last.memo ?? last.categoryLabel}` : '기록 없음' },
-    ],
-    family: (family?.members ?? []).map((m) => ({ id: m.memberId, short: m.nickname.slice(0, 2), name: m.nickname })),
-    tip: tipOf(dog),
-  }
-  const MONTHLY_SUMMARY = {
-    ...monthSummary(summary),
-    consultCount: (consults ?? []).filter((c) => c.createdAt.slice(0, 10) >= from && c.createdAt.slice(0, 10) <= to).length,
-    recordCount: Object.values(summary?.byCategory ?? {}).reduce((a, b) => a + (b ?? 0), 0),
-  }
+  const records = todayRecords ?? []
   const nearby = (places ?? []).filter((p) => p.verdict?.level === 'OK').slice(0, 3)
+  const weekday = ['일', '월', '화', '수', '목', '금', '토'][new Date(`${today}T00:00:00`).getDay()]
+  const dateLabel = `${Number(today.slice(5, 7))}월 ${Number(today.slice(8, 10))}일 (${weekday})`
+
+  // 한 줄 기록: 기록 입력 화면이 글을 받아 바로 기록 후보로 바꿈
+  const submitMemo = () => memo.trim() && navigate('/records/new', { state: { text: memo.trim() } })
+
+  // 빈 아이콘을 누르면 오늘 기록 1건 저장 (가족 모두에게 보임)
+  const add = async (item: (typeof DAILY)[number]) => {
+    if (busy) return
+    setBusy(item.category)
+    try {
+      const saved = await recordApi.create(dog.id, { category: item.category, recordDate: today, ...item.extra })
+      setTodayRecords([...records, saved])
+      toast(`킁킁, ${item.label} 기록했어요!`)
+    } catch {
+      toast('기록하지 못했어요. 잠시 후 다시 눌러 주세요')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  // 채워진 아이콘을 누르면 방금 누른 기록만 되돌림 (글이 있는 기록은 건강 기록 화면에서 지움)
+  const undo = async (record: HealthRecord, label: string) => {
+    if (busy) return
+    if (record.memo) return navigate(`/records?date=${today}`)
+    setBusy(record.category)
+    try {
+      await recordApi.remove(record.id)
+      setTodayRecords(records.filter((r) => r.id !== record.id))
+      toast(`${label} 기록을 되돌렸어요`)
+    } catch {
+      toast('되돌리지 못했어요')
+    } finally {
+      setBusy(null)
+    }
+  }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-9 px-10 py-9">
-      {/* 1. 반려견 카드 + 오늘의 맞춤 안내 (2:1) */}
-      <section className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
-        <div className={`${card} flex flex-col justify-between p-8 lg:col-span-8`}>
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-            <Photo src={DOG.photoUrl} alt={`${DOG.name} 프로필 사진`} className="h-24 w-24 shrink-0 rounded-full shadow-md ring-4 ring-secondary-fixed/50 sm:h-28 sm:w-28" />
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-headline-lg font-bold tracking-tight">{DOG.name}</h1>
-                <span className="rounded-full bg-secondary-fixed px-2.5 py-0.5 text-label-md font-medium text-on-secondary-fixed-variant">{DOG.breed}</span>
-                <span className="rounded-full bg-tertiary-fixed px-2.5 py-0.5 text-label-md text-on-tertiary-fixed">{DOG.size}</span>
-              </div>
-              <p className="font-medium text-on-surface-variant">
-                {DOG.age} · {DOG.weightKg}kg
-              </p>
+    <div className="flex w-full flex-col">
+      {/* 1. 한 줄 기록 */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-surface-container-low to-surface pt-9 pb-8">
+        {TRAIL.map(({ rotate, ...pos }) => (
+          <PawIcon key={pos.right} className="pointer-events-none absolute h-5 w-5 text-primary-container opacity-15" style={{ ...pos, transform: `rotate(${rotate}deg)` }} />
+        ))}
+        <div className="relative mx-auto flex w-full max-w-[1080px] flex-col gap-5 px-5">
+          <div className="flex items-center justify-center gap-4">
+            <Photo src={dog.photoUrl ?? undefined} alt={`${dog.name} 사진`} dog className="h-14 w-14 shrink-0 rounded-full ring-1 ring-primary-container ring-offset-2" />
+            <h1 className="text-[22px] font-bold tracking-tight">
+              {dog.name}, 오늘은 뭘 했나요? <span className="text-primary-container">한 줄이면 기록이 돼요.</span>
+            </h1>
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              submitMemo()
+            }}
+            className="flex items-center rounded-md border border-primary-container bg-surface-container-lowest px-5 py-4"
+          >
+            <div className="hidden shrink-0 border-r border-outline-variant pr-7 pl-2 sm:block">
+              <div className="text-label-md font-bold">날짜</div>
+              <div className="mt-1 text-body-lg">{dateLabel}</div>
             </div>
-          </div>
-
-          <div className="my-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {DOG.stats.map((s) => (
-              <div key={s.label} className="flex items-center gap-2.5 rounded-lg bg-surface-container-low p-3">
-                <Icon name={s.icon} className="text-[20px] text-primary" />
-                <div className="flex flex-col">
-                  <span className="text-label-sm text-on-surface-variant">{s.label}</span>
-                  <span className="text-label-md font-bold">{s.value}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between border-t border-outline-variant/30 pt-2">
-            {/* 누르면 가족 구성원 창이 뜸 */}
-            <button type="button" onClick={() => setShowFamily(true)} className="flex items-center gap-2.5 rounded-full py-1 pr-2 hover:bg-surface-container-low">
-              <div className="flex -space-x-2">
-                {DOG.family.map((m) => (
-                  <div key={m.id} title={m.name} className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary-container text-[11px] font-bold text-on-secondary-container ring-2 ring-surface-container-lowest">
-                    {m.short}
-                  </div>
-                ))}
-              </div>
-              <span className="text-body-sm text-on-surface-variant">가족 {DOG.family.length}명이 함께 돌봐요</span>
+            <label className="flex min-w-0 flex-1 flex-col px-7">
+              <span className="text-label-md font-bold">오늘 있었던 일</span>
+              <input
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+                placeholder="예: 아침에 사료 반만 먹고 산책 20분 했어"
+                className="mt-1 w-full bg-transparent text-body-lg placeholder:text-outline focus:outline-none"
+              />
+            </label>
+            <button type="submit" disabled={!memo.trim()} className="shrink-0 rounded-md bg-primary-container px-6 py-3.5 text-label-lg font-bold text-on-primary transition-colors hover:bg-primary disabled:opacity-50">
+              기록으로 바꾸기
             </button>
-            <div className="flex items-center gap-3">
-              <Link to={`/dogs/${dog.id}/edit`} className="flex items-center gap-0.5 text-label-md text-on-surface-variant transition-colors hover:text-primary">
-                <Icon name="edit" className="text-[16px]" />
-                반려견 정보 수정
-              </Link>
-              <button type="button" onClick={() => setShowFamily(true)} className="flex items-center gap-0.5 text-label-md text-on-surface-variant transition-colors hover:text-primary">
-                프로필 자세히 보기
-                <Icon name="chevron_right" className="text-[16px]" />
+          </form>
+        </div>
+      </section>
+
+      {/* 2. 바로가기 */}
+      <nav aria-label="바로가기" className="mx-auto grid w-full max-w-[1080px] grid-cols-3 gap-y-6 px-5 py-8 text-center sm:grid-cols-6">
+        {SHORTCUTS.map(({ to, label, icon }) => (
+          <Link key={to} to={to} className="flex flex-col items-center gap-2 text-label-lg font-medium transition-colors hover:text-primary-container [&:hover_.kk-icon]:-translate-y-0.5">
+            <span className="flex h-10 items-center justify-center">
+              {icon === 'bone' ? <BoneIcon className="h-10 w-10" /> : <Icon name={icon} className="text-[36px]! font-light" />}
+            </span>
+            {label}
+          </Link>
+        ))}
+      </nav>
+
+      {/* 3. 오늘 하루 요약 · 권장량 · 근처 장소 */}
+      <section className="flex-1 bg-surface-container-low py-8">
+        <div className="mx-auto grid w-full max-w-[1080px] grid-cols-1 gap-5 px-5 lg:grid-cols-[1.35fr_1fr_1fr]">
+          <div className={lowCard}>
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-body-lg font-bold">오늘 {dog.name}의 하루</h2>
+              <button type="button" onClick={() => setShowFamily(true)} className={moreLink}>
+                가족 {family?.members.length ?? 1}명이 함께 봐요 ›
               </button>
             </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col justify-between rounded-xl border border-outline-variant/30 bg-surface-container-low p-8 shadow-sm lg:col-span-4">
-          <div className="flex flex-col gap-4">
-            <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-surface-container-high px-3 py-1 text-label-md font-bold text-on-secondary-container">
-              <Icon name="lightbulb" className="text-[18px] text-primary" />
-              오늘의 맞춤 안내
+            <ul className="flex flex-col gap-3">
+              {DAILY.map((item) => {
+                const done = records.filter((r) => r.category === item.category)
+                return (
+                  <li key={item.category} className="flex items-center gap-3">
+                    <span className="w-10 text-label-lg font-semibold">{item.label}</span>
+                    <div className="flex gap-2">
+                      {Array.from({ length: SLOTS }, (_, i) => {
+                        const record = done[i]
+                        const who = record ? `${record.createdByNickname ?? '가족'} ${record.createdAt.slice(11, 16)}` : ''
+                        return (
+                          <button
+                            key={i}
+                            type="button"
+                            disabled={busy === item.category}
+                            aria-pressed={!!record}
+                            aria-label={record ? `${item.label} ${i + 1}번째: ${who} 기록됨, 누르면 되돌리기` : `${item.label} ${i + 1}번째 기록하기`}
+                            title={record ? `${who} · 누르면 되돌려요` : '누르면 기록돼요'}
+                            onClick={() => (record ? undo(done[done.length - 1], item.label) : add(item))}
+                            className={`flex h-10 w-10 items-center justify-center rounded-md border transition-colors disabled:opacity-60 ${
+                              record ? 'border-primary-container bg-primary-container text-on-primary' : 'border-outline-variant text-outline-variant hover:border-primary-container hover:text-primary-container'
+                            }`}
+                          >
+                            <Icon name={item.icon} filled={!!record} className="text-[22px]" />
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <span className="ml-auto text-label-md text-outline">
+                      {done.length ? `${done.length}번 · ${done[done.length - 1].createdByNickname ?? '가족'}` : '아직 없어요'}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+            <div className="mt-auto flex items-center justify-between border-t border-outline-variant pt-3 text-label-sm text-outline">
+              아이콘을 누르면 기록되고 가족에게도 보여요
+              <Link to={`/records?date=${today}`} className={moreLink}>
+                자세히 보기 ›
+              </Link>
             </div>
-            <p className="mt-2 text-body-lg leading-relaxed">
-              {DOG.tip.before}
-              <span className="font-bold text-primary">{DOG.tip.strong}</span>
-              {DOG.tip.after}
-            </p>
           </div>
-          <Link to="/course" className={`${primaryBtn} mt-6 w-full`}>
-            <Icon name="near_me" className="text-[20px]" />
-            오늘 코스 추천받기
-          </Link>
-        </div>
-      </section>
 
-      {/* 2. 이번 달 건강 요약 */}
-      <section className={`${card} relative flex flex-col gap-5 overflow-hidden p-6 sm:p-8`}>
-        <div className="absolute top-0 bottom-0 left-0 w-1.5 bg-primary-container" />
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-surface-container px-3 py-1 text-label-md text-on-secondary-container">
-              <button type="button" aria-label="이전 달" onClick={() => moveMonth(-1)} className="text-[14px] hover:text-primary">‹</button>
-              {month.getFullYear()}년 {month.getMonth() + 1}월
-              <button type="button" aria-label="다음 달" onClick={() => moveMonth(1)} className="text-[14px] hover:text-primary">›</button>
-            </div>
-            <h2 className="text-headline-md font-bold tracking-tight">이번 달 {DOG.name} 건강 요약</h2>
-          </div>
-          <div className="inline-flex items-center gap-1.5 self-start rounded-full border border-outline-variant/30 bg-surface-container-low px-3 py-1 text-label-sm text-on-surface-variant sm:self-auto">
-            <Icon name="psychology" className="text-[15px] text-primary" />
-            AI 상담 {MONTHLY_SUMMARY.consultCount}회 · 기록 {MONTHLY_SUMMARY.recordCount}개 기반
-          </div>
-        </div>
-
-        <p className="leading-relaxed">{MONTHLY_SUMMARY.text}</p>
-
-        <div className="flex flex-wrap items-center gap-2.5">
-          {MONTHLY_SUMMARY.items.map(({ label, status, trend }) => (
-            <span key={label} className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-label-md ${TREND_STYLE[trend].className}`}>
-              <Icon name={TREND_STYLE[trend].icon} className="text-[16px]" /> {label} · {status}
-            </span>
-          ))}
-        </div>
-
-        <div className="flex flex-col justify-between gap-3 border-t border-outline-variant/30 pt-3 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-4">
-            <Link to="/consult" className={linkArrow}>
-              상담 기록 보기 <Icon name="arrow_forward" className="text-[16px]" />
-            </Link>
-            <span className="text-outline-variant/50">·</span>
-            <Link to="/report" className={linkArrow}>
-              병원용 리포트 만들기 <Icon name="arrow_forward" className="text-[16px]" />
-            </Link>
-          </div>
-          <span className="text-label-sm text-outline">참고 정보이며 진단이 아니에요.</span>
-        </div>
-      </section>
-
-      {/* 3. 말하듯 기록하기 */}
-      <section className={`${card} flex flex-col gap-4 p-8`}>
-        <div>
-          <h2 className="text-headline-md font-bold tracking-tight">말하듯 기록하기</h2>
-          <p className="mt-0.5 text-body-sm text-on-surface-variant">산책, 식사, 특별한 행동까지 자연어로 편하게 남겨보세요</p>
-        </div>
-        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
-          <textarea
-            rows={3}
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            placeholder={`오늘 ${DOG.name}에게 있었던 일을 편하게 적어주세요 (예: 아침에 사료 반만 먹고 산책 20분 했어)`}
-            className="w-full resize-none rounded-xl border border-outline-variant/30 bg-surface-container-low p-4 transition-all placeholder:text-outline focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary-container focus:outline-none"
-          />
-          {/* 기록 입력 화면이 글을 받아 바로 기록 후보로 바꿉니다 */}
-          <button type="button" disabled={!memo.trim()} onClick={() => navigate('/records/new', { state: { text: memo.trim() } })} className={`${primaryBtn} w-full shrink-0 px-6 disabled:opacity-50 sm:w-auto`}>
-            <Icon name="auto_awesome" className="text-[20px]" />
-            기록으로 바꾸기
-          </button>
-        </div>
-      </section>
-
-      {/* 4. 근처 함께 갈 수 있는 곳 */}
-      <section className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-headline-md font-bold tracking-tight">근처 함께 갈 수 있는 곳</h2>
-          <Link to="/map" className="text-label-lg font-semibold text-primary transition-colors hover:text-on-primary-fixed-variant">
-            지도에서 더 보기 →
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {nearby.map((p) => (
-            <Link key={p.id} to={`/map?placeId=${p.id}`} className={`group flex flex-col overflow-hidden ${card} transition-all hover:shadow-md`}>
-              {/* 가게 사진은 지도 API 가 공식으로 주지 않아 사진 칸 없이 */}
-              <div className="flex flex-1 flex-col justify-between gap-2 p-5">
-                <div>
-                  <span className="mb-2 inline-block rounded-full bg-tertiary-fixed px-2.5 py-0.5 text-label-sm font-semibold text-on-tertiary-fixed shadow-sm">
-                    {DOG.size} OK
-                  </span>
-                  <h3 className="text-headline-sm font-bold transition-colors group-hover:text-primary">{p.name}</h3>
-                  <p className="mt-1 text-body-sm text-on-surface-variant">{p.summaryFirstLine ?? p.keywords.join(' ')}</p>
-                </div>
-                <div className="flex items-center gap-1 pt-1 text-label-md font-semibold text-primary">
-                  <Icon name="near_me" className="text-[16px]" />
-                  {p.distanceM != null ? formatDistance(p.distanceM) : p.categoryLabel}
-                </div>
+          <div className={lowCard}>
+            <h2 className="text-body-lg font-bold">오늘 권장량</h2>
+            <div className="flex divide-x divide-outline-variant">
+              <div className="flex-1 pr-4">
+                <div className="text-[22px] leading-tight font-bold">{nutrition ? (nutrition.foodGrams ? `${nutrition.foodGrams}g` : `${nutrition.derKcal}kcal`) : '-'}</div>
+                <div className="text-label-md text-outline">사료</div>
               </div>
-            </Link>
-          ))}
+              <div className="flex-1 pl-4">
+                <div className="text-[22px] leading-tight font-bold">{nutrition ? `${nutrition.waterMinMl}~${nutrition.waterMaxMl}ml` : '-'}</div>
+                <div className="text-label-md text-outline">물</div>
+              </div>
+            </div>
+            <p className="text-body-sm text-on-surface-variant">{tipOf(dog)}</p>
+            <div className="mt-auto flex items-center justify-between border-t border-outline-variant pt-3">
+              <Link to="/nutrition" className={moreLink}>
+                영양 가이드 ›
+              </Link>
+              <Link to="/course" className={moreLink}>
+                오늘 코스 추천받기 ›
+              </Link>
+            </div>
+          </div>
+
+          <div className={lowCard}>
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-body-lg font-bold">근처 함께 갈 수 있는 곳</h2>
+              <Link to="/map" className={moreLink}>
+                더 보기 ›
+              </Link>
+            </div>
+            {nearby.length === 0 ? (
+              <p className="py-4 text-center text-body-sm text-outline">킁킁, 근처 장소를 찾는 중이에요</p>
+            ) : (
+              <ul className="flex flex-col divide-y divide-outline-variant">
+                {nearby.map((p) => (
+                  <li key={p.id}>
+                    <Link to={`/map?placeId=${p.id}`} className="flex items-center justify-between gap-3 py-2.5 transition-colors hover:text-primary-container">
+                      <span className="truncate font-medium">{p.name}</span>
+                      <span className="shrink-0 text-label-md text-outline">{p.distanceM != null ? formatDistance(p.distanceM) : p.categoryLabel}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </section>
 

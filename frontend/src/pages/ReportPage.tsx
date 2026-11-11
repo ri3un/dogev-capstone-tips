@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import EmptyState from '../components/common/EmptyState'
+import PawLoading from '../components/common/PawLoading'
 import { Navigate } from 'react-router'
 import { reportApi } from '../api/endpoints'
 import { addDays, todayStr } from '../api/format'
@@ -78,7 +80,7 @@ export default function ReportPage() {
   const dogId = dog?.id
   const { data: R } = useApi(() => (dogId && from <= to ? reportApi.preview(dogId, { from, to }) : null), [dogId, from, to])
 
-  if (loading) return null
+  if (loading) return <PawLoading />
   if (!dog) return <Navigate to="/onboarding" replace />
 
   const pick = (p: Period) => {
@@ -121,6 +123,13 @@ export default function ReportPage() {
         </button>
       </div>
 
+      {/* PDF를 만드는 동안 */}
+      {downloading && (
+        <div className={card}>
+          <PawLoading compact label="킁킁, PDF를 만드는 중이에요…" />
+        </div>
+      )}
+
       <section className={`${card} flex flex-wrap items-center gap-3 p-5`}>
         <span className="mr-1 text-label-md text-outline">기간</span>
         {PERIODS.map((p) => (
@@ -143,14 +152,18 @@ export default function ReportPage() {
             기간 요약
           </h2>
           {alerts > 0 && (
-            <span className="flex items-center gap-1.5 rounded-full bg-error-container px-3 py-1 text-label-sm font-bold text-on-error-container">
+            <span className="flex items-center gap-1.5 rounded-md bg-error-container px-3 py-1 text-label-sm font-bold text-on-error-container">
               <span className="h-2 w-2 rounded-full bg-error" />
               살펴볼 신호 {alerts}개
             </span>
           )}
         </div>
         <ul className="flex flex-col gap-2">
-          {!R && <li className="text-label-md text-outline">기록을 모아 요약하는 중이에요… (최대 20초)</li>}
+          {!R && (
+            <li>
+              <PawLoading compact label="킁킁, 기록을 모아 요약하는 중이에요… (최대 20초)" />
+            </li>
+          )}
           {R?.summary.map((line) => (
             <li key={line} className="flex gap-2 leading-relaxed text-on-surface-variant">
               <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-container" />
@@ -164,7 +177,7 @@ export default function ReportPage() {
         {sections.map((s) => (
           <section key={s.key} className={`${card} flex flex-col gap-3 p-5 ${s.key === 'basic' || s.key === 'questions' ? 'md:col-span-2' : ''}`}>
             <h2 className="flex items-center gap-2 text-body-lg font-bold">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary-container/60">
+              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-secondary-container/60">
                 <Icon name={s.icon} className="text-[18px] text-primary" />
               </span>
               {s.title}
@@ -177,7 +190,7 @@ export default function ReportPage() {
               </p>
             )}
             {s.rows.length === 0 ? (
-              <p className="rounded-xl bg-surface-container-low px-4 py-6 text-center text-label-md text-outline">이 기간에 기록이 없어요</p>
+              <EmptyState title="이 기간에 기록이 없어요" className="rounded-md bg-surface-container-low py-6" />
             ) : (
               <dl className="flex flex-col divide-y divide-outline-variant/30">
                 {s.rows.map((r, i) => (

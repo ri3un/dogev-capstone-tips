@@ -133,9 +133,9 @@ export default function DogFormPage() {
       <form onSubmit={submit} noValidate className={`${card} flex flex-col gap-6 p-6 md:p-8`}>
         <div className="flex items-center gap-5">
           <div className="relative">
-            <Photo src={photo?.preview ?? dog?.photoUrl ?? undefined} alt="반려견 사진" className="h-24 w-24 rounded-full object-cover ring-4 ring-secondary-container" />
+            <Photo src={photo?.preview ?? dog?.photoUrl ?? undefined} alt="반려견 사진" dog className="h-24 w-24 rounded-full object-cover ring-4 ring-secondary-container" />
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => pickPhoto(e.target.files?.[0])} />
-            <button type="button" aria-label="사진 바꾸기" onClick={() => fileRef.current?.click()} className="absolute -right-1 -bottom-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary-container text-on-primary shadow">
+            <button type="button" aria-label="사진 바꾸기" onClick={() => fileRef.current?.click()} className="absolute -right-1 -bottom-1 flex h-9 w-9 items-center justify-center rounded-md bg-primary-container text-on-primary shadow">
               <Icon name="photo_camera" className="text-[18px]" />
             </button>
           </div>

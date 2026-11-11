@@ -1,4 +1,6 @@
+import PawLoading from '../components/common/PawLoading'
 import { useEffect, useRef, useState } from 'react'
+import { toast } from '../components/common/toast'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { recordApi } from '../api/endpoints'
 import { todayStr } from '../api/format'
@@ -54,7 +56,7 @@ function toInput(item: ParsedItem, date: string): RecordInput {
   }
 }
 
-// 기록 입력: 1단계 글 입력 → 2단계 확인 카드 → 저장 (LLM 결과는 사용자가 확인한 뒤 저장)
+// 기록 입력: 글 입력 → 바로 저장. 경고·애매한 항목이 있을 때만 2단계 확인 카드를 거침
 export default function RecordNewPage() {
   const [params] = useSearchParams()
   const location = useLocation()
@@ -80,8 +82,21 @@ export default function RecordNewPage() {
     setError('')
     try {
       const res = await recordApi.parse(dog.id, text.trim(), date)
-      setItems(res.candidates.map(toItem))
+      const parsed = res.candidates.map(toItem)
+      setItems(parsed)
       setWarning(res.warnings.map((w) => w.message).join(' '))
+      // 경고도 없고 애매한 항목도 없으면 확인 화면 없이 바로 저장
+      if (parsed.length > 0 && res.warnings.length === 0 && !parsed.some((i) => i.needsCheck)) {
+        try {
+          await recordApi.batch(dog.id, parsed.map((i) => toInput(i, date)))
+          toast(`킁킁, ${parsed.length}개 기록했어요!`)
+          navigate(`/records?date=${date}`)
+          return
+        } catch (e) {
+          // 저장이 안 되면 확인 화면에서 다시 저장할 수 있게
+          setError((e as { message?: string }).message ?? '바로 저장하지 못했어요. 확인하고 다시 저장해 주세요.')
+        }
+      }
     } catch (e) {
       // LLM이 모두 실패(503)해도 직접 입력으로 이어 갈 수 있게
       setItems([])
@@ -111,6 +126,7 @@ export default function RecordNewPage() {
     setError('')
     try {
       await recordApi.batch(dog.id, items.map((i) => toInput(i, date)))
+      toast('킁킁, 기록했어요!')
       navigate(`/records?date=${date}`)
     } catch (e) {
       setError((e as { message?: string }).message ?? '저장하지 못했어요')
@@ -123,13 +139,13 @@ export default function RecordNewPage() {
       <div className="flex items-end justify-between gap-4">
         <div>
           <div className="mb-1 flex items-center gap-2 text-label-sm">
-            <span className={`rounded-full px-2.5 py-0.5 font-bold ${step === 1 ? 'bg-primary-container text-on-primary' : 'bg-surface-container text-on-surface-variant'}`}>1 글 쓰기</span>
+            <span className={`rounded-md px-2.5 py-0.5 font-bold ${step === 1 ? 'bg-primary-container text-on-primary' : 'bg-surface-container text-on-surface-variant'}`}>1 글 쓰기</span>
             <Icon name="arrow_forward" className="text-[14px] text-outline" />
-            <span className={`rounded-full px-2.5 py-0.5 font-bold ${step === 2 ? 'bg-primary-container text-on-primary' : 'bg-surface-container text-on-surface-variant'}`}>2 확인하고 저장</span>
+            <span className={`rounded-md px-2.5 py-0.5 font-bold ${step === 2 ? 'bg-primary-container text-on-primary' : 'bg-surface-container text-on-surface-variant'}`}>2 필요할 때만 확인</span>
           </div>
           <h1 className="text-headline-lg font-bold tracking-tight">말하듯 기록하기</h1>
         </div>
-        <label className="flex items-center gap-2 rounded-full bg-surface-container-lowest px-4 py-2 text-label-md shadow-sm">
+        <label className="flex items-center gap-2 rounded-md bg-surface-container-lowest px-4 py-2 text-label-md shadow-sm">
           <Icon name="event" className="text-[18px] text-primary" />
           <input type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} className="bg-transparent focus:outline-none" />
         </label>
@@ -137,7 +153,7 @@ export default function RecordNewPage() {
 
       {step === 1 ? (
         <section className={`${card} flex flex-col gap-5 p-6 md:p-8`}>
-          <div className="inline-flex items-center gap-2 self-start rounded-full bg-surface-container px-3 py-1.5 text-label-md">
+          <div className="inline-flex items-center gap-2 self-start rounded-md bg-surface-container px-3 py-1.5 text-label-md">
             <span className="h-2 w-2 rounded-full bg-primary-container" />
             기록 대상: <strong>{dog?.name}</strong>
           </div>
@@ -152,7 +168,7 @@ export default function RecordNewPage() {
             <span className="text-label-sm text-outline">이렇게 써 보세요 (누르면 채워져요)</span>
             <div className="flex flex-wrap gap-2">
               {EXAMPLE_SENTENCES.map((s) => (
-                <button key={s} type="button" onClick={() => setText(s)} className="rounded-full border border-beige bg-surface-container-lowest px-3.5 py-1.5 text-label-md text-on-surface-variant transition-all hover:bg-surface-container hover:text-primary">
+                <button key={s} type="button" onClick={() => setText(s)} className="rounded-md border border-beige bg-surface-container-lowest px-3.5 py-1.5 text-label-md text-on-surface-variant transition-all hover:bg-surface-container hover:text-primary">
                   {s}
                 </button>
               ))}
@@ -161,13 +177,15 @@ export default function RecordNewPage() {
           <div className="flex items-center justify-between gap-3 border-t border-outline-variant/30 pt-4">
             <span className="flex items-center gap-1.5 text-label-sm text-outline">
               <Icon name="auto_awesome" className="text-[16px] text-primary" />
-              AI가 식사·배변·활동 등으로 나눠 줘요. 저장 전에 직접 고칠 수 있어요.
+              AI가 식사·배변·활동 등으로 나눠 바로 저장해요. 애매한 내용이 있을 때만 확인을 부탁드려요.
             </span>
             <button type="button" onClick={parse} disabled={!text.trim() || loading || !dog} className={primaryBtn}>
               <Icon name={loading ? 'refresh' : 'auto_awesome'} className={`text-[20px] ${loading ? 'animate-spin' : ''}`} />
               {loading ? '기록으로 정리하는 중' : '기록으로 바꾸기'}
             </button>
           </div>
+          {/* AI가 글을 기록으로 나누는 동안 */}
+          {loading && <PawLoading compact label="킁킁, 기록으로 정리하는 중이에요…" />}
         </section>
       ) : (
         <section className="flex flex-col gap-4">
@@ -196,13 +214,13 @@ export default function RecordNewPage() {
               <div key={item.id} className={`${card} flex flex-col gap-3 p-5 ${item.needsCheck ? 'ring-2 ring-status-check' : ''}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary-container/60">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-md bg-secondary-container/60">
                       <Icon name={meta.icon} className="text-[20px] text-primary" />
                     </span>
                     <span className="text-headline-sm font-bold">{meta.label}</span>
-                    {item.needsCheck && <span className="rounded-full bg-status-check px-2.5 py-0.5 text-label-sm font-bold text-white">확인 필요</span>}
+                    {item.needsCheck && <span className="rounded-md bg-status-check px-2.5 py-0.5 text-label-sm font-bold text-white">확인 필요</span>}
                   </div>
-                  <button type="button" aria-label="카드 삭제" onClick={() => remove(item.id)} className="flex h-8 w-8 items-center justify-center rounded-full text-outline transition-colors hover:bg-surface-container-low hover:text-error">
+                  <button type="button" aria-label="카드 삭제" onClick={() => remove(item.id)} className="flex h-8 w-8 items-center justify-center rounded-md text-outline transition-colors hover:bg-surface-container-low hover:text-error">
                     <Icon name="delete" className="text-[20px]" />
                   </button>
                 </div>
@@ -233,7 +251,7 @@ export default function RecordNewPage() {
           <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-dashed border-outline-variant p-4">
             <span className="mr-1 text-label-md text-outline">빠진 항목 추가</span>
             {KINDS.map((k) => (
-              <button key={k} type="button" onClick={() => add(k)} className="flex items-center gap-1 rounded-full bg-surface-container-low px-3 py-1.5 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-high">
+              <button key={k} type="button" onClick={() => add(k)} className="flex items-center gap-1 rounded-md bg-surface-container-low px-3 py-1.5 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-high">
                 <Icon name="add" className="text-[16px] text-primary" />
                 {PARSED_LABEL[k].label}
               </button>

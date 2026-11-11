@@ -1,3 +1,4 @@
+import PawLoading from '../components/common/PawLoading'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { adminApi, authApi, familyApi } from '../api/endpoints'
@@ -18,7 +19,7 @@ const PROVIDER = {
 
 // 마이페이지: 내 정보, 반려견, 메뉴, 로그아웃·회원 탈퇴
 export default function MyPage() {
-  const { data: ME } = useApi(() => authApi.me(), [])
+  const { data: ME, loading } = useApi(() => authApi.me(), [])
   const { data: FAMILY } = useApi(() => familyApi.get(), [])
   const { dogs } = useCurrentDog()
   const isAdmin = ME?.role === 'ADMIN'
@@ -26,7 +27,7 @@ export default function MyPage() {
   const navigate = useNavigate()
   const [askWithdraw, setAskWithdraw] = useState(false)
   const [error, setError] = useState('')
-  if (!ME) return null
+  if (!ME) return loading ? <PawLoading /> : null
 
   const alone = (FAMILY?.members.length ?? 1) <= 1
   const withdraw = async () => {
@@ -59,9 +60,9 @@ export default function MyPage() {
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary-container text-headline-sm font-bold text-on-secondary-container">{ME.nickname[0]}</span>
         <div className="flex-1">
           <p className="text-headline-sm font-bold">{ME.nickname}</p>
-          <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-label-sm font-semibold ${provider.cls}`}>{provider.label} 로그인</span>
+          <span className={`mt-1 inline-block rounded-md px-2.5 py-0.5 text-label-sm font-semibold ${provider.cls}`}>{provider.label} 로그인</span>
         </div>
-        {FAMILY?.myRole === 'OWNER' && <span className="rounded-full bg-primary-container px-3 py-1 text-label-sm font-bold text-white">가족 관리자</span>}
+        {FAMILY?.myRole === 'OWNER' && <span className="rounded-md bg-primary-container px-3 py-1 text-label-sm font-bold text-white">가족 관리자</span>}
       </section>
 
       <section className={`${card} p-6`}>
@@ -69,7 +70,7 @@ export default function MyPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {dogs.map((DOG) => (
             <Link key={DOG.id} to={`/dogs/${DOG.id}/edit`} className="flex items-center gap-3 rounded-xl bg-surface-container-low p-3 hover:bg-surface-container">
-              <Photo src={DOG.photoUrl ?? undefined} alt={DOG.name} className="h-14 w-14 rounded-full" />
+              <Photo src={DOG.photoUrl ?? undefined} alt={DOG.name} dog className="h-14 w-14 rounded-full" />
               <div className="flex-1">
                 <p className="font-bold">{DOG.name}</p>
                 <p className="text-label-sm text-outline">
@@ -97,7 +98,7 @@ export default function MyPage() {
         ))}
       </section>
 
-      <Link to="/login" onClick={logout} className="flex items-center justify-center gap-1.5 rounded-full py-3 text-label-lg font-semibold text-outline hover:bg-error-container/40 hover:text-error">
+      <Link to="/login" onClick={logout} className="flex items-center justify-center gap-1.5 rounded-md py-3 text-label-lg font-semibold text-outline hover:bg-error-container/40 hover:text-error">
         <Icon name="logout" className="text-[20px]" />
         로그아웃
       </Link>

@@ -1,4 +1,6 @@
+import PawLoading from '../common/PawLoading'
 import { useState } from 'react'
+import { toast } from '../common/toast'
 import { placeApi } from '../../api/endpoints'
 import { formatDistance, monthDay } from '../../api/format'
 import { useApi } from '../../hooks/useApi'
@@ -16,8 +18,14 @@ export default function PlaceDrawer({ placeId, dogId, showVerdict, distanceM, on
   const [modal, setModal] = useState<'source' | 'edit' | null>(null)
   const [visited, setVisited] = useState(false)
   const [visiting, setVisiting] = useState(false)
-  const { data: place } = useApi(() => placeApi.get(placeId, dogId), [placeId, dogId])
-  if (!place) return null
+  const { data: place, loading } = useApi(() => placeApi.get(placeId, dogId), [placeId, dogId])
+  // 장소 정보를 받는 동안: 서랍 자리에 발바닥 로딩
+  if (!place)
+    return loading ? (
+      <aside className="absolute top-0 right-0 z-30 flex h-full w-full flex-col justify-center border-l border-outline-variant/30 bg-surface-container-lowest shadow-2xl sm:w-[420px]">
+        <PawLoading compact label="킁킁, 장소 정보를 가져오는 중…" />
+      </aside>
+    ) : null
 
   const badges = place.conditions.filter((c) => c.tag).map((c) => c.tag as string)
   const area = (place.roadAddress || place.address || '').split(' ').slice(1, 3).join(' ') // 서버가 빈 문자열을 줄 때가 있어 || 사용
@@ -27,6 +35,7 @@ export default function PlaceDrawer({ placeId, dogId, showVerdict, distanceM, on
     try {
       await placeApi.visit(place.id, dogId)
       setVisited(true)
+      toast('킁킁, 산책 기록에 남겼어요!')
     } catch {
       alert('산책 기록에 남기지 못했어요. 잠시 후 다시 시도해 주세요')
     } finally {
@@ -40,13 +49,13 @@ export default function PlaceDrawer({ placeId, dogId, showVerdict, distanceM, on
         {/* 가게 사진은 지도 API 가 공식으로 주지 않아 사진 칸 없이: 동반 배지 + 닫기 버튼만 */}
         <div className="flex items-center justify-between px-5 pt-4">
           {showVerdict && place.verdict ? (
-            <div className={`rounded-full px-2.5 py-0.5 text-[12px] font-bold text-white shadow-sm ${VERDICT_BG[place.verdict.level]}`}>
+            <div className={`rounded-md px-2.5 py-0.5 text-[12px] font-bold text-white shadow-sm ${VERDICT_BG[place.verdict.level]}`}>
               동반 {VERDICT_LABEL[place.verdict.level]}
             </div>
           ) : (
             <span />
           )}
-          <button type="button" aria-label="닫기" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-container-lowest/90 shadow-md backdrop-blur-sm transition-colors hover:bg-surface-container-lowest">
+          <button type="button" aria-label="닫기" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-md bg-surface-container-lowest/90 shadow-md backdrop-blur-sm transition-colors hover:bg-surface-container-lowest">
             <Icon name="close" className="text-[20px]" />
           </button>
         </div>
@@ -68,7 +77,7 @@ export default function PlaceDrawer({ placeId, dogId, showVerdict, distanceM, on
         {badges.length > 0 && (
           <div className="flex flex-wrap gap-2 border-b border-surface-container-high/60 p-5 py-4">
             {badges.map((b, i) => (
-              <span key={b} className={`flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-bold ${TONES[i % TONES.length]}`}>
+              <span key={b} className={`flex items-center gap-1 rounded-md px-3 py-1 text-[12px] font-bold ${TONES[i % TONES.length]}`}>
                 <Icon name="verified" className="text-[14px]" />
                 {b}
               </span>
@@ -104,11 +113,11 @@ export default function PlaceDrawer({ placeId, dogId, showVerdict, distanceM, on
       </div>
 
       <div className="flex shrink-0 flex-col gap-2 border-t border-surface-container-high/60 p-5 pt-3">
-        <button type="button" disabled={visited || visiting} onClick={visit} className="flex h-12 w-full items-center justify-center gap-1.5 rounded-full bg-primary-container text-label-lg font-bold text-white shadow-sm transition-all hover:bg-primary disabled:bg-status-ok">
+        <button type="button" disabled={visited || visiting} onClick={visit} className="flex h-12 w-full items-center justify-center gap-1.5 rounded-md bg-primary-container text-label-lg font-bold text-white shadow-sm transition-all hover:bg-primary disabled:bg-status-ok">
           <Icon name="task_alt" className="text-[20px]" />
           {visited ? '산책 기록에 남겼어요' : '다녀왔어요'}
         </button>
-        <button type="button" onClick={() => setModal('edit')} className="flex w-full items-center justify-center gap-1 rounded-full py-2 text-label-md text-outline transition-colors hover:text-on-surface">
+        <button type="button" onClick={() => setModal('edit')} className="flex w-full items-center justify-center gap-1 rounded-md py-2 text-label-md text-outline transition-colors hover:text-on-surface">
           <Icon name="flag" className="text-[15px]" />
           정보 수정 요청
         </button>

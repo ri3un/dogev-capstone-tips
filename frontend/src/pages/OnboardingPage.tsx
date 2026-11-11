@@ -12,7 +12,7 @@ export default function OnboardingPage() {
   return (
     <div className="mx-auto flex w-full max-w-[880px] flex-col items-center gap-9 px-5 py-14 text-center lg:px-10">
       <div className="flex flex-col items-center gap-3">
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container shadow-[0_4px_16px_rgba(200,134,75,0.12)]">
+        <span className="flex h-16 w-16 items-center justify-center rounded-md bg-secondary-container text-on-secondary-container">
           <Icon name="pets" filled className="text-[32px]" />
         </span>
         <h1 className="text-headline-xl font-bold tracking-tight">킁킁에 오신 걸 환영해요!</h1>

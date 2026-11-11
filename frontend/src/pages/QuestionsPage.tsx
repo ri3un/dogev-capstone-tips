@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { toast } from '../components/common/toast'
+import EmptyState from '../components/common/EmptyState'
+import PawLoading from '../components/common/PawLoading'
 import { Link, Navigate } from 'react-router'
 import { familyApi, questionApi } from '../api/endpoints'
 import { localDate } from '../api/format'
@@ -11,12 +14,12 @@ import { useCurrentDog } from '../hooks/useCurrentDog'
 export default function QuestionsPage() {
   const { dog, loading } = useCurrentDog()
   const dogId = dog?.id
-  const { data, setData } = useApi(() => (dogId ? questionApi.list(dogId) : null), [dogId])
+  const { data, setData, loading: listLoading } = useApi(() => (dogId ? questionApi.list(dogId) : null), [dogId])
   const { data: family } = useApi(() => familyApi.get(), [])
   const [text, setText] = useState('')
   const [saving, setSaving] = useState(false)
 
-  if (loading) return null
+  if (loading) return <PawLoading />
   if (!dog) return <Navigate to="/onboarding" replace />
 
   const list = data ?? []
@@ -29,6 +32,7 @@ export default function QuestionsPage() {
       const q = await questionApi.create(dog.id, text.trim())
       setData([q, ...list])
       setText('')
+      toast('킁킁, 메모했어요!')
     } catch {
       alert('메모를 저장하지 못했어요. 잠시 후 다시 시도해 주세요')
     } finally {
@@ -58,8 +62,10 @@ export default function QuestionsPage() {
       </form>
 
       <section className={`${card} p-2`}>
-        {list.length === 0 ? (
-          <p className="py-10 text-center text-label-md text-outline">아직 메모가 없어요</p>
+        {listLoading && !data ? (
+          <PawLoading compact />
+        ) : list.length === 0 ? (
+          <EmptyState title="아직 메모가 없어요">수의사에게 물어볼 것을 적어 두세요</EmptyState>
         ) : (
           <ul className="flex flex-col divide-y divide-outline-variant/30">
             {list.map((q) => (
@@ -71,7 +77,7 @@ export default function QuestionsPage() {
                     {authorOf(q.createdBy)} · {localDate(new Date(q.createdAt))}
                   </p>
                 </div>
-                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-label-sm font-bold ${q.source === 'CONSULT' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container text-on-surface-variant'}`}>
+                <span className={`shrink-0 rounded-md px-2.5 py-0.5 text-label-sm font-bold ${q.source === 'CONSULT' ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container text-on-surface-variant'}`}>
                   {q.source === 'CONSULT' ? 'AI 상담' : '직접 메모'}
                 </span>
               </li>

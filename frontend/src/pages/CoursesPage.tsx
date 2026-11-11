@@ -1,4 +1,6 @@
 import { Link, Navigate } from 'react-router'
+import EmptyState from '../components/common/EmptyState'
+import PawLoading from '../components/common/PawLoading'
 import { courseApi, familyApi } from '../api/endpoints'
 import Icon from '../components/common/Icon'
 import { card } from '../components/common/styles'
@@ -9,9 +11,9 @@ import { useCurrentDog } from '../hooks/useCurrentDog'
 export default function CoursesPage() {
   const { dog, loading } = useCurrentDog()
   const dogId = dog?.id
-  const { data: courses } = useApi(() => (dogId ? courseApi.list(dogId) : null), [dogId])
+  const { data: courses, loading: listLoading } = useApi(() => (dogId ? courseApi.list(dogId) : null), [dogId])
   const { data: family } = useApi(() => familyApi.get(), [])
-  if (loading) return null
+  if (loading) return <PawLoading />
   if (!dog) return <Navigate to="/onboarding" replace />
 
   const nameOf = (id: number) => family?.members.find((m) => m.memberId === id)?.nickname ?? '가족'
@@ -34,7 +36,10 @@ export default function CoursesPage() {
       </div>
 
       <ul className="flex flex-col gap-3">
-        {(courses ?? []).length === 0 && <li className={`${card} py-14 text-center text-label-md text-outline`}>아직 추천받은 코스가 없어요</li>}
+        {listLoading && !courses && <li className={card}><PawLoading compact /></li>}
+        {!listLoading && (courses ?? []).length === 0 && <li className={card}>
+            <EmptyState title="아직 발자국이 없어요">코스를 추천받으면 여기에 모여요</EmptyState>
+          </li>}
         {(courses ?? []).map((c) => (
           <li key={c.id}>
             <Link to={`/course/plan?courseId=${c.id}`} className={`${card} flex items-center gap-4 p-5 transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_30px_-8px_rgba(74,52,38,0.12)]`}>
@@ -48,9 +53,9 @@ export default function CoursesPage() {
                 </p>
               </div>
               {c.visitedAt ? (
-                <span className="shrink-0 rounded-full bg-status-ok px-2.5 py-0.5 text-label-sm font-bold text-white">{md(c.visitedAt)} 다녀옴</span>
+                <span className="shrink-0 rounded-md bg-status-ok px-2.5 py-0.5 text-label-sm font-bold text-white">{md(c.visitedAt)} 다녀옴</span>
               ) : (
-                <span className="shrink-0 rounded-full bg-surface-container px-2.5 py-0.5 text-label-sm text-on-surface-variant">아직 안 감</span>
+                <span className="shrink-0 rounded-md bg-surface-container px-2.5 py-0.5 text-label-sm text-on-surface-variant">아직 안 감</span>
               )}
             </Link>
           </li>

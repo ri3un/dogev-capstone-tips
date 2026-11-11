@@ -1,46 +1,46 @@
 @import 'tailwindcss';
 
-/* Stitch DESIGN.md(Warm Companion) 토큰: bg-primary, text-headline-lg 같은 클래스로 씁니다. */
+/* 색 토큰(펌킨 스파이스: #BE5103 포인트, #8C4C1F, #544823, #332216): bg-primary, text-headline-lg 같은 클래스로 씁니다. */
 @theme {
   --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 
-  --color-background: #fff8f5;
-  --color-on-background: #29170b;
-  --color-surface: #fff8f5;
-  --color-surface-dim: #f6d3bf;
-  --color-surface-bright: #fff8f5;
+  --color-background: #ffffff;
+  --color-on-background: #332216;
+  --color-surface: #ffffff;
+  --color-surface-dim: #e8dbcf;
+  --color-surface-bright: #ffffff;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #fff1ea;
-  --color-surface-container: #ffeadf;
-  --color-surface-container-high: #ffe3d3;
-  --color-surface-container-highest: #ffdbc7;
-  --color-surface-variant: #ffdbc7;
-  --color-surface-tint: #88511b;
-  --color-on-surface: #29170b;
-  --color-on-surface-variant: #52443a;
-  --color-inverse-surface: #412c1e;
-  --color-inverse-on-surface: #ffede4;
-  --color-outline: #847468;
-  --color-outline-variant: #d7c3b5;
+  --color-surface-container-low: #faf6f2;
+  --color-surface-container: #f5eee7;
+  --color-surface-container-high: #efe5db;
+  --color-surface-container-highest: #e8dbcf;
+  --color-surface-variant: #efe5db;
+  --color-surface-tint: #8c4c1f;
+  --color-on-surface: #332216;
+  --color-on-surface-variant: #5c4a3c;
+  --color-inverse-surface: #332216;
+  --color-inverse-on-surface: #faf6f2;
+  --color-outline: #8a7a6d;
+  --color-outline-variant: #e2d9d0;
 
-  --color-primary: #88511b;
+  --color-primary: #8c4c1f;
   --color-on-primary: #ffffff;
-  --color-primary-container: #c8864b;
-  --color-on-primary-container: #482400;
-  --color-inverse-primary: #ffb77a;
-  --color-primary-fixed: #ffdcc2;
-  --color-primary-fixed-dim: #ffb77a;
-  --color-on-primary-fixed: #2e1500;
-  --color-on-primary-fixed-variant: #6c3a03;
+  --color-primary-container: #be5103;
+  --color-on-primary-container: #6b2e02;
+  --color-inverse-primary: #f2b98a;
+  --color-primary-fixed: #fbe3d0;
+  --color-primary-fixed-dim: #f2b98a;
+  --color-on-primary-fixed: #3a1800;
+  --color-on-primary-fixed-variant: #8c4c1f;
 
-  --color-secondary: #785832;
+  --color-secondary: #544823;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #fed2a3;
-  --color-on-secondary-container: #795933;
-  --color-secondary-fixed: #ffddb9;
-  --color-secondary-fixed-dim: #e9bf91;
-  --color-on-secondary-fixed: #2b1700;
-  --color-on-secondary-fixed-variant: #5e411d;
+  --color-secondary-container: #ece8d8;
+  --color-on-secondary-container: #3f361a;
+  --color-secondary-fixed: #f0ecdc;
+  --color-secondary-fixed-dim: #d6cfb0;
+  --color-on-secondary-fixed: #1f1a08;
+  --color-on-secondary-fixed-variant: #544823;
 
   --color-tertiary: #4a663e;
   --color-on-tertiary: #ffffff;
@@ -57,11 +57,19 @@
   --color-on-error-container: #93000a;
 
   /* DESIGN.md 상태·보조 색상 */
-  --color-cream: #fff8ef;
-  --color-beige: #f3e6d3;
+  --color-cream: #fffaf5;
+  --color-beige: #e2d9d0;
   --color-status-ok: #8baa7c;
   --color-status-check: #e3a84a;
   --color-status-hard: #c96a5a;
+
+  /* 모서리는 각지게: rounded-lg·xl·2xl 이 모두 작은 값이 됩니다 */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --radius-2xl: 6px;
+  --radius-3xl: 8px;
 
   --text-headline-xl: 36px;
   --text-headline-xl--line-height: 46px;
@@ -99,10 +107,73 @@
   body {
     @apply bg-surface text-body-md text-on-surface antialiased;
     overscroll-behavior: none;
+    /* 발바닥 마우스 포인터 (누를 수 있는 곳은 아래에서 손가락 모양 유지) */
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='-1 -1 26 26' fill='%23332216' stroke='white' stroke-width='1' paint-order='stroke'%3E%3Cellipse cx='5.3' cy='10.6' rx='1.9' ry='2.4'/%3E%3Cellipse cx='9.4' cy='6.2' rx='1.9' ry='2.5'/%3E%3Cellipse cx='14.6' cy='6.2' rx='1.9' ry='2.5'/%3E%3Cellipse cx='18.7' cy='10.6' rx='1.9' ry='2.4'/%3E%3Cpath d='M12 12.6c-3.2 0-5.8 2.4-5.8 4.9 0 1.7 1.4 2.6 3 2.6 1.1 0 1.8-.5 2.8-.5s1.7.5 2.8.5c1.6 0 3-.9 3-2.6 0-2.5-2.6-4.9-5.8-4.9z'/%3E%3C/svg%3E") 14 9, auto;
+  }
+  a, button:not(:disabled), select, summary, label[for], [role='button'] {
+    cursor: pointer;
+  }
+  input, textarea {
+    cursor: text;
   }
 }
 
 /* Stitch처럼 스크롤바를 숨깁니다. */
 ::-webkit-scrollbar {
   display: none;
+}
+
+/* 버튼·링크에 마우스를 올리면 안의 아이콘이 살짝 통통 */
+.material-symbols-outlined,
+.kk-icon {
+  display: inline-block;
+  transition: transform 0.2s;
+}
+:where(a, button):hover > .material-symbols-outlined,
+:where(a, button):hover > .kk-icon {
+  transform: translateY(-2px) rotate(-6deg);
+}
+
+/* 발바닥 로딩: 하나씩 찍힘 */
+@keyframes kk-pawstep {
+  0% { opacity: 0.15; }
+  30% { opacity: 1; }
+  60%, 100% { opacity: 0.15; }
+}
+.kk-pawstep {
+  opacity: 0.15;
+  animation: kk-pawstep 1.6s infinite;
+}
+
+/* 클릭한 자리에 발바닥이 찍혔다 사라짐 */
+@keyframes kk-stamp {
+  0% { opacity: 0.7; transform: scale(0.6) rotate(-12deg); }
+  25% { opacity: 0.7; transform: scale(1) rotate(-12deg); }
+  100% { opacity: 0; transform: scale(1) rotate(-12deg); }
+}
+.kk-stamp {
+  position: fixed;
+  z-index: 200;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  pointer-events: none;
+  color: var(--color-primary-container);
+  animation: kk-stamp 1s forwards;
+}
+
+/* 저장 알림이 아래에서 올라옴 */
+@keyframes kk-toast {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.kk-toast {
+  animation: kk-toast 0.2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kk-pawstep { animation: none; opacity: 0.7; }
+  .kk-stamp { display: none; }
+  :where(a, button):hover > .material-symbols-outlined,
+  :where(a, button):hover > .kk-icon { transform: none; }
 }

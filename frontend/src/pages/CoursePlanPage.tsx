@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { toast } from '../components/common/toast'
+import PawLoading from '../components/common/PawLoading'
 import { Navigate, useSearchParams } from 'react-router'
 import { courseApi } from '../api/endpoints'
 import { ageText, formatDistance } from '../api/format'
@@ -49,7 +51,7 @@ export default function CoursePlanPage() {
   const pos = useMyLocation()
   const { data: course, setData: setCourse } = useApi(() => (courseId ? courseApi.get(courseId) : null), [courseId])
 
-  if (dogLoading) return null
+  if (dogLoading) return <PawLoading />
   if (!dog) return <Navigate to="/onboarding" replace />
 
   // 드래그한 칩을 놓은 자리와 바꿉니다.
@@ -81,6 +83,7 @@ export default function CoursePlanPage() {
     setCompleting(true)
     try {
       setCourse(await courseApi.complete(course.id))
+      toast('킁킁, 산책 다녀왔어요!')
     } catch {
       alert('산책 완료를 기록하지 못했어요')
     } finally {
@@ -120,7 +123,7 @@ export default function CoursePlanPage() {
           </div>
           <h1 className="text-headline-lg font-bold tracking-tight">맞춤 산책 코스 추천</h1>
         </div>
-        <div className="flex items-center gap-2.5 rounded-full bg-surface-container-low px-4 py-2">
+        <div className="flex items-center gap-2.5 rounded-md bg-surface-container-low px-4 py-2">
           <Icon name="eco" filled className="text-[18px] text-tertiary" />
           <span className="text-label-md font-medium text-on-surface-variant">
             {dog.name} ({dog.breed} · {ageText(dog.ageMonths)}) 맞춤 모드
@@ -167,7 +170,7 @@ export default function CoursePlanPage() {
                   type="button"
                   onClick={() => setDistance(km)}
                   className={`rounded-lg py-2.5 text-center text-label-md transition-all ${
-                    distance === km ? 'bg-primary font-bold text-on-primary shadow-[0_2px_8px_rgba(136,81,27,0.2)]' : 'text-on-surface-variant hover:text-on-surface'
+                    distance === km ? 'bg-primary font-bold text-on-primary' : 'text-on-surface-variant hover:text-on-surface'
                   }`}
                 >
                   {km}km
@@ -222,7 +225,7 @@ export default function CoursePlanPage() {
             type="button"
             onClick={recommend}
             disabled={loading || !pos}
-            className="group flex h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-primary-container text-label-lg font-bold text-on-primary shadow-[0_6px_20px_-4px_rgba(200,134,75,0.4)] transition-all hover:bg-primary active:scale-[0.98]"
+            className="group flex h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-primary-container text-label-lg font-bold text-on-primary transition-all hover:bg-primary active:scale-[0.98]"
           >
             <Icon name={loading ? 'refresh' : 'auto_awesome'} className={`text-[20px] transition-transform ${loading ? 'animate-spin' : 'group-hover:rotate-45'}`} />
             {loading ? `${dog.name} 코스 분석 중...` : '코스 추천받기'}
@@ -233,7 +236,7 @@ export default function CoursePlanPage() {
         <section className={`flex w-full flex-col gap-6 rounded-2xl bg-surface-container-lowest p-7 lg:col-span-8 ${cardShadow}`}>
           <div className="flex flex-col justify-between gap-3 border-b border-surface-container-low pb-5 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary-container/60">
+              <div className="flex h-11 w-11 items-center justify-center rounded-md bg-secondary-container/60">
                 <Icon name="pets" filled className="text-[24px] text-primary" />
               </div>
               <div>
@@ -242,7 +245,7 @@ export default function CoursePlanPage() {
               </div>
             </div>
             {course && (
-              <div className="flex items-center gap-2.5 self-start rounded-full bg-surface-container-low px-4 py-2 sm:self-auto">
+              <div className="flex items-center gap-2.5 self-start rounded-md bg-surface-container-low px-4 py-2 sm:self-auto">
                 <Icon name="directions_walk" className="text-[20px] text-primary" />
                 <span className="text-label-lg font-bold">
                   총 {(course.totalDistanceM / 1000).toFixed(1)}km · 약 {course.totalMinutes}분
@@ -251,7 +254,9 @@ export default function CoursePlanPage() {
             )}
           </div>
 
-          {!course ? (
+          {loading ? (
+            <PawLoading label={`킁킁, ${dog.name}에게 맞는 코스를 찾는 중이에요…`} />
+          ) : !course ? (
             <p className="py-16 text-center text-body-sm text-outline">왼쪽에서 조건을 고르고 '코스 추천받기'를 눌러 주세요.</p>
           ) : (
             <>
@@ -284,7 +289,7 @@ export default function CoursePlanPage() {
                     </button>
                   ))}
                 </div>
-                <div className="absolute top-4 left-4 flex items-center gap-1.5 rounded-full bg-surface-container-lowest/90 px-3 py-1.5 text-label-sm font-semibold text-secondary shadow-sm backdrop-blur-sm">
+                <div className="absolute top-4 left-4 flex items-center gap-1.5 rounded-md bg-surface-container-lowest/90 px-3 py-1.5 text-label-sm font-semibold text-secondary shadow-sm backdrop-blur-sm">
                   <Icon name="nature" className="text-[15px] text-tertiary" />
                   {course.stops.length}곳 · {course.stops.map((s) => s.categoryLabel).join(' → ')}
                 </div>
@@ -324,7 +329,7 @@ export default function CoursePlanPage() {
                   type="button"
                   onClick={complete}
                   disabled={done || completing}
-                  className={`flex h-[50px] w-full items-center justify-center gap-2 rounded-xl text-label-lg font-bold text-on-primary shadow-[0_4px_16px_-2px_rgba(200,134,75,0.35)] transition-all active:scale-[0.98] sm:flex-1 ${
+                  className={`flex h-[50px] w-full items-center justify-center gap-2 rounded-xl text-label-lg font-bold text-on-primary transition-all active:scale-[0.98] sm:flex-1 ${
                     done ? 'bg-tertiary' : 'bg-primary-container hover:bg-primary'
                   }`}
                 >

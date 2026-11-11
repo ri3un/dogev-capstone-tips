@@ -1,4 +1,5 @@
 import { Link, Navigate } from 'react-router'
+import PawLoading from '../components/common/PawLoading'
 import { dogApi } from '../api/endpoints'
 import Icon from '../components/common/Icon'
 import { card } from '../components/common/styles'
@@ -16,11 +17,11 @@ const LEVEL = {
 export default function NutritionPage() {
   const { dog, loading } = useCurrentDog()
   const dogId = dog?.id
-  const { data: n } = useApi(() => (dogId ? dogApi.nutrition(dogId) : null), [dogId])
+  const { data: n, loading: nLoading } = useApi(() => (dogId ? dogApi.nutrition(dogId) : null), [dogId])
 
-  if (loading) return null
+  if (loading) return <PawLoading />
   if (!dog) return <Navigate to="/onboarding" replace />
-  if (!n) return null
+  if (!n) return nLoading ? <PawLoading /> : null
 
   const { weightKg, factor, foodKcalPerKg, foodGrams, derKcal } = n
   const isAllergen = (name: string) => dog.allergies.some((a) => a.trim() && name.includes(a.trim()))
@@ -81,7 +82,7 @@ export default function NutritionPage() {
           <ul className="flex flex-col divide-y divide-outline-variant/30">
             {avoid.map((f) => (
               <li key={f.name} className="flex items-center gap-3 py-2.5">
-                <span className={`w-16 shrink-0 rounded-full py-0.5 text-center text-label-sm font-bold ${LEVEL[f.level].cls}`}>{LEVEL[f.level].label}</span>
+                <span className={`w-16 shrink-0 rounded-md py-0.5 text-center text-label-sm font-bold ${LEVEL[f.level].cls}`}>{LEVEL[f.level].label}</span>
                 <span className="font-semibold">{f.name}</span>
                 <span className="ml-auto text-right text-label-md text-outline">{f.reason}</span>
               </li>
