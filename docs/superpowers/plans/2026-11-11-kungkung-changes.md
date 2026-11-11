@@ -131,11 +131,11 @@ void 코스를_삭제해도_다녀온_활동_기록은_남는다() throws Except
 
 ### Task 7: 프론트 — 영양 화면 (항목 2·7)
 **Files:** Modify `frontend/src/pages/NutritionPage.tsx` (홈 맞춤 안내가 kcal 를 쓰면 `HomePage.tsx` 도)
-- [ ] Step 1: 맨 위 "{dog.name} 맞춤 안내" 박스: 지병 label + cautionText 첫 문장, unknownDiseases 문구
-- [ ] Step 2: 지병 카드를 사료량 카드 위로
-- [ ] Step 3: 사료량 카드: 큰 숫자 `약 {foodGrams}g`, weightLoss 면 "감량 기준 사료량", estimated 면 안내 문구 + 반려견 정보 링크, "하루 2번이면 한 번에 약 Ng", kcal 는 근거 줄, 간식 "(사료로 치면 약 Ng)"
-- [ ] Step 4: 주의 음식에 reasonTag 배지
-- [ ] Step 5: lint·build, 커밋 `feat: 영양 화면 맞춤 안내 박스와 g 표시`
+- [x] Step 1: 맨 위 "{dog.name} 맞춤 안내" 박스: 지병 label + cautionText 첫 문장, unknownDiseases 문구
+- [x] Step 2: 지병 카드를 사료량 카드 위로
+- [x] Step 3: 사료량 카드: 큰 숫자 `약 {foodGrams}g`, weightLoss 면 "감량 기준 사료량", estimated 면 안내 문구 + 반려견 정보 링크, "하루 2번이면 한 번에 약 Ng", kcal 는 근거 줄, 간식 "(사료로 치면 약 Ng)"
+- [x] Step 4: 주의 음식에 reasonTag 배지
+- [x] Step 5: lint·build, 커밋 `feat: 영양 화면 맞춤 안내 박스와 g 표시`
 
 ### Task 8: 프론트 — 통합 입력창·바로 저장·어제 요약 (항목 3·4·5)
 **Files:** Create `frontend/src/utils/intent.ts`, `frontend/src/components/record/UnifiedInput.tsx`; Modify `HomePage.tsx`, `RecordNewPage.tsx`, `RecordsPage.tsx`, `ConsultPage.tsx`

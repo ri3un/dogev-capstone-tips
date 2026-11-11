@@ -220,7 +220,7 @@ export default function HomePage() {
             <h2 className="text-body-lg font-bold">오늘 권장량</h2>
             <div className="flex divide-x divide-outline-variant">
               <div className="flex-1 pr-4">
-                <div className="text-[22px] leading-tight font-bold">{nutrition ? (nutrition.foodGrams ? `${nutrition.foodGrams}g` : `${nutrition.derKcal}kcal`) : '-'}</div>
+                <div className="text-[22px] leading-tight font-bold">{nutrition ? `약 ${nutrition.foodGrams}g` : '-'}</div>
                 <div className="text-label-md text-outline">사료</div>
               </div>
               <div className="flex-1 pl-4">
