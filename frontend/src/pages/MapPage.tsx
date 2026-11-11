@@ -1,11 +1,21 @@
-import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router'
+import { useState } from 'react'
+import EmptyState from '../components/common/EmptyState'
+import PawLoading from '../components/common/PawLoading'
+import { Navigate, useSearchParams } from 'react-router'
+import { placeApi } from '../api/endpoints'
+import { formatDistance, SIZE_LABEL } from '../api/format'
+import type { PlaceCategory } from '../api/types'
 import Icon from '../components/common/Icon'
+import Modal from '../components/common/Modal'
+import NaverMap, { type NaverMapInstance } from '../components/common/NaverMap'
+import { chip, primaryBtn } from '../components/common/styles'
 import PlaceDrawer from '../components/place/PlaceDrawer'
-import { DOG } from '../mocks/dog'
-import { CATEGORY_LABEL, MAP_PLACEHOLDER_URL, PLACES, SEARCH_SUGGESTIONS, STATUS_BG, STATUS_LABEL, formatDistance, type PlaceCategory } from '../mocks/places'
+import { CATEGORY_ICON, CATEGORY_LABEL, FILTERS, VERDICT_BG, VERDICT_LABEL } from '../constants/place'
+import { useApi } from '../hooks/useApi'
+import { useCurrentDog } from '../hooks/useCurrentDog'
+import { useMyLocation } from '../hooks/useMyLocation'
 
-const CATEGORIES = Object.keys(CATEGORY_LABEL) as PlaceCategory[]
+const CATEGORIES: PlaceCategory[] = ['CAFE', 'RESTAURANT', 'PARK']
 const mapBtn = 'flex h-10 w-10 items-center justify-center transition-colors hover:bg-surface-container-low'
 
 // 장소 지도 + 상세 드로어 (Stitch 02-map-drawer)
@@ -15,16 +25,31 @@ export default function MapPage() {
   const [keyword, setKeyword] = useState('')
   const [category, setCategory] = useState<PlaceCategory | null>(null)
   const [dogBased, setDogBased] = useState(true)
+  const [conds, setConds] = useState<string[]>([])
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [naverMap, setNaverMap] = useState<NaverMapInstance | null>(null)
+  const toggleCond = (k: string) => setConds((c) => (c.includes(k) ? c.filter((x) => x !== k) : [...c, k]))
 
-  const select = (id: number | null) => setParams(id ? { placeId: String(id) } : {})
-  const selected = PLACES.find((p) => p.id === selectedId)
-
-  // TODO: 서버 필터(GET /api/places?category=&dogId=)로 바꿉니다.
-  const list = useMemo(
-    () =>
-      PLACES.filter((p) => (!category || p.category === category) && (!dogBased || p.status !== 'HARD') && p.name.includes(keyword.trim())),
-    [category, dogBased, keyword],
+  const { dog, loading } = useCurrentDog()
+  const pos = useMyLocation()
+  const dogId = dog?.id
+  const q = keyword.trim()
+  const { data, loading: listLoading } = useApi(
+    () => (dogId && pos ? placeApi.list({ dogId, category: category ?? undefined, q: q || undefined, lat: pos.lat, lng: pos.lng, fitOnly: dogBased, conditions: conds }) : null),
+    [dogId, pos, category, q, dogBased, conds.join()],
   )
+
+  if (loading) return <PawLoading />
+  if (!dog) return <Navigate to="/onboarding" replace />
+
+  const list = data ?? []
+  const zoomBy = (d: number) => naverMap?.setZoom(naverMap.getZoom() + d, true)
+  const toMyLocation = () => {
+    const maps = window.naver?.maps
+    if (naverMap && maps && pos) naverMap.panTo(new maps.LatLng(pos.lat, pos.lng))
+  }
+  const select = (id: number | null) => setParams(id ? { placeId: String(id) } : {})
+  const selected = list.find((p) => p.id === selectedId)
 
   return (
     <div className="flex h-[calc(100vh-80px)] w-full flex-col overflow-hidden lg:flex-row">
@@ -41,22 +66,22 @@ export default function MapPage() {
                 className="w-full min-w-0 bg-transparent text-[13px] placeholder:text-outline focus:outline-none"
               />
               {keyword && (
-                <button type="button" title="지우기" onClick={() => setKeyword('')} className="flex items-center justify-center rounded-full p-0.5 text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface">
+                <button type="button" title="지우기" onClick={() => setKeyword('')} className="flex items-center justify-center rounded-md p-0.5 text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface">
                   <Icon name="cancel" className="text-[16px]" />
                 </button>
               )}
             </div>
-            {/* 검색어가 있을 때만 자동완성 표시 (TODO: 검색 API) */}
-            {keyword && (
+            {/* 검색어가 있을 때만 자동완성 표시 (이름 검색 결과 앞 3곳) */}
+            {keyword && list.length > 0 && (
               <ul className="flex flex-col divide-y divide-surface-container-high/40 overflow-hidden rounded-xl border border-beige bg-white shadow-sm">
-                {SEARCH_SUGGESTIONS.map((s, i) => (
-                  <li key={s.name} onClick={() => setKeyword(s.name)} className="flex cursor-pointer items-center justify-between px-3 py-2.5 transition-colors hover:bg-surface-container-low">
+                {list.slice(0, 3).map((s, i) => (
+                  <li key={s.id} onClick={() => setKeyword(s.name)} className="flex cursor-pointer items-center justify-between px-3 py-2.5 transition-colors hover:bg-surface-container-low">
                     <div className="flex min-w-0 items-center gap-2">
                       <Icon name="location_on" className="shrink-0 text-[18px] text-primary-container" />
                       <span className="truncate text-[13px] font-medium">{s.name}</span>
                     </div>
                     <span className="ml-2 shrink-0 text-[12px] text-outline">
-                      {s.category} · <span className={i === 0 ? 'font-medium text-primary' : ''}>{formatDistance(s.distanceM)}</span>
+                      {s.categoryLabel} · <span className={i === 0 ? 'font-medium text-primary' : ''}>{s.distanceM != null && formatDistance(s.distanceM)}</span>
                     </span>
                   </li>
                 ))}
@@ -71,7 +96,7 @@ export default function MapPage() {
                 우리 강아지 기준
               </span>
               <span className="mt-0.5 text-[12px] text-outline">
-                {DOG.name} · {DOG.size} 기준으로 보여줘요
+                {dog.name} · {SIZE_LABEL[dog.size]} 기준으로 보여줘요
               </span>
             </div>
             <button
@@ -92,7 +117,7 @@ export default function MapPage() {
                   key={c}
                   type="button"
                   onClick={() => setCategory(category === c ? null : c)}
-                  className={`rounded-full px-3.5 py-1.5 text-[13px] whitespace-nowrap transition-colors ${
+                  className={`rounded-md px-3.5 py-1.5 text-[13px] whitespace-nowrap transition-colors ${
                     category === c ? 'bg-primary-container font-bold text-white shadow-xs' : 'border border-outline-variant/30 bg-surface-container-lowest font-medium hover:bg-surface-container-high'
                   }`}
                 >
@@ -100,15 +125,16 @@ export default function MapPage() {
                 </button>
               ))}
             </div>
-            {/* TODO: 조건 10개 필터 드로어 */}
-            <button type="button" className="flex shrink-0 items-center gap-1 rounded-full border border-outline-variant/30 px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface">
+            <button type="button" onClick={() => setFilterOpen(true)} className="flex shrink-0 items-center gap-1 rounded-md border border-outline-variant/30 px-2.5 py-1.5 text-[12px] font-medium whitespace-nowrap text-outline transition-colors hover:bg-surface-container-low hover:text-on-surface">
               <Icon name="tune" className="text-[15px]" />
-              필터 더보기
+              필터 더보기{conds.length > 0 && <span className="ml-0.5 rounded-md bg-primary-container px-1.5 text-[11px] font-bold text-white">{conds.length}</span>}
             </button>
           </div>
         </div>
 
         <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+          {/* 장소를 찾는 동안(위치 확인 포함) */}
+          {(!data || listLoading) && list.length === 0 && <PawLoading compact label="킁킁, 근처 장소를 찾는 중…" />}
           {list.map((p) => {
             const active = p.id === selectedId
             return (
@@ -128,63 +154,90 @@ export default function MapPage() {
                   <div className="mt-1 flex items-center gap-2 text-[13px] text-on-surface-variant">
                     {CATEGORY_LABEL[p.category]}
                     <span className="text-outline">·</span>
-                    <span className={active ? 'font-medium text-primary' : 'text-outline'}>{formatDistance(p.distanceM)}</span>
+                    <span className={active ? 'font-medium text-primary' : 'text-outline'}>{p.distanceM != null && formatDistance(p.distanceM)}</span>
                   </div>
                 </div>
-                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-bold text-white ${STATUS_BG[p.status]}`}>{STATUS_LABEL[p.status]}</span>
+                {dogBased && p.verdict && <span className={`shrink-0 rounded-md px-2.5 py-1 text-[12px] font-bold text-white ${VERDICT_BG[p.verdict.level]}`}>{VERDICT_LABEL[p.verdict.level]}</span>}
               </button>
             )
           })}
-          {list.length === 0 && <p className="py-10 text-center text-body-sm text-outline">조건에 맞는 장소가 없어요.</p>}
+          {data && !listLoading && list.length === 0 && <EmptyState title="조건에 맞는 장소가 없어요">조건을 하나 빼고 다시 킁킁 찾아볼까요?</EmptyState>}
         </div>
       </aside>
 
-      {/* 오른쪽: 지도 (TODO: 네이버 지도 SDK로 교체, 지금은 배경 이미지 + % 위치 핀) */}
+      {/* 오른쪽: 네이버 지도 (핀은 지도 마커 안에 그대로 그림) */}
       <div className="relative h-full flex-1 overflow-hidden bg-cream">
-        <div className="relative h-full w-full bg-cover bg-center" style={{ backgroundImage: `url('${MAP_PLACEHOLDER_URL}')` }}>
-          <div className="pointer-events-none absolute inset-0 bg-cream/20" />
-          <div className="absolute top-5 right-5 z-20 flex flex-col gap-2.5">
-            <button type="button" title="현재 위치" className={`${mapBtn} rounded-full bg-surface-container-lowest shadow-md`}>
-              <Icon name="my_location" className="text-[20px] text-primary" />
-            </button>
-            <div className="flex flex-col overflow-hidden rounded-full bg-surface-container-lowest shadow-md">
-              <button type="button" title="확대" className={mapBtn}>
-                <Icon name="add" className="text-[20px]" />
-              </button>
-              <div className="mx-auto h-px w-6 bg-surface-container" />
-              <button type="button" title="축소" className={mapBtn}>
-                <Icon name="remove" className="text-[20px]" />
-              </button>
-            </div>
-          </div>
-
-          {list.map((p) => {
-            if (!p.pin) return null
-            const active = p.id === selectedId
-            return (
+        <div className="relative h-full w-full bg-cover bg-center">
+          <NaverMap
+            className="absolute inset-0"
+            onReady={setNaverMap}
+            fitKey={list.map((p) => p.id).join()}
+            pins={list.map((p) => {
+              const active = p.id === selectedId
+              return {
+                id: p.id,
+                lat: p.lat,
+                lng: p.lng,
+                zIndex: active ? 2 : 1,
+                node: (
               <button
                 key={p.id}
                 type="button"
                 onClick={() => select(p.id)}
-                style={{ top: p.pin.top, left: p.pin.left }}
                 className={`absolute flex -translate-x-1/2 -translate-y-full flex-col items-center ${active ? 'z-20' : 'z-10 opacity-90 transition-opacity hover:opacity-100'}`}
               >
                 <span
-                  className={`flex items-center gap-1 rounded-full font-bold ${
+                  className={`flex items-center gap-1 rounded-md font-bold ${
                     active ? 'bg-primary-container px-3 py-1.5 text-[13px] text-white shadow-lg ring-2 ring-white' : 'border border-outline-variant/30 bg-white px-2.5 py-1 text-[12px] text-secondary shadow-md'
                   }`}
                 >
-                  <Icon name={p.pin.icon} className="text-[14px]" />
+                  <Icon name={CATEGORY_ICON[p.category]} className="text-[14px]" />
                   {p.name}
                 </span>
                 <span className={`-mt-1 rotate-45 ${active ? 'h-2.5 w-2.5 bg-primary-container shadow-md' : 'h-2 w-2 border-r border-b border-outline-variant/30 bg-white'}`} />
               </button>
-            )
-          })}
+                ),
+              }
+            })}
+          />
+          <div className="absolute top-5 right-5 z-20 flex flex-col gap-2.5">
+            <button type="button" title="현재 위치" onClick={toMyLocation} className={`${mapBtn} rounded-md bg-surface-container-lowest shadow-md`}>
+              <Icon name="my_location" className="text-[20px] text-primary" />
+            </button>
+            <div className="flex flex-col overflow-hidden rounded-md bg-surface-container-lowest shadow-md">
+              <button type="button" title="확대" onClick={() => zoomBy(1)} className={mapBtn}>
+                <Icon name="add" className="text-[20px]" />
+              </button>
+              <div className="mx-auto h-px w-6 bg-surface-container" />
+              <button type="button" title="축소" onClick={() => zoomBy(-1)} className={mapBtn}>
+                <Icon name="remove" className="text-[20px]" />
+              </button>
+            </div>
+          </div>
         </div>
 
-        {selected && <PlaceDrawer place={selected} onClose={() => select(null)} />}
+        {selectedId && <PlaceDrawer key={selectedId} placeId={selectedId} dogId={dog.id} showVerdict={dogBased} distanceM={selected?.distanceM ?? null} onClose={() => select(null)} />}
       </div>
+      {filterOpen && (
+        <Modal title="필터 더보기" onClose={() => setFilterOpen(false)}>
+          <p className="mb-3 text-label-md text-outline">블로그 근거로 확인된 장소만 보여 드려요.</p>
+          <div className="flex flex-wrap gap-2">
+            {FILTERS.map((f) => (
+              <button key={f.key} type="button" onClick={() => toggleCond(f.key)} className={chip(conds.includes(f.key))}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div className="mt-6 flex items-center justify-between">
+            <button type="button" onClick={() => setConds([])} className="text-label-md text-outline hover:text-on-surface">
+              초기화
+            </button>
+            <button type="button" onClick={() => setFilterOpen(false)} className={`${primaryBtn} h-11`}>
+              {list.length}곳 보기
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

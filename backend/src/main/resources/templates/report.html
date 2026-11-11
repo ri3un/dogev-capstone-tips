@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>킁킁 건강 리포트</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm 18mm 14mm;
+      @bottom-center { content: "킁킁 건강 리포트 · " counter(page) " / " counter(pages); font-family: 'Pretendard'; font-size: 8pt; color: #888; } }
+    body { font-family: 'Pretendard'; font-size: 9.5pt; color: #222; line-height: 1.45; }
+    h1 { font-size: 17pt; margin: 0 0 2mm 0; }
+    h2 { font-size: 11.5pt; margin: 6mm 0 2mm 0; padding-bottom: 1mm; border-bottom: 1.5px solid #E8833A; }
+    .muted { color: #777; font-size: 8.5pt; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1mm; }
+    th, td { border: 0.5px solid #ccc; padding: 1.2mm 1.6mm; text-align: left; vertical-align: top; }
+    th { background: #FBF1E8; font-weight: bold; }
+    .w-date { width: 22mm; } .w-cat { width: 22mm; } .w-by { width: 20mm; }
+    .signal { color: #B4441B; font-weight: bold; }
+    .empty { color: #999; }
+    ul { margin: 0; padding-left: 5mm; }
+    .chart { width: 170mm; margin-top: 2mm; }
+  </style>
+</head>
+<body>
+  <h1>킁킁 건강 리포트</h1>
+  <div class="muted">
+    기간 <span th:text="${r.from}">2026-10-01</span> ~ <span th:text="${r.to}">2026-10-30</span>
+    · 만든 시각 <span th:text="${#temporals.format(r.generatedAt, 'yyyy-MM-dd HH:mm')}">2026-10-30 12:00</span>
+    · 참고 정보이며 진단이 아닙니다.
+  </div>
+
+  <h2>① 기본 정보</h2>
+  <table>
+    <tr><th>이름</th><td th:text="${r.basic.name}">콩이</td><th>견종</th><td th:text="${r.basic.breed}">말티즈</td></tr>
+    <tr><th>성별</th><td th:text="${r.basic.sex + (r.basic.neutered ? ' (중성화)' : '')}">암컷</td>
+        <th>나이</th><td th:text="${r.basic.age}">3살</td></tr>
+    <tr><th>몸무게</th><td th:text="${r.basic.weightKg + 'kg (' + r.basic.size + ')'}">4kg</td>
+        <th>지병 · 알레르기</th>
+        <td th:text="${(r.basic.diseases.isEmpty() ? '지병 없음' : #strings.listJoin(r.basic.diseases, ', '))
+              + ' / ' + (r.basic.allergies.isEmpty() ? '알레르기 없음' : #strings.listJoin(r.basic.allergies, ', '))}">없음</td></tr>
+  </table>
+
+  <h2>② 기간 요약</h2>
+  <ul>
+    <li th:each="line : ${r.summary}" th:text="${line}">요약</li>
+    <li th:each="s : ${r.signals}" class="signal" th:text="${'이상 신호: ' + s}">신호</li>
+  </ul>
+
+  <h2>③ 식사 · 간식</h2>
+  <table th:if="${!r.meals.isEmpty()}">
+    <tr><th class="w-date">날짜</th><th class="w-cat">구분</th><th>내용</th><th class="w-by">기록</th></tr>
+    <tr th:each="row : ${r.meals}"><td th:text="${row.date}"></td><td th:text="${row.category}"></td>
+      <td th:text="${row.memo}"></td><td th:text="${row.by}"></td></tr>
+  </table>
+  <div th:if="${r.meals.isEmpty()}" class="empty">기록 없음</div>
+
+  <h2>④ 배변</h2>
+  <div th:if="${!r.stoolCounts.isEmpty()}">
+    <span th:each="e, st : ${r.stoolCounts}" th:text="${e.key + ' ' + e.value + '회' + (st.last ? '' : ' · ')}">보통 3회</span>
+  </div>
+  <table th:if="${!r.stools.isEmpty()}">
+    <tr><th class="w-date">날짜</th><th>평소와 다른 변</th><th class="w-by">기록</th></tr>
+    <tr th:each="row : ${r.stools}"><td th:text="${row.date}"></td><td th:text="${row.memo}"></td>
+      <td th:text="${row.by}"></td></tr>
+  </table>
+  <div th:if="${r.stoolCounts.isEmpty()}" class="empty">기록 없음</div>
+
+  <h2>⑤ 증상</h2>
+  <table th:if="${!r.symptoms.isEmpty()}">
+    <tr><th class="w-date">날짜</th><th>증상</th><th class="w-by">기록</th></tr>
+    <tr th:each="row : ${r.symptoms}"><td th:text="${row.date}"></td><td th:text="${row.memo}"></td>
+      <td th:text="${row.by}"></td></tr>
+  </table>
+  <div th:if="${r.symptoms.isEmpty()}" class="empty">기록 없음</div>
+
+  <h2>⑥ 활동 (산책 · 다녀왔어요)</h2>
+  <div th:text="${'산책·활동 총 ' + r.walkMinutesTotal + '분, ' + r.activities.size() + '회'}">총 0분</div>
+  <table th:if="${!r.activities.isEmpty()}">
+    <tr><th class="w-date">날짜</th><th>내용</th><th class="w-by">기록</th></tr>
+    <tr th:each="row : ${r.activities}"><td th:text="${row.date}"></td><td th:text="${row.memo}"></td>
+      <td th:text="${row.by}"></td></tr>
+  </table>
+
+  <h2>⑦ 체중</h2>
+  <img th:if="${r.weightChart != null}" class="chart" th:src="${r.weightChart}" alt="체중 그래프" />
+  <table th:if="${!r.weights.isEmpty()}">
+    <tr><th class="w-date">날짜</th><th>몸무게(kg)</th></tr>
+    <tr th:each="w : ${r.weights}"><td th:text="${w.date}"></td><td th:text="${w.weightKg}"></td></tr>
+  </table>
+  <div th:if="${r.weights.isEmpty()}" class="empty">기록 없음</div>
+
+  <h2>⑧ 투약 · 접종 · 병원</h2>
+  <table th:if="${!r.medical.isEmpty()}">
+    <tr><th class="w-date">날짜</th><th class="w-cat">구분</th><th>내용</th><th class="w-by">기록</th></tr>
+    <tr th:each="row : ${r.medical}"><td th:text="${row.date}"></td><td th:text="${row.category}"></td>
+      <td th:text="${row.memo}"></td><td th:text="${row.by}"></td></tr>
+  </table>
+  <div th:if="${r.medical.isEmpty()}" class="empty">기록 없음</div>
+
+  <h2>⑨ 수의사에게 물어볼 질문</h2>
+  <ul th:if="${!r.questions.isEmpty()}">
+    <li th:each="q : ${r.questions}" th:text="${q.content}">질문</li>
+  </ul>
+  <div th:if="${r.questions.isEmpty()}" class="empty">질문 메모 없음</div>
+</body>
+</html>

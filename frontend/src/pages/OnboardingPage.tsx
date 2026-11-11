@@ -3,8 +3,6 @@ import { Link, useNavigate } from 'react-router'
 import Icon from '../components/common/Icon'
 import { card, input, primaryBtn } from '../components/common/styles'
 
-const filled = { fontVariationSettings: "'FILL' 1" }
-
 // 온보딩: 첫 로그인 후 반려견이 없을 때 — 직접 등록 또는 가족 초대 코드로 참여
 export default function OnboardingPage() {
   const navigate = useNavigate()
@@ -14,8 +12,8 @@ export default function OnboardingPage() {
   return (
     <div className="mx-auto flex w-full max-w-[880px] flex-col items-center gap-9 px-5 py-14 text-center lg:px-10">
       <div className="flex flex-col items-center gap-3">
-        <span className="flex h-16 w-16 items-center justify-center rounded-full bg-secondary-container text-on-secondary-container shadow-[0_4px_16px_rgba(200,134,75,0.12)]">
-          <span className="material-symbols-outlined text-[32px]" style={filled}>pets</span>
+        <span className="flex h-16 w-16 items-center justify-center rounded-md bg-secondary-container text-on-secondary-container">
+          <Icon name="pets" filled className="text-[32px]" />
         </span>
         <h1 className="text-headline-xl font-bold tracking-tight">킁킁에 오신 걸 환영해요!</h1>
         <p className="text-body-lg text-on-surface-variant">함께할 반려견을 먼저 알려 주세요. 가족이 이미 등록했다면 초대 코드로 바로 참여할 수 있어요.</p>

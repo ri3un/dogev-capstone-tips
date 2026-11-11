@@ -1,9 +1,14 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
+import { dogApi, familyApi } from '../api/endpoints'
+import { todayStr } from '../api/format'
+import type { Dog, DogInput } from '../api/types'
+import BreedSearch from '../components/common/BreedSearch'
+import ConfirmModal from '../components/common/ConfirmModal'
 import Icon from '../components/common/Icon'
 import Photo from '../components/common/Photo'
 import { card, chip, ghostBtn, input, primaryBtn } from '../components/common/styles'
-import { DOG } from '../mocks/dog'
+import { useApi } from '../hooks/useApi'
 
 type Sex = 'MALE' | 'FEMALE'
 interface Form {
@@ -14,13 +19,34 @@ interface Form {
   sex: Sex | ''
   neutered: boolean | null
   memo: string
+  // 수정 화면의 선택 항목 (영양·코스 추천에 쓰임)
+  activity: 'LOW' | 'NORMAL' | 'HIGH'
+  diseases: string[]
+  allergies: string
+  foodKcal: string
+  carrier: boolean
 }
 
-const BREEDS = ['말티즈', '푸들', '포메라니안', '시츄', '비숑 프리제', '진돗개', '골든 리트리버', '믹스']
-const thisMonth = new Date().toISOString().slice(0, 7)
-const EMPTY: Form = { name: '', breed: '', weight: '', birth: '', sex: '', neutered: null, memo: '' }
-// 수정 화면 예시 값 (TODO: GET /api/dogs/{dogId})
-const EDIT_SAMPLE: Form = { name: DOG.name, breed: DOG.breed, weight: String(DOG.weightKg), birth: '2023-05', sex: 'MALE', neutered: true, memo: '슬개골 주의' }
+const thisMonth = todayStr().slice(0, 7)
+const DISEASES = ['신장', '췌장염', '비만', '관절', '피부']
+// 화면 지병 이름 ↔ 서버 키 (영양 카드·코스 규칙이 키로 읽음)
+const DISEASE_KEY: Record<string, string> = { 신장: 'KIDNEY', 췌장염: 'PANCREATITIS', 비만: 'OBESITY', 관절: 'JOINT', 피부: 'SKIN' }
+const DISEASE_LABEL = Object.fromEntries(Object.entries(DISEASE_KEY).map(([k, v]) => [v, k]))
+const ACTIVITY = { LOW: '낮음', NORMAL: '보통', HIGH: '높음' } as const
+const EMPTY: Form = { name: '', breed: '', weight: '', birth: '', sex: '', neutered: null, memo: '', activity: 'NORMAL', diseases: [], allergies: '', foodKcal: '', carrier: false }
+
+const toForm = (d: Dog): Form => ({
+  name: d.name, breed: d.breed, weight: String(d.weightKg), birth: d.birthYm, sex: d.sex, neutered: d.neutered,
+  memo: d.memo ?? '', activity: d.activityLevel ?? 'NORMAL', diseases: d.diseases.map((x) => DISEASE_LABEL[x] ?? x),
+  allergies: d.allergies.join(', '), foodKcal: d.foodKcalPerKg ? String(d.foodKcalPerKg) : '', carrier: d.hasCarrier,
+})
+const toInput = (f: Form): DogInput => ({
+  name: f.name.trim(), breed: f.breed.trim(), weightKg: Number(f.weight), birthYm: f.birth, sex: f.sex || 'MALE',
+  neutered: Boolean(f.neutered), memo: f.memo.trim() || null, activityLevel: f.activity, hasCarrier: f.carrier,
+  diseases: f.diseases.map((d) => DISEASE_KEY[d] ?? d),
+  allergies: f.allergies.split(',').map((a) => a.trim()).filter(Boolean),
+  foodKcalPerKg: f.foodKcal ? Number(f.foodKcal) : null,
+})
 
 // 몸무게로 크기 자동 분류 (10kg 미만 소형, 25kg 미만 중형)
 const sizeOf = (kg: number) => (kg < 10 ? '소형견' : kg < 25 ? '중형견' : '대형견')
@@ -37,14 +63,25 @@ function Field({ label, error, children }: { label: string; error?: string; chil
   )
 }
 
-// 반려견 등록(/dogs/new)·수정(/dogs/:dogId/edit) 공용 폼: 필수 6개 + 건강 메모
+// 반려견 등록(/dogs/new)·수정(/dogs/:dogId/edit) 공용 폼: 필수 6개 + 건강 메모, 수정 때만 선택 항목·삭제
 export default function DogFormPage() {
   const { dogId } = useParams()
   const isEdit = Boolean(dogId)
   const navigate = useNavigate()
-  const [form, setForm] = useState<Form>(isEdit ? EDIT_SAMPLE : EMPTY)
+  const [form, setForm] = useState<Form>(EMPTY)
   const [submitted, setSubmitted] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [serverError, setServerError] = useState('')
+  const [photo, setPhoto] = useState<{ file: File; preview: string }>()
+  const fileRef = useRef<HTMLInputElement>(null)
   const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm((f) => ({ ...f, [key]: value }))
+
+  const { data: dog } = useApi(() => (dogId ? dogApi.get(Number(dogId)) : null), [dogId])
+  const { data: family } = useApi(() => familyApi.get(), [])
+  useEffect(() => {
+    if (dog) setForm(toForm(dog))
+  }, [dog])
 
   const kg = Number(form.weight)
   const errors = {
@@ -58,11 +95,32 @@ export default function DogFormPage() {
   const ok = Object.values(errors).every((e) => !e)
   const err = (k: keyof typeof errors) => (submitted ? errors[k] : '')
 
-  // TODO: POST /api/dogs 또는 PUT /api/dogs/{dogId}
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault()
     setSubmitted(true)
-    if (ok) navigate('/')
+    if (!ok || saving) return
+    setSaving(true)
+    setServerError('')
+    try {
+      const saved = dog ? await dogApi.update(dog.id, toInput(form)) : await dogApi.create(toInput(form))
+      if (photo) await dogApi.photo(saved.id, photo.file)
+      if (!dog) localStorage.setItem('dogId', String(saved.id))
+      navigate('/')
+    } catch (err) {
+      setServerError((err as { message?: string }).message ?? '저장하지 못했어요')
+      setSaving(false)
+    }
+  }
+
+  const pickPhoto = (file?: File) => {
+    if (file) setPhoto({ file, preview: URL.createObjectURL(file) })
+  }
+
+  const remove = async () => {
+    if (!dog) return
+    await dogApi.remove(dog.id)
+    localStorage.removeItem('dogId')
+    navigate('/my')
   }
 
   return (
@@ -75,8 +133,9 @@ export default function DogFormPage() {
       <form onSubmit={submit} noValidate className={`${card} flex flex-col gap-6 p-6 md:p-8`}>
         <div className="flex items-center gap-5">
           <div className="relative">
-            <Photo src={isEdit ? DOG.photoUrl : undefined} alt="반려견 사진" className="h-24 w-24 rounded-full object-cover ring-4 ring-secondary-container" />
-            <button type="button" aria-label="사진 바꾸기" className="absolute -right-1 -bottom-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary-container text-on-primary shadow">
+            <Photo src={photo?.preview ?? dog?.photoUrl ?? undefined} alt="반려견 사진" dog className="h-24 w-24 rounded-full object-cover ring-4 ring-secondary-container" />
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => pickPhoto(e.target.files?.[0])} />
+            <button type="button" aria-label="사진 바꾸기" onClick={() => fileRef.current?.click()} className="absolute -right-1 -bottom-1 flex h-9 w-9 items-center justify-center rounded-md bg-primary-container text-on-primary shadow">
               <Icon name="photo_camera" className="text-[18px]" />
             </button>
           </div>
@@ -88,12 +147,7 @@ export default function DogFormPage() {
             <input value={form.name} onChange={(e) => set('name', e.target.value)} maxLength={20} placeholder="예: 꿍" className={input} />
           </Field>
           <Field label="견종" error={err('breed')}>
-            <input value={form.breed} onChange={(e) => set('breed', e.target.value)} list="breeds" placeholder="검색하거나 직접 입력" className={input} />
-            <datalist id="breeds">
-              {BREEDS.map((b) => (
-                <option key={b} value={b} />
-              ))}
-            </datalist>
+            <BreedSearch value={form.breed} onChange={(v) => set('breed', v)} />
           </Field>
           <Field label="몸무게" error={err('weight')}>
             <div className="relative">
@@ -137,16 +191,81 @@ export default function DogFormPage() {
           <textarea value={form.memo} onChange={(e) => set('memo', e.target.value)} rows={3} placeholder="알레르기, 지병, 주의할 점 (예: 슬개골 주의)" className={`${input} h-auto resize-none py-3`} />
         </label>
 
-        <div className="flex justify-end gap-2 border-t border-outline-variant/30 pt-5">
+        {isEdit && (
+          <fieldset className="flex flex-col gap-5 rounded-2xl bg-surface-container-low p-5">
+            <legend className="sr-only">선택 항목</legend>
+            <p className="text-label-md text-secondary">선택 항목: 영양 가이드와 코스 추천이 더 정확해져요</p>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <span className="text-label-lg font-semibold">활동량</span>
+                <div className="flex gap-2">
+                  {(Object.keys(ACTIVITY) as Form['activity'][]).map((a) => (
+                    <button key={a} type="button" onClick={() => set('activity', a)} className={`${chip(form.activity === a)} flex-1`}>
+                      {ACTIVITY[a]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label className="flex flex-col gap-2">
+                <span className="text-label-lg font-semibold">사료 칼로리</span>
+                <div className="relative">
+                  <input value={form.foodKcal} onChange={(e) => set('foodKcal', e.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="사료 봉투 뒷면 (예: 3300)" className={`${input} pr-20`} />
+                  <span className="absolute top-1/2 right-4 -translate-y-1/2 text-outline">kcal/kg</span>
+                </div>
+              </label>
+              <div className="flex flex-col gap-2">
+                <span className="text-label-lg font-semibold">지병 (여러 개)</span>
+                <div className="flex flex-wrap gap-2">
+                  {DISEASES.map((d) => {
+                    const on = form.diseases.includes(d)
+                    return (
+                      <button key={d} type="button" onClick={() => set('diseases', on ? form.diseases.filter((x) => x !== d) : [...form.diseases, d])} className={chip(on)}>
+                        {d}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <label className="flex flex-col gap-2">
+                <span className="text-label-lg font-semibold">알레르기 성분</span>
+                <input value={form.allergies} onChange={(e) => set('allergies', e.target.value)} placeholder="쉼표로 구분 (예: 밀, 닭고기)" className={input} />
+              </label>
+            </div>
+            <label className="flex items-center gap-2 text-label-lg">
+              <input type="checkbox" checked={form.carrier} onChange={(e) => set('carrier', e.target.checked)} className="h-5 w-5 accent-primary-container" />
+              이동장·유모차가 있어요
+            </label>
+          </fieldset>
+        )}
+
+        <div className="flex items-center justify-end gap-2 border-t border-outline-variant/30 pt-5">
+          {serverError && <span role="alert" className="mr-auto text-label-sm text-error">{serverError}</span>}
+          {isEdit && family?.myRole === 'OWNER' && (
+            <button type="button" onClick={() => setConfirmDelete(true)} className="mr-auto flex items-center gap-1 text-label-md font-semibold text-error hover:underline">
+              <Icon name="delete" className="text-[18px]" />
+              반려견 삭제
+            </button>
+          )}
           <button type="button" onClick={() => navigate(-1)} className={ghostBtn}>
             취소
           </button>
-          <button type="submit" className={primaryBtn}>
+          <button type="submit" disabled={saving} className={primaryBtn}>
             <Icon name="check" className="text-[20px]" />
             {isEdit ? '저장' : '등록하기'}
           </button>
         </div>
       </form>
+
+      {confirmDelete && (
+        <ConfirmModal
+          title={`${form.name}의 정보를 삭제할까요?`}
+          body="가족 모두에게서 사라지고 기록도 함께 지워져요. 되돌릴 수 없어요."
+          confirmLabel="삭제"
+          danger
+          onConfirm={remove}
+          onClose={() => setConfirmDelete(false)}
+        />
+      )}
     </div>
   )
 }
