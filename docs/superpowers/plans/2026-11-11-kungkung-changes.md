@@ -143,7 +143,7 @@ void 코스를_삭제해도_다녀온_활동_기록은_남는다() throws Except
 - [x] Step 2: `intent.ts isQuestion` = Task 3 규칙과 동일
 - [x] Step 3: `UnifiedInput`: "{dog.name} 보호자님! <내용>을 저장하도록 하겠습니다 !" → parse → batch (0개/실패면 `/records/new` 직접 입력으로 text 전달); 질문이면 병렬로 `consultApi.ask` → `/consult/{id}`, 아니면 `/records?date=` + `state: { savedIds, needsCheck }`
 - [x] Step 4: RecordsPage 안내 바 "기록 n개를 저장했어요 [되돌리기]"(5초), needsCheck 링크, 방금 저장한 항목 강조, "AI에게 물어보기" 링크
-- [x] Step 5: 홈 입력 문구 "기록하고 물어보세요" 반영. **어제 하루 요약(항목 3)은 보류**: home-design(semi)이 홈을 "오늘 {이름}의 하루" 아이콘 기록으로 바꿔 둠 → 사용자 결정 필요
+- [x] Step 5: 홈 입력 문구 "기록하고 물어보세요" 반영. 어제 하루 요약(항목 3)은 **취소**: 11/12 사용자 결정으로 semi 의 "오늘 {이름}의 하루" 아이콘 디자인 유지
 - [x] Step 6: lint·build, 커밋 `feat: 기록·질문 통합 입력창과 어제 하루 요약`
 
 ### Task 9: 프론트 — 상담 화면 (항목 6·8)
