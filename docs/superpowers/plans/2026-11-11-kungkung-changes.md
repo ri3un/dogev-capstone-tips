@@ -153,6 +153,6 @@ void 코스를_삭제해도_다녀온_활동_기록은_남는다() throws Except
 - [x] Step 3: lint·build, 커밋 `feat: 상담 보관 배지와 사용한 내 기록 상자`
 
 ### Task 10: 전체 확인
-- [ ] `./gradlew test`, `npm run lint && npm run build` 모두 통과
+- [x] `./gradlew test`(179개), `npm run lint && npm run build` 모두 통과 (11/12)
 - [ ] 사용자가 백엔드를 자기 터미널에서 띄운 뒤 브라우저로 홈·기록·상담·코스·영양 확인
 - [ ] 사용자에게 push·PR 여부 묻기
