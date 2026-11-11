@@ -90,6 +90,7 @@ export const courseApi = {
   get: (id: number) => api.get<Course>(`/courses/${id}`),
   list: (dogId: number) => api.get<Course[]>(`/dogs/${dogId}/courses`),
   complete: (id: number) => api.post<Course>(`/courses/${id}/complete`),
+  remove: (id: number) => api.delete<void>(`/courses/${id}`),
 }
 
 export const reportApi = {

@@ -112,6 +112,13 @@ public class CourseService {
         return toResponse(course);
     }
 
+    /** 같은 가족이면 누구나 삭제. "다녀왔어요" 활동 기록은 리포트·상담 근거라 남김 */
+    public void delete(Long memberId, Long courseId) {
+        Course c = find(memberId, courseId);
+        coursePlaceRepository.deleteByCourseId(c.getId());
+        courseRepository.delete(c);
+    }
+
     @EventListener
     public void onDogDeleted(DogDeletedEvent event) {
         coursePlaceRepository.deleteByDogId(event.dogId());

@@ -12,6 +12,10 @@ public interface ConsultationAnswerRepository extends JpaRepository<Consultation
     List<ConsultationAnswer> findByConsultationIdOrderByIdAsc(Long consultationId);
 
     @Modifying
+    @Query("delete from ConsultationAnswer a where a.consultationId in :ids")
+    void deleteByConsultationIdIn(@Param("ids") List<Long> ids);
+
+    @Modifying
     @Query("delete from ConsultationAnswer a where a.consultationId = :consultationId")
     void deleteByConsultationId(@Param("consultationId") Long consultationId);
 
