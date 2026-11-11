@@ -154,7 +154,7 @@ export default function HomePage() {
       {/* 2. 바로가기 */}
       <nav aria-label="바로가기" className="mx-auto grid w-full max-w-[1080px] grid-cols-3 gap-y-6 px-5 py-8 text-center sm:grid-cols-6">
         {SHORTCUTS.map(({ to, label, icon }) => (
-          <Link key={to} to={to} className="flex flex-col items-center gap-2 text-label-lg font-medium transition-colors hover:text-primary-container [&:hover_.kk-icon]:-translate-y-0.5">
+          <Link key={to} to={to} className="kk-hop flex flex-col items-center gap-2 text-label-lg font-medium transition-colors hover:text-primary-container">
             <span className="flex h-10 items-center justify-center">
               {icon === 'bone' ? <BoneIcon className="h-10 w-10" /> : <Icon name={icon} className="text-[36px]! font-light" />}
             </span>
