@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { toast } from '../components/common/toast'
 import PawLoading from '../components/common/PawLoading'
-import { Navigate, useSearchParams } from 'react-router'
+import { Navigate, useNavigate, useSearchParams } from 'react-router'
+import ConfirmModal from '../components/common/ConfirmModal'
 import { courseApi } from '../api/endpoints'
 import { ageText, formatDistance } from '../api/format'
 import type { PlaceCategory } from '../api/types'
@@ -45,6 +46,8 @@ export default function CoursePlanPage() {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [completing, setCompleting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const navigate = useNavigate()
   const [naverMap, setNaverMap] = useState<NaverMapInstance | null>(null)
 
   const { dog, loading: dogLoading } = useCurrentDog()
@@ -91,6 +94,18 @@ export default function CoursePlanPage() {
     }
   }
   const done = !!course?.visitedAt
+
+  const removeCourse = async () => {
+    if (!course) return
+    try {
+      await courseApi.remove(course.id)
+      toast('코스를 삭제했어요')
+      navigate('/courses')
+    } catch {
+      alert('코스를 삭제하지 못했어요')
+      setDeleting(false)
+    }
+  }
 
   // 출발점 + 들르는 곳. 출발 위치는 서버에 저장하지 않아서 지금 위치로 그림
   const start = pos ?? FALLBACK_LOCATION
@@ -341,10 +356,24 @@ export default function CoursePlanPage() {
                   다시 추천
                 </button>
               </div>
+              <button type="button" onClick={() => setDeleting(true)} className="mx-auto flex items-center gap-1 text-label-md text-outline transition-colors hover:text-error">
+                <Icon name="delete" className="text-[16px]" />
+                코스 삭제
+              </button>
             </>
           )}
         </section>
       </div>
+      {deleting && course && (
+        <ConfirmModal
+          title="이 코스를 삭제할까요?"
+          body="가족 모두의 저장한 코스에서 사라지고 되돌릴 수 없어요. 다녀온 산책 기록은 남아요."
+          confirmLabel="삭제"
+          danger
+          onConfirm={removeCourse}
+          onClose={() => setDeleting(false)}
+        />
+      )}
     </div>
   )
 }

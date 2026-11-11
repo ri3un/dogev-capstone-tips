@@ -123,11 +123,11 @@ void 코스를_삭제해도_다녀온_활동_기록은_남는다() throws Except
 
 ### Task 6: 프론트 — 타입·API + 코스 삭제 버튼 (항목 1)
 **Files:** Modify `frontend/src/api/endpoints.ts`, `frontend/src/api/types.ts`, `frontend/src/pages/CoursesPage.tsx`, `frontend/src/pages/CoursePlanPage.tsx`
-- [ ] Step 1: `courseApi.remove`; types 에 Task 2·4·5 새 필드(`foodGramsEstimated`, `weightLoss`, `unknownDiseases`, `FoodItem.reasonTag`, `contextLines`, `archivedAt`)
-- [ ] Step 2: 목록 각 줄 오른쪽 휴지통, `e.preventDefault()`, 기존 확인 모달(ConsultPage 삭제와 같은 컴포넌트) "이 코스를 삭제할까요?"
-- [ ] Step 3: CoursePlanPage 하단 "코스 삭제" → 확인 → remove → `navigate('/courses')`
-- [ ] Step 4: `npm run lint && npm run build`
-- [ ] Step 5: 커밋 `feat: 저장한 코스 목록·상세에서 코스 삭제`
+- [x] Step 1: `courseApi.remove`; types 에 Task 2·4·5 새 필드(`foodGramsEstimated`, `weightLoss`, `unknownDiseases`, `FoodItem.reasonTag`, `contextLines`, `archivedAt`)
+- [x] Step 2: 목록 각 줄 오른쪽 휴지통, `e.preventDefault()`, 기존 확인 모달(ConsultPage 삭제와 같은 컴포넌트) "이 코스를 삭제할까요?"
+- [x] Step 3: CoursePlanPage 하단 "코스 삭제" → 확인 → remove → `navigate('/courses')`
+- [x] Step 4: `npm run lint && npm run build`
+- [x] Step 5: 커밋 `feat: 저장한 코스 목록·상세에서 코스 삭제`
 
 ### Task 7: 프론트 — 영양 화면 (항목 2·7)
 **Files:** Modify `frontend/src/pages/NutritionPage.tsx` (홈 맞춤 안내가 kcal 를 쓰면 `HomePage.tsx` 도)
