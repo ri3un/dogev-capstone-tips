@@ -39,6 +39,22 @@ class CourseApiTest extends ApiTestSupport {
     }
 
     @Test
+    void 코스를_삭제해도_다녀온_활동_기록은_남는다() throws Exception {
+        postApi(login("관리자", true), "/api/admin/places/import", PlaceApiTest.sample());
+        String user = login("다인");
+        long dogId = createDog(user, "콩이", "4", "2022-01");
+        Number id = read(postApi(user, "/api/courses/recommend", body(dogId)), "$.data.id");
+        postApi(user, "/api/courses/{id}/complete", null, id);
+
+        deleteApi(login("남"), "/api/courses/{id}", id).andExpect(status().isNotFound());
+        deleteApi(user, "/api/courses/{id}", id).andExpect(status().isOk());
+
+        getApi(user, "/api/courses/{id}", id).andExpect(status().isNotFound());
+        getApi(user, "/api/dogs/{id}/courses", dogId).andExpect(jsonPath("$.data", hasSize(0)));
+        getApi(user, "/api/dogs/{id}/records?category=ACTIVITY", dogId).andExpect(jsonPath("$.data", hasSize(1)));
+    }
+
+    @Test
     void 들어갈_수_없는_장소만_있으면_404() throws Exception {
         postApi(login("관리자", true), "/api/admin/places/import", PlaceApiTest.sample());
         String user = login("다인");

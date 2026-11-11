@@ -36,7 +36,7 @@
 **Files:** Modify `backend/.../course/controller/CourseController.java`, `course/service/CourseService.java`, `course/repository/CoursePlaceRepository.java`; Test `backend/src/test/java/com/gaebalhagae/course/CourseApiTest.java`
 **Produces:** `DELETE /api/courses/{courseId}` → `ApiResponse<Void>`
 
-- [ ] Step 1: 실패 테스트 추가
+- [x] Step 1: 실패 테스트 추가
 ```java
 @Test
 void 코스를_삭제해도_다녀온_활동_기록은_남는다() throws Exception {
@@ -54,13 +54,13 @@ void 코스를_삭제해도_다녀온_활동_기록은_남는다() throws Except
     getApi(user, "/api/dogs/{id}/records?category=ACTIVITY", dogId).andExpect(jsonPath("$.data", hasSize(1)));
 }
 ```
-- [ ] Step 2: `./gradlew test --tests '*CourseApiTest'` → 실패(405/404) 확인
-- [ ] Step 3: 구현
+- [x] Step 2: `./gradlew test --tests '*CourseApiTest'` → 실패(405/404) 확인
+- [x] Step 3: 구현
   - `CoursePlaceRepository`: `@Modifying @Query("delete from CoursePlace p where p.courseId = :courseId") void deleteByCourseId(@Param("courseId") Long courseId);`
   - `CourseService.delete(Long memberId, Long courseId)`: `Course c = find(memberId, courseId); coursePlaceRepository.deleteByCourseId(c.getId()); courseRepository.delete(c);`
   - `CourseController`: `@DeleteMapping("/api/courses/{courseId}")` → `courseService.delete(me.id(), courseId)` (ConsultController 의 delete 와 같은 모양으로)
-- [ ] Step 4: 테스트 통과 확인
-- [ ] Step 5: 커밋 `feat: 추천받은 코스 삭제 API`
+- [x] Step 4: 테스트 통과 확인
+- [x] Step 5: 커밋 `feat: 추천받은 코스 삭제 API`
 
 ### Task 2: 질병 맞춤 영양 + 사료량 g (항목 2·7)
 **Files:** Modify `dog/domain/FoodGuide.java`, `dog/service/GuideDataLoader.java`, `dog/service/NutritionCalculator.java`, `dog/service/NutritionService.java`, `dog/dto/NutritionCardResponse.java`; Test: 기존 영양 테스트(없으면 `backend/src/test/java/com/gaebalhagae/dog/NutritionApiTest.java`, `NutritionCalculatorTest.java` 생성)
