@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { toast } from '../components/common/toast'
 import PawLoading from '../components/common/PawLoading'
-import { Link, Navigate, useNavigate, useParams } from 'react-router'
-import { consultApi, questionApi } from '../api/endpoints'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router'
+import { consultApi, questionApi, recordApi } from '../api/endpoints'
 import { ageText, localDate, monthDay, todayStr } from '../api/format'
 import type { Consultation } from '../api/types'
 import ConfirmModal from '../components/common/ConfirmModal'
@@ -32,7 +32,9 @@ export default function ConsultPage() {
   const navigate = useNavigate()
   const consultId = Number(useParams().consultId) || null
   const [keyword, setKeyword] = useState('')
-  const [question, setQuestion] = useState('')
+  // 기록 화면의 "AI에게 물어보기"로 오면 같은 글을 채워 둠
+  const handedQuestion = (useLocation().state as { question?: string } | null)?.question ?? ''
+  const [question, setQuestion] = useState(handedQuestion)
   const [compareOpen, setCompareOpen] = useState(false)
   const [saved, setSaved] = useState(false)
   const [asking, setAsking] = useState(false)
@@ -75,8 +77,13 @@ export default function ConsultPage() {
   const ask = async () => {
     if (!question.trim() || asking) return
     setAsking(true)
+    const q = question.trim()
+    // 통합 입력: 질문도 기록으로 남김 (실패해도 상담은 계속). 기록에서 넘어온 같은 글은 이미 저장됨
+    if (q !== handedQuestion) {
+      recordApi.parse(dog.id, q, todayStr()).then((p) => (p.candidates.length > 0 ? recordApi.batch(dog.id, p.candidates) : [])).catch(() => [])
+    }
     try {
-      const r = await consultApi.ask(dog.id, question.trim())
+      const r = await consultApi.ask(dog.id, q)
       setResult(r)
       reset()
       reloadHistory()
