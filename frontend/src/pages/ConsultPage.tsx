@@ -128,6 +128,7 @@ export default function ConsultPage() {
                   <div className="mb-1 flex items-center justify-between text-label-sm text-outline">
                     {whenText(h.createdAt)}
                     <span className="flex items-center gap-1">
+                      {h.archivedAt && <span title="90일이 지나 요약만 보관 중" className="rounded-md bg-surface-container px-1.5 text-label-sm">요약 보관</span>}
                       {on && <span className="h-1.5 w-1.5 rounded-full bg-secondary-container" />}
                       <button
                         type="button"
@@ -308,6 +309,27 @@ export default function ConsultPage() {
             ))}
           </ol>
 
+          {R.contextLines.length > 0 && (
+            <details className="rounded-xl bg-surface-container-low px-5 py-4 text-body-sm text-on-surface-variant">
+              <summary className="flex cursor-pointer items-center gap-2.5 text-label-lg">
+                <Icon name="fact_check" className="text-[19px] text-primary" />
+                이번 답변에 사용한 내 기록
+                <span className="text-label-sm text-outline">(최근 14일 집계만 보냈어요)</span>
+              </summary>
+              <ul className="mt-3 flex flex-col gap-1">
+                {R.contextLines.map((line) => (
+                  <li key={line}>· {line}</li>
+                ))}
+              </ul>
+            </details>
+          )}
+
+          {R.archivedAt ? (
+            <p className="flex items-center gap-2 rounded-xl bg-surface-container-low px-5 py-4 text-label-lg text-on-surface-variant">
+              <Icon name="inventory_2" className="text-[19px] text-outline" />
+              90일이 지나 요약만 보관 중이에요
+            </p>
+          ) : (
           <div className="rounded-xl bg-surface-container-low transition-all">
             <button type="button" aria-expanded={compareOpen} onClick={() => setCompareOpen((v) => !v)} className="flex w-full items-center justify-between px-5 py-4 text-left text-label-lg text-on-surface-variant transition-colors hover:text-on-surface">
               <div className="flex items-center gap-2.5">
@@ -328,6 +350,7 @@ export default function ConsultPage() {
               </div>
             )}
           </div>
+          )}
 
           <div className="flex flex-col justify-between gap-3 pt-2 sm:flex-row sm:items-center">
             <div className="flex items-center gap-2 text-body-sm text-outline">

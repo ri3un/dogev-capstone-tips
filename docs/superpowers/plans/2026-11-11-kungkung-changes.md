@@ -148,9 +148,9 @@ void 코스를_삭제해도_다녀온_활동_기록은_남는다() throws Except
 
 ### Task 9: 프론트 — 상담 화면 (항목 6·8)
 **Files:** Modify `frontend/src/pages/ConsultPage.tsx`
-- [ ] Step 1: archivedAt 있으면 목록·상세 "90일이 지나 요약만 보관 중" 배지, 모델별 탭 숨기고 종합 3줄만
-- [ ] Step 2: contextLines 있으면 `<details>` "이번 답변에 사용한 내 기록"
-- [ ] Step 3: lint·build, 커밋 `feat: 상담 보관 배지와 사용한 내 기록 상자`
+- [x] Step 1: archivedAt 있으면 목록·상세 "90일이 지나 요약만 보관 중" 배지, 모델별 탭 숨기고 종합 3줄만
+- [x] Step 2: contextLines 있으면 `<details>` "이번 답변에 사용한 내 기록"
+- [x] Step 3: lint·build, 커밋 `feat: 상담 보관 배지와 사용한 내 기록 상자`
 
 ### Task 10: 전체 확인
 - [ ] `./gradlew test`, `npm run lint && npm run build` 모두 통과
