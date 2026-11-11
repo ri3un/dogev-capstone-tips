@@ -83,11 +83,11 @@ void 코스를_삭제해도_다녀온_활동_기록은_남는다() throws Except
 **Files:** Create `backend/.../record/service/IntentClassifier.java`, Test `backend/src/test/java/com/gaebalhagae/record/IntentClassifierTest.java`
 **Produces:** `static boolean IntentClassifier.isQuestion(String text)`; 프론트 `frontend/src/utils/intent.ts` 의 `isQuestion` 이 같은 규칙(Task 8)
 
-- [ ] Step 1: 예문 30개(질문 15, 기록 15) `@ParameterizedTest @CsvSource`. 예: "포도 먹어도 돼요?"→true, "병원 가야 하나요"→true, "산책 시켜도 될까"→true, "이거 괜찮은가요"→true, "토했는데 어떡해"→true, "아침에 사료 50g 먹었어요"→false, "산책 30분 했다"→false, "설사함"→false
-- [ ] Step 2: 실패 확인
-- [ ] Step 3: 구현: 끝의 `[.!~ㅠㅜ\s]+` 제거 후 `?` 로 끝나거나 의문형 어미 정규식에 맞으면 true. "돼요/되요"는 앞에 "~도" 가 있을 때만(“먹어도 돼요”)
-- [ ] Step 4: 통과 수를 클래스 주석에 "정확도 n/30" 으로 기록
-- [ ] Step 5: 커밋 `feat: 질문·기록 판별 규칙과 예문 30개 테스트`
+- [x] Step 1: 예문 30개(질문 15, 기록 15) `@ParameterizedTest @CsvSource`. 예: "포도 먹어도 돼요?"→true, "병원 가야 하나요"→true, "산책 시켜도 될까"→true, "이거 괜찮은가요"→true, "토했는데 어떡해"→true, "아침에 사료 50g 먹었어요"→false, "산책 30분 했다"→false, "설사함"→false
+- [x] Step 2: 실패 확인
+- [x] Step 3: 구현: 끝의 `[.!~ㅠㅜ\s]+` 제거 후 `?` 로 끝나거나 의문형 어미 정규식에 맞으면 true. "돼요/되요"는 앞에 "~도" 가 있을 때만(“먹어도 돼요”)
+- [x] Step 4: 통과 수를 클래스 주석에 "정확도 n/30" 으로 기록
+- [x] Step 5: 커밋 `feat: 질문·기록 판별 규칙과 예문 30개 테스트`
 
 ### Task 4: 내 기록을 아는 상담 (항목 8)
 **Files:** Create `consult/service/RecentContextBuilder.java`; Modify `consult/domain/Consultation.java`(contextLines), `consult/service/ConsultService.java`, `consult/dto/ConsultResponses.java`(Detail 에 `List<String> contextLines`); Test `backend/src/test/java/com/gaebalhagae/consult/RecentContextBuilderTest.java`, `ConsultApiTest.java`
