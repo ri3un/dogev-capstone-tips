@@ -66,18 +66,18 @@ void 코스를_삭제해도_다녀온_활동_기록은_남는다() throws Except
 **Files:** Modify `dog/domain/FoodGuide.java`, `dog/service/GuideDataLoader.java`, `dog/service/NutritionCalculator.java`, `dog/service/NutritionService.java`, `dog/dto/NutritionCardResponse.java`; Test: 기존 영양 테스트(없으면 `backend/src/test/java/com/gaebalhagae/dog/NutritionApiTest.java`, `NutritionCalculatorTest.java` 생성)
 **Produces (응답 필드 추가):** `foodGrams`(항상 값), `foodGramsEstimated: boolean`, `weightLoss: boolean`(비만 감량 기준), `FoodItem.reasonTag: "ALLERGY"|"DISEASE"|null`, `unknownDiseases: List<String>`(등록 안내 없는 자유 입력 지병)
 
-- [ ] Step 1: 실패 테스트
+- [x] Step 1: 실패 테스트
   - `NutritionCalculator.calc(10, 36, true, null, true)` → factor 1.0, foodGrams = round(RER(10)*1.0/3500*1000), estimated true
   - `calc(10, 36, true, null, false)` → factor 1.6, foodGrams 값 있음
   - API: 지병 OBESITY 견 → `cautionFoods` 에 고구마(reasonTag DISEASE, reason "비만이 있어 조금만 주세요"), `factor` 1.0, `weightLoss` true. 지병 없음 → 고구마 safe. 지병 "갑상선" → `unknownDiseases` ["갑상선"], notices 에 "등록된 안내가 없는 질환이에요. 식단은 수의사와 상의하세요."
-- [ ] Step 2: 실패 확인
-- [ ] Step 3: 구현
+- [x] Step 2: 실패 확인
+- [x] Step 3: 구현
   - `FoodGuide`: `@Column(name="avoid_diseases", length=100) private String avoidDiseases;` (콤마 구분 키, 예 "OBESITY") + 생성자 인자 추가 + `List<String> avoidDiseaseKeys()`
   - `GuideDataLoader`: 고구마·바나나·단호박 → "OBESITY". **이미 데이터가 있는 DB 대비**: `run()` 에서 이름 → 키 Map 으로 `avoidDiseases` 가 null 인 행을 채우는 보정
   - `NutritionCalculator`: `DEFAULT_FOOD_KCAL_PER_KG = 3500`, `calc(weightKg, ageMonths, neutered, foodKcalPerKg, obese)`; obese 면 factor 1.0·stage "비만 감량 기준"; kcal 없으면 기본값으로 g 계산, `Result` 에 `boolean foodGramsEstimated`
   - `NutritionService`: SAFE 판정 순서 = 알레르기 → 지병(`dog.getDiseases()` 대문자 키 ∩ `avoidDiseaseKeys`) → safe. 지병 사유 `"%s이 있어 조금만 주세요"`(DiseaseGuide label). 가이드에 없는 지병 → `unknownDiseases` + notice
-- [ ] Step 4: `./gradlew test` 전체 통과(기존 테스트의 foodGrams null 기대가 있으면 사양대로 고침)
-- [ ] Step 5: 커밋 `feat: 지병 맞춤 영양 안내와 사료량 g 기본값`
+- [x] Step 4: `./gradlew test` 전체 통과(기존 테스트의 foodGrams null 기대가 있으면 사양대로 고침)
+- [x] Step 5: 커밋 `feat: 지병 맞춤 영양 안내와 사료량 g 기본값`
 
 ### Task 3: 질문/기록 판별 규칙 IntentClassifier (항목 5 백엔드)
 **Files:** Create `backend/.../record/service/IntentClassifier.java`, Test `backend/src/test/java/com/gaebalhagae/record/IntentClassifierTest.java`
