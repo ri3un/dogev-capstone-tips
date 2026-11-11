@@ -110,7 +110,8 @@ public class ConsultService {
         return new ConsultResponses.Detail(c.getId(), c.getDogId(), c.getQuestion(), c.isEmergencyFlag(),
                 c.getUrgency(), c.getUrgency().label(), c.isVisitVet(), c.isCrossChecked(), c.getAnsweredCount(),
                 items.size(), List.copyOf(c.getSummary()), List.copyOf(c.getNotices()), items, c.getCreatedBy(),
-                c.getCreatedAt(), c.getContextLines() == null ? List.of() : List.copyOf(c.getContextLines()));
+                c.getCreatedAt(), c.getContextLines() == null ? List.of() : List.copyOf(c.getContextLines()),
+                c.getArchivedAt());
     }
 
     @Transactional(readOnly = true)
@@ -118,7 +119,7 @@ public class ConsultService {
         access.checkDog(memberId, dogId);
         return consultationRepository.findByDogIdOrderByIdDesc(dogId).stream()
                 .map(c -> new ConsultResponses.Item(c.getId(), c.getQuestion(), c.getUrgency(), c.getUrgency().label(),
-                        c.isEmergencyFlag(), c.isVisitVet(), c.getCreatedAt()))
+                        c.isEmergencyFlag(), c.isVisitVet(), c.getCreatedAt(), c.getArchivedAt()))
                 .toList();
     }
 

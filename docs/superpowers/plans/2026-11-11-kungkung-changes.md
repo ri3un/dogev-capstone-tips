@@ -111,15 +111,15 @@ void 코스를_삭제해도_다녀온_활동_기록은_남는다() throws Except
 **Files:** Create `consult/service/ConsultArchiveJob.java`; Modify `Consultation.java`(archivedAt + `archive(LocalDateTime)`), `ConsultationRepository.java`, `ConsultationAnswerRepository.java`, `ConsultResponses.java`(Detail·Item 에 `LocalDateTime archivedAt`), `application.yml`(`consult.retention-days: 90`); Test `backend/src/test/java/com/gaebalhagae/consult/ConsultArchiveJobTest.java`
 **Produces:** `int ConsultArchiveJob.archiveOld()` (정리한 건수), `Detail.archivedAt`, `Item.archivedAt`
 
-- [ ] Step 1: 실패 테스트 — 상담 3건 생성(ConsultApiTest 의 LLM 목 방식), JdbcTemplate 로 created_at 을 now-89일 / now-91일 / now-91일+archived_at 설정 → `archiveOld()` == 1, 91일 건 answers 0행·summary 그대로·archivedAt 있음, 89일 건 answers 그대로, 기록 행 수 그대로
-- [ ] Step 2: 실패 확인
-- [ ] Step 3: 구현
+- [x] Step 1: 실패 테스트 — 상담 3건 생성(ConsultApiTest 의 LLM 목 방식), JdbcTemplate 로 created_at 을 now-89일 / now-91일 / now-91일+archived_at 설정 → `archiveOld()` == 1, 91일 건 answers 0행·summary 그대로·archivedAt 있음, 89일 건 answers 그대로, 기록 행 수 그대로
+- [x] Step 2: 실패 확인
+- [x] Step 3: 구현
   - `ConsultationRepository.findArchiveTargets(cutoff, Pageable)`: `archivedAt is null and createdAt < cutoff order by id`
   - `ConsultationAnswerRepository.deleteByConsultationIdIn(List<Long>)` (@Modifying @Query)
   - Job: `@Scheduled(cron = "0 0 4 * * *", zone = "Asia/Seoul")`, 100건씩 반복, 묶음마다 TransactionTemplate 로 answers 삭제 + `archive(now)`. `@Value("${consult.retention-days:90}")`
   - `ConsultService.detail/list` 에 archivedAt 전달
-- [ ] Step 4: `./gradlew test` 통과
-- [ ] Step 5: 커밋 `feat: 90일 지난 상담은 모델별 원문을 지우고 요약만 보관`
+- [x] Step 4: `./gradlew test` 통과
+- [x] Step 5: 커밋 `feat: 90일 지난 상담은 모델별 원문을 지우고 요약만 보관`
 
 ### Task 6: 프론트 — 타입·API + 코스 삭제 버튼 (항목 1)
 **Files:** Modify `frontend/src/api/endpoints.ts`, `frontend/src/api/types.ts`, `frontend/src/pages/CoursesPage.tsx`, `frontend/src/pages/CoursePlanPage.tsx`
