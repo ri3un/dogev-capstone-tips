@@ -69,6 +69,9 @@ public class CourseService {
 
         // 권한 확인은 추천 전에, 삭제는 새 코스를 만든 뒤에 (후보가 없으면 기존 코스 유지)
         Course replaced = req.replaceCourseId() == null ? null : find(memberId, req.replaceCourseId());
+        if (replaced != null && !replaced.getDogId().equals(dog.getId())) {
+            throw new BusinessException(ErrorCode.COURSE_NOT_FOUND);
+        }
         List<Long> exclude = req.excludePlaceIds() == null ? List.of() : req.excludePlaceIds();
         int[] radii = req.radiusKm() == null ? RADII_M : new int[]{(int) Math.round(req.radiusKm() * 1000)};
         GreedyCourseBuilder.Plan plan = Arrays.stream(radii)
@@ -77,8 +80,8 @@ public class CourseService {
                 .flatMap(Optional::stream)
                 .findFirst()
                 .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_ENOUGH_PLACES));
-        if (replaced != null && replaced.getVisitedAt() == null) {
-            remove(replaced);   // 다녀온 코스는 기록이라 남김
+        if (replaced != null && replaced.isDraft()) {
+            remove(replaced);   // 저장했거나 다녀온 코스는 남김
         }
 
         Course course = courseRepository.save(new Course(memberId, dog.getId(), plan.startToFirstM(), plan.totalM(),
@@ -99,7 +102,15 @@ public class CourseService {
     @Transactional(readOnly = true)
     public List<CourseDtos.Response> list(Long memberId, Long dogId) {
         access.checkDog(memberId, dogId);
-        return courseRepository.findByDogIdOrderByIdDesc(dogId).stream().map(this::toResponse).toList();
+        return courseRepository.findByDogIdAndSavedAtIsNotNullOrderByIdDesc(dogId).stream().map(this::toResponse)
+                .toList();
+    }
+
+    /** "코스 저장하기": 두 번 눌러도 처음 저장 시각 유지 */
+    public CourseDtos.Response save(Long memberId, Long courseId) {
+        Course course = find(memberId, courseId);
+        course.markSaved(LocalDateTime.now(clock));
+        return toResponse(course);
     }
 
     /** 코스 결과의 "다녀왔어요": 활동 기록(산책 시간 = 예상 시간)으로 저장, 두 번 눌러도 한 번만 (결정 5-A) */
@@ -176,7 +187,7 @@ public class CourseService {
         List<String> reasons = c.getReasonText() == null || c.getReasonText().isBlank() ? List.of()
                 : List.of(c.getReasonText().split("\n"));
         return new CourseDtos.Response(c.getId(), c.getDogId(), stops, legs, c.getStartToFirstM(),
-                c.getTotalDistanceM(), c.getTotalMinutes(), reasons, c.getVisitedAt(), c.getCreatedBy(),
-                c.getCreatedAt());
+                c.getTotalDistanceM(), c.getTotalMinutes(), reasons, c.getVisitedAt(), c.getSavedAt(),
+                c.getCreatedBy(), c.getCreatedAt());
     }
 }

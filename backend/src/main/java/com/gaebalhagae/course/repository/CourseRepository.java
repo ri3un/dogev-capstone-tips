@@ -12,7 +12,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface CourseRepository extends JpaRepository<Course, Long> {
 
-    List<Course> findByDogIdOrderByIdDesc(Long dogId);
+    /** 저장한 코스: 저장했거나 다녀온 코스만 (다녀오면 저장도 됨) */
+    List<Course> findByDogIdAndSavedAtIsNotNullOrderByIdDesc(Long dogId);
 
     /** "다녀왔어요" 두 번 눌림 방지: 같은 코스는 한 요청씩 처리 */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
