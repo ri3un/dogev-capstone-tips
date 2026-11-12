@@ -30,30 +30,12 @@ class CourseApiTest extends ApiTestSupport {
                 .andExpect(jsonPath("$.data.legs", hasSize(2)))
                 .andExpect(jsonPath("$.data.totalMinutes").isNumber()), "$.data.id");
 
-        getApi(user, "/api/dogs/{id}/courses", dogId).andExpect(jsonPath("$.data", hasSize(0)));
-        postApi(user, "/api/courses/{id}/complete", null, id)
-                .andExpect(jsonPath("$.data.visitedAt").isNotEmpty())
-                .andExpect(jsonPath("$.data.savedAt").isNotEmpty());
         getApi(user, "/api/dogs/{id}/courses", dogId).andExpect(jsonPath("$.data", hasSize(1)));
+        postApi(user, "/api/courses/{id}/complete", null, id)
+                .andExpect(jsonPath("$.data.visitedAt").isNotEmpty());
         getApi(user, "/api/dogs/{id}/records?category=ACTIVITY", dogId)
                 .andExpect(jsonPath("$.data[0].source").value("COURSE"));
         getApi(login("남"), "/api/courses/{id}", id).andExpect(status().isNotFound());
-    }
-
-    @Test
-    void 코스를_삭제해도_다녀온_활동_기록은_남는다() throws Exception {
-        postApi(login("관리자", true), "/api/admin/places/import", PlaceApiTest.sample());
-        String user = login("다인");
-        long dogId = createDog(user, "콩이", "4", "2022-01");
-        Number id = read(postApi(user, "/api/courses/recommend", body(dogId)), "$.data.id");
-        postApi(user, "/api/courses/{id}/complete", null, id);
-
-        deleteApi(login("남"), "/api/courses/{id}", id).andExpect(status().isNotFound());
-        deleteApi(user, "/api/courses/{id}", id).andExpect(status().isOk());
-
-        getApi(user, "/api/courses/{id}", id).andExpect(status().isNotFound());
-        getApi(user, "/api/dogs/{id}/courses", dogId).andExpect(jsonPath("$.data", hasSize(0)));
-        getApi(user, "/api/dogs/{id}/records?category=ACTIVITY", dogId).andExpect(jsonPath("$.data", hasSize(1)));
     }
 
     @Test
@@ -65,91 +47,6 @@ class CourseApiTest extends ApiTestSupport {
         postApi(user, "/api/courses/recommend", body(bigDog))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("COURSE_NOT_ENOUGH_PLACES"));
-    }
-
-    @Test
-    void 들를_곳이_4곳이면_400() throws Exception {
-        String user = login("다인");
-        long dogId = createDog(user, "콩이", "4", "2022-01");
-
-        postApi(user, "/api/courses/recommend", Map.of("dogId", dogId, "lat", 37.3895, "lng", 126.9495,
-                "placeTypes", List.of("PARK", "PARK", "CAFE", "CAFE"))).andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void 다시_추천은_임시_코스만_바꾸고_저장하거나_다녀온_코스는_남긴다() throws Exception {
-        postApi(login("관리자", true), "/api/admin/places/import", PlaceApiTest.sample());
-        String user = login("다인");
-        long dogId = createDog(user, "콩이", "4", "2022-01");
-        Number first = read(postApi(user, "/api/courses/recommend", body(dogId)), "$.data.id");
-
-        Number second = read(postApi(user, "/api/courses/recommend", retry(dogId, List.of(), first))
-                .andExpect(status().isOk()), "$.data.id");
-        getApi(user, "/api/courses/{id}", first).andExpect(status().isNotFound());
-
-        postApi(user, "/api/courses/{id}/save", null, second).andExpect(jsonPath("$.data.savedAt").isNotEmpty());
-        postApi(user, "/api/courses/{id}/save", null, second).andExpect(status().isOk());
-        getApi(user, "/api/dogs/{id}/courses", dogId).andExpect(jsonPath("$.data", hasSize(1)));
-
-        Number third = read(postApi(user, "/api/courses/recommend", retry(dogId, List.of(), second))
-                .andExpect(status().isOk()), "$.data.id");
-        getApi(user, "/api/courses/{id}", second).andExpect(status().isOk());
-        getApi(user, "/api/dogs/{id}/courses", dogId).andExpect(jsonPath("$.data", hasSize(1)));
-
-        postApi(user, "/api/courses/{id}/complete", null, third);
-        postApi(user, "/api/courses/recommend", retry(dogId, List.of(), third)).andExpect(status().isOk());
-        getApi(user, "/api/courses/{id}", third).andExpect(status().isOk());
-        getApi(user, "/api/dogs/{id}/courses", dogId).andExpect(jsonPath("$.data", hasSize(2)));
-    }
-
-    @Test
-    void 다른_반려견_코스로_다시_추천하면_404() throws Exception {
-        postApi(login("관리자", true), "/api/admin/places/import", PlaceApiTest.sample());
-        String user = login("다인");
-        long dogA = createDog(user, "콩이", "4", "2022-01");
-        long dogB = createDog(user, "팥이", "4", "2022-01");
-        Number bCourse = read(postApi(user, "/api/courses/recommend", body(dogB)), "$.data.id");
-
-        postApi(user, "/api/courses/recommend", retry(dogA, List.of(), bCourse))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error.code").value("COURSE_NOT_FOUND"));
-        getApi(user, "/api/courses/{id}", bCourse).andExpect(status().isOk());
-    }
-
-    @Test
-    void 다른_가족_코스로_다시_추천하면_404() throws Exception {
-        postApi(login("관리자", true), "/api/admin/places/import", PlaceApiTest.sample());
-        String user = login("다인");
-        Number id = read(postApi(user, "/api/courses/recommend", body(createDog(user, "콩이", "4", "2022-01"))),
-                "$.data.id");
-        String other = login("남");
-        long otherDog = createDog(other, "보리", "4", "2022-01");
-
-        postApi(other, "/api/courses/recommend", retry(otherDog, List.of(), id))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error.code").value("COURSE_NOT_FOUND"));
-        postApi(other, "/api/courses/{id}/save", null, id).andExpect(status().isNotFound());
-        getApi(user, "/api/courses/{id}", id).andExpect(status().isOk());
-    }
-
-    @Test
-    void 후보를_모두_제외하면_부족_오류이고_기존_코스는_남는다() throws Exception {
-        postApi(login("관리자", true), "/api/admin/places/import", PlaceApiTest.sample());
-        String user = login("다인");
-        long dogId = createDog(user, "콩이", "4", "2022-01");
-        var result = postApi(user, "/api/courses/recommend", body(dogId));
-        Number id = read(result, "$.data.id");
-        Number cafeId = read(result, "$.data.stops[0].placeId");
-
-        postApi(user, "/api/courses/recommend", retry(dogId, List.of(cafeId), id))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error.code").value("COURSE_NOT_ENOUGH_PLACES"));
-        getApi(user, "/api/courses/{id}", id).andExpect(status().isOk());
-    }
-
-    private Map<String, Object> retry(long dogId, List<Number> exclude, Number replaceCourseId) {
-        return Map.of("dogId", dogId, "lat", 37.3895, "lng", 126.9495, "placeTypes", List.of("CAFE", "PARK"),
-                "excludePlaceIds", exclude, "replaceCourseId", replaceCourseId);
     }
 
     @Test

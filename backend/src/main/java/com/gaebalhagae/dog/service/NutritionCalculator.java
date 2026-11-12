@@ -9,23 +9,15 @@ public final class NutritionCalculator {
     private NutritionCalculator() {
     }
 
-    /** 사료 봉투 칼로리를 모를 때 쓰는 일반 건사료 평균 */
-    public static final int DEFAULT_FOOD_KCAL_PER_KG = 3500;
-
-    public record Result(int rerKcal, double factor, String lifeStage, int derKcal, int foodGrams,
-                         boolean foodGramsEstimated, int waterMinMl, int waterMaxMl) {
+    public record Result(int rerKcal, double factor, String lifeStage, int derKcal, Integer foodGrams,
+                         int waterMinMl, int waterMaxMl) {
     }
 
-    /** obese 면 감량 기준 계수 1.0 (일반 수의 가이드 값) */
-    public static Result calc(double weightKg, int ageMonths, boolean neutered, Integer foodKcalPerKg,
-                              boolean obese) {
+    public static Result calc(double weightKg, int ageMonths, boolean neutered, Integer foodKcalPerKg) {
         double rer = 70 * Math.pow(weightKg, 0.75);
         double factor;
         String stage;
-        if (obese) {
-            factor = 1.0;
-            stage = "비만 감량 기준";
-        } else if (ageMonths < 4) {
+        if (ageMonths < 4) {
             factor = 3.0;
             stage = "4개월 미만 강아지";
         } else if (ageMonths < 12) {
@@ -42,10 +34,9 @@ public final class NutritionCalculator {
             stage = "중성화하지 않은 성견";
         }
         double der = rer * factor;
-        boolean estimated = foodKcalPerKg == null || foodKcalPerKg <= 0;
-        int kcalPerKg = estimated ? DEFAULT_FOOD_KCAL_PER_KG : foodKcalPerKg;
-        int food = (int) Math.round(der / kcalPerKg * 1000);
-        return new Result((int) Math.round(rer), factor, stage, (int) Math.round(der), food, estimated,
+        Integer food = foodKcalPerKg == null || foodKcalPerKg <= 0
+                ? null : (int) Math.round(der / foodKcalPerKg * 1000);
+        return new Result((int) Math.round(rer), factor, stage, (int) Math.round(der), food,
                 (int) Math.round(weightKg * 30), (int) Math.round(weightKg * 60));
     }
 }

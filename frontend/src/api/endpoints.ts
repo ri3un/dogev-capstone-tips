@@ -85,21 +85,11 @@ export const consultApi = {
 }
 
 export const courseApi = {
-  recommend: (body: {
-    dogId: number
-    lat: number
-    lng: number
-    placeTypes: PlaceCategory[]
-    radiusKm?: number
-    excludePlaceIds?: number[]
-    replaceCourseId?: number
-  }) =>
+  recommend: (body: { dogId: number; lat: number; lng: number; placeTypes: PlaceCategory[]; radiusKm?: number }) =>
     api.post<Course>('/courses/recommend', body),
   get: (id: number) => api.get<Course>(`/courses/${id}`),
   list: (dogId: number) => api.get<Course[]>(`/dogs/${dogId}/courses`),
   complete: (id: number) => api.post<Course>(`/courses/${id}/complete`),
-  save: (id: number) => api.post<Course>(`/courses/${id}/save`),
-  remove: (id: number) => api.delete<void>(`/courses/${id}`),
 }
 
 export const reportApi = {

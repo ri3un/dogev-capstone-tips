@@ -45,13 +45,13 @@ export interface Family { id: number; name: string; myRole: FamilyRole; members:
 export interface Invite { inviteCode: string; invitePath: string }
 export interface InvitePreview { groupName: string; ownerNickname: string; memberCount: number; full: boolean }
 
-export interface FoodItem { name: string; reason: string; howToFeed: string | null; sourceUrl: string | null; reasonTag: 'ALLERGY' | 'DISEASE' | null }
+export interface FoodItem { name: string; reason: string; howToFeed: string | null; sourceUrl: string | null }
 export interface NutritionCard {
   dogId: number; weightKg: number; lifeStage: string; rerKcal: number; factor: number; derKcal: number
-  foodKcalPerKg: number | null; foodGrams: number; foodGramsEstimated: boolean; weightLoss: boolean; waterMinMl: number; waterMaxMl: number
+  foodKcalPerKg: number | null; foodGrams: number | null; waterMinMl: number; waterMaxMl: number
   dangerFoods: FoodItem[]; safeFoods: FoodItem[]; cautionFoods: FoodItem[]
   diseaseCautions: { diseaseKey: string; label: string; cautionText: string; avoidKeywords: string[]; sourceUrl: string | null }[]
-  unknownDiseases: string[]; notices: string[]
+  notices: string[]
 }
 
 export interface RecordInput {
@@ -104,9 +104,8 @@ export interface Consultation {
   id: number; dogId: number; question: string; emergency: boolean; urgency: Urgency; urgencyLabel: string
   visitVet: boolean; crossChecked: boolean; answeredCount: number; totalModels: number; summary: string[]
   notices: string[]; answers: ConsultAnswer[]; createdBy: number; createdAt: string
-  contextLines: string[]; archivedAt: string | null
 }
-export interface ConsultItem { id: number; question: string; urgency: Urgency; urgencyLabel: string; emergency: boolean; visitVet: boolean; createdAt: string; archivedAt: string | null }
+export interface ConsultItem { id: number; question: string; urgency: Urgency; urgencyLabel: string; emergency: boolean; visitVet: boolean; createdAt: string }
 
 export interface CourseStop {
   seq: number; placeId: number; name: string; category: PlaceCategory; categoryLabel: string
@@ -115,7 +114,7 @@ export interface CourseStop {
 export interface Course {
   id: number; dogId: number; stops: CourseStop[]; legs: { from: number; to: number; distanceM: number; minutes: number }[]
   startToFirstM: number; totalDistanceM: number; totalMinutes: number; reasons: string[]
-  visitedAt: string | null; savedAt: string | null; createdBy: number; createdAt: string
+  visitedAt: string | null; createdBy: number; createdAt: string
 }
 
 export interface ReportRow { date: string; category: string; memo: string; by: string | null }

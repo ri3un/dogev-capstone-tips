@@ -76,7 +76,7 @@ export default function HomePage() {
   const weekday = ['일', '월', '화', '수', '목', '금', '토'][new Date(`${today}T00:00:00`).getDay()]
   const dateLabel = `${Number(today.slice(5, 7))}월 ${Number(today.slice(8, 10))}일 (${weekday})`
 
-  // 한 줄 입력: 기록 입력 화면이 글을 받아 바로 저장 (질문이면 AI 상담도 함께)
+  // 한 줄 기록: 기록 입력 화면이 글을 받아 바로 기록 후보로 바꿈
   const submitMemo = () => memo.trim() && navigate('/records/new', { state: { text: memo.trim() } })
 
   // 빈 아이콘을 누르면 오늘 기록 1건 저장 (가족 모두에게 보임)
@@ -121,7 +121,7 @@ export default function HomePage() {
           <div className="flex items-center justify-center gap-4">
             <Photo src={dog.photoUrl ?? undefined} alt={`${dog.name} 사진`} dog className="h-14 w-14 shrink-0 rounded-full ring-1 ring-primary-container ring-offset-2" />
             <h1 className="text-[22px] font-bold tracking-tight">
-              {dog.name}, 오늘은 뭘 했나요? <span className="text-primary-container">기록하고 물어보세요.</span>
+              {dog.name}, 오늘은 뭘 했나요? <span className="text-primary-container">한 줄이면 기록이 돼요.</span>
             </h1>
           </div>
           <form
@@ -140,12 +140,12 @@ export default function HomePage() {
               <input
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
-                placeholder="예: 산책 20분 했어 / 포도 먹어도 돼요?"
+                placeholder="예: 아침에 사료 반만 먹고 산책 20분 했어"
                 className="mt-1 w-full bg-transparent text-body-lg placeholder:text-outline focus:outline-none"
               />
             </label>
             <button type="submit" disabled={!memo.trim()} className="shrink-0 rounded-md bg-primary-container px-6 py-3.5 text-label-lg font-bold text-on-primary transition-colors hover:bg-primary disabled:opacity-50">
-              기록·질문하기
+              기록으로 바꾸기
             </button>
           </form>
         </div>
@@ -154,7 +154,7 @@ export default function HomePage() {
       {/* 2. 바로가기 */}
       <nav aria-label="바로가기" className="mx-auto grid w-full max-w-[1080px] grid-cols-3 gap-y-6 px-5 py-8 text-center sm:grid-cols-6">
         {SHORTCUTS.map(({ to, label, icon }) => (
-          <Link key={to} to={to} className="kk-hop flex flex-col items-center gap-2 text-label-lg font-medium transition-colors hover:text-primary-container">
+          <Link key={to} to={to} className="flex flex-col items-center gap-2 text-label-lg font-medium transition-colors hover:text-primary-container [&:hover_.kk-icon]:-translate-y-0.5">
             <span className="flex h-10 items-center justify-center">
               {icon === 'bone' ? <BoneIcon className="h-10 w-10" /> : <Icon name={icon} className="text-[36px]! font-light" />}
             </span>
@@ -220,7 +220,7 @@ export default function HomePage() {
             <h2 className="text-body-lg font-bold">오늘 권장량</h2>
             <div className="flex divide-x divide-outline-variant">
               <div className="flex-1 pr-4">
-                <div className="text-[22px] leading-tight font-bold">{nutrition ? `약 ${nutrition.foodGrams}g` : '-'}</div>
+                <div className="text-[22px] leading-tight font-bold">{nutrition ? (nutrition.foodGrams ? `${nutrition.foodGrams}g` : `${nutrition.derKcal}kcal`) : '-'}</div>
                 <div className="text-label-md text-outline">사료</div>
               </div>
               <div className="flex-1 pl-4">

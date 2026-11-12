@@ -9,7 +9,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.util.List;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -41,24 +40,11 @@ public class FoodGuide extends BaseTimeEntity {
     @Column(name = "source_url", length = 300)
     private String sourceUrl;
 
-    /** 이 음식을 조금만 줘야 하는 지병 키(DiseaseGuide.diseaseKey), 콤마 구분. 예: "OBESITY" */
-    @Column(name = "avoid_diseases", length = 100)
-    private String avoidDiseases;
-
     public FoodGuide(String name, FoodType type, String reason, String howToFeed, String sourceUrl) {
         this.name = name;
         this.type = type;
         this.reason = reason;
         this.howToFeed = howToFeed;
         this.sourceUrl = sourceUrl;
-    }
-
-    public FoodGuide avoidFor(String diseaseKeys) {
-        this.avoidDiseases = diseaseKeys;
-        return this;
-    }
-
-    public List<String> avoidDiseaseKeys() {
-        return avoidDiseases == null || avoidDiseases.isBlank() ? List.of() : List.of(avoidDiseases.split(","));
     }
 }
