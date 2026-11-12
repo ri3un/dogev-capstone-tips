@@ -44,6 +44,11 @@ public class CourseController {
         return ApiResponse.ok(courseService.complete(me.id(), courseId));
     }
 
+    @PostMapping("/api/courses/{courseId}/save")
+    public ApiResponse<CourseDtos.Response> save(@AuthenticationPrincipal LoginMember me, @PathVariable Long courseId) {
+        return ApiResponse.ok(courseService.save(me.id(), courseId));
+    }
+
     @DeleteMapping("/api/courses/{courseId}")
     public ApiResponse<Void> delete(@AuthenticationPrincipal LoginMember me, @PathVariable Long courseId) {
         courseService.delete(me.id(), courseId);

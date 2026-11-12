@@ -115,7 +115,7 @@ export interface CourseStop {
 export interface Course {
   id: number; dogId: number; stops: CourseStop[]; legs: { from: number; to: number; distanceM: number; minutes: number }[]
   startToFirstM: number; totalDistanceM: number; totalMinutes: number; reasons: string[]
-  visitedAt: string | null; createdBy: number; createdAt: string
+  visitedAt: string | null; savedAt: string | null; createdBy: number; createdAt: string
 }
 
 export interface ReportRow { date: string; category: string; memo: string; by: string | null }

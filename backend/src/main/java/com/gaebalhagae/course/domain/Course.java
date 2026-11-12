@@ -46,6 +46,10 @@ public class Course extends BaseTimeEntity {
     @Column(name = "visited_at")
     private LocalDateTime visitedAt;
 
+    /** "코스 저장하기"를 누른 시각. 비어 있으면 다시 추천 때 바뀌는 임시 코스 */
+    @Column(name = "saved_at")
+    private LocalDateTime savedAt;
+
     public Course(Long createdBy, Long dogId, int startToFirstM, int totalDistanceM, int totalMinutes,
                   String reasonText) {
         this.createdBy = createdBy;
@@ -58,5 +62,17 @@ public class Course extends BaseTimeEntity {
 
     public void markVisited(LocalDateTime at) {
         this.visitedAt = at;
+        markSaved(at);
+    }
+
+    public void markSaved(LocalDateTime at) {
+        if (savedAt == null) {
+            savedAt = at;
+        }
+    }
+
+    /** 저장도 안 하고 다녀오지도 않은 코스 */
+    public boolean isDraft() {
+        return savedAt == null && visitedAt == null;
     }
 }
