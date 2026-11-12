@@ -2,8 +2,10 @@ package com.gaebalhagae.course.repository;
 
 import com.gaebalhagae.course.domain.Course;
 import jakarta.persistence.LockModeType;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -19,6 +21,11 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Course c where c.id = :id")
     Optional<Course> findByIdForUpdate(@Param("id") Long id);
+
+    /** 정리 대상: 저장도 안 하고 다녀오지도 않은 채 cutoff 전에 만든 임시 코스 */
+    @Query("select c.id from Course c where c.savedAt is null and c.visitedAt is null and c.createdAt < :cutoff"
+            + " order by c.id")
+    List<Long> findDraftIdsBefore(@Param("cutoff") LocalDateTime cutoff, Pageable page);
 
     @Modifying
     @Query("delete from Course c where c.dogId = :dogId")
