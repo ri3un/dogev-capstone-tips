@@ -25,6 +25,7 @@ const TYPE_CHIP: Partial<Record<PlaceCategory, { label: string; icon: string; co
 }
 const ADDABLE: PlaceCategory[] = ['PARK', 'CAFE', 'RESTAURANT']
 const MAX_STOPS = 3 // 서버 CourseDtos.Recommend placeTypes @Size(max = 3)
+const MAX_EXCLUDED = 500 // 서버 excludePlaceIds @Size(max = 500)
 // 코스 화면 테마 칩에서 넘어오면 들를 곳 순서를 미리 채움
 const THEME_ORDER: Record<string, PlaceCategory[]> = {
   light: ['PARK', 'CAFE'],
@@ -47,10 +48,11 @@ export default function CoursePlanPage() {
   const [order, setOrder] = useState<PlaceCategory[]>(() => THEME_ORDER[params.get('theme') ?? ''] ?? THEME_ORDER.light)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [adding, setAdding] = useState(false)
-  // 지금 코스 이전에 보여 준 코스들의 장소. 다시 추천 때 빼고, 조건을 바꾸면 비움
-  const [excluded, setExcluded] = useState<number[]>([])
+  // 지금 코스 이전에 보여 준 코스들의 장소. 다시 추천 때 빼고, 조건(key)이 바뀌면 버림
+  const [shown, setShown] = useState<{ key: string; ids: number[] }>({ key: '', ids: [] })
   const [loading, setLoading] = useState(false)
   const [completing, setCompleting] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const navigate = useNavigate()
   const [naverMap, setNaverMap] = useState<NaverMapInstance | null>(null)
@@ -62,40 +64,43 @@ export default function CoursePlanPage() {
   if (dogLoading) return <PawLoading />
   if (!dog) return <Navigate to="/onboarding" replace />
 
-  // 조건(거리·들를 곳)이 바뀌면 이전 코스 제외 목록도 비웁니다.
-  const changeOrder = (next: PlaceCategory[]) => {
-    setOrder(next)
-    setExcluded([])
-  }
+  // 반려견·거리·들를 곳 중 하나라도 바뀌면 이전 코스 제외 목록은 무효
+  const conditionKey = JSON.stringify([dog.id, distance, order])
+  const excluded = shown.key === conditionKey ? shown.ids : []
+
   // 드래그한 칩을 놓은 자리와 바꿉니다.
   const drop = (to: number) => {
     if (dragIndex === null || dragIndex === to) return
     const next = [...order]
     ;[next[dragIndex], next[to]] = [next[to], next[dragIndex]]
-    changeOrder(next)
+    setOrder(next)
     setDragIndex(null)
   }
 
-  // 다시 추천: 지금까지 보여 준 장소를 빼고, 지금 코스(안 다녀왔으면)를 새 코스로 바꿉니다.
+  // 다시 추천: 지금까지 보여 준 장소를 빼고, 지금 코스가 임시 코스면 서버가 새 코스로 바꿉니다.
   const recommend = async (retry: boolean) => {
     if (!pos || loading) return
     setLoading(true)
     const base = { dogId: dog.id, lat: pos.lat, lng: pos.lng, placeTypes: order, radiusKm: distance, replaceCourseId: retry ? course?.id : undefined }
-    let exclude = retry && course ? [...excluded, ...course.stops.map((s) => s.placeId)] : []
+    // shortcut: 서버 한도(500개)를 넘으면 오래된 것부터 버림
+    let exclude = retry && course ? [...excluded, ...course.stops.map((s) => s.placeId)].slice(-MAX_EXCLUDED) : []
     try {
       let c
+      let exhausted = false
       try {
         c = await courseApi.recommend({ ...base, excludePlaceIds: exclude })
       } catch (e) {
         if ((e as ApiError).code !== 'COURSE_NOT_ENOUGH_PLACES' || !exclude.length) throw e
         // 반경 안 후보를 다 보여 줬으면 처음 코스부터 다시
-        toast('반경 안에 다른 코스가 없어요. 거리를 늘려 보세요')
         exclude = []
+        exhausted = true
         c = await courseApi.recommend(base)
       }
-      setExcluded(exclude)
+      if (exhausted) toast('반경 안에 다른 코스가 없어요. 거리를 늘려 보세요')
+      setShown({ key: conditionKey, ids: exclude })
       setCourse(c)
-      setParams({ courseId: String(c.id) })
+      // 다시 추천은 지운 임시 코스로 뒤로 가지 않게 기록을 바꿔 끼움
+      setParams({ courseId: String(c.id) }, { replace: retry })
     } catch (e) {
       alert((e as { message?: string }).message ?? '코스를 만들지 못했어요. 잠시 후 다시 시도해 주세요')
     } finally {
@@ -117,6 +122,21 @@ export default function CoursePlanPage() {
     }
   }
   const done = !!course?.visitedAt
+
+  // 코스 저장하기: 저장한 코스에 나오고, 다시 추천해도 지워지지 않음
+  const save = async () => {
+    if (!course || course.savedAt || saving) return
+    setSaving(true)
+    try {
+      setCourse(await courseApi.save(course.id))
+      toast('코스를 저장했어요')
+    } catch {
+      alert('코스를 저장하지 못했어요')
+    } finally {
+      setSaving(false)
+    }
+  }
+  const saved = !!course?.savedAt
 
   const removeCourse = async () => {
     if (!course) return
@@ -206,10 +226,7 @@ export default function CoursePlanPage() {
                 <button
                   key={km}
                   type="button"
-                  onClick={() => {
-                    setDistance(km)
-                    setExcluded([])
-                  }}
+                  onClick={() => setDistance(km)}
                   className={`rounded-lg py-2.5 text-center text-label-md transition-all ${
                     distance === km ? 'bg-primary font-bold text-on-primary' : 'text-on-surface-variant hover:text-on-surface'
                   }`}
@@ -244,7 +261,7 @@ export default function CoursePlanPage() {
                       {order.length > 1 && (
                         <button
                           type="button"
-                          onClick={() => changeOrder(order.filter((_, j) => j !== i))}
+                          onClick={() => setOrder(order.filter((_, j) => j !== i))}
                           aria-label={`${i + 1}번째 ${o.label} 빼기`}
                           className="flex shrink-0 items-center text-outline transition-colors hover:text-error"
                         >
@@ -256,7 +273,12 @@ export default function CoursePlanPage() {
                 )
               })}
               {order.length < MAX_STOPS && (
-                <div className="relative">
+                <div
+                  className="relative"
+                  // 메뉴 바깥을 누르거나 Esc 를 누르면 닫힘
+                  onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && setAdding(false)}
+                  onKeyDown={(e) => e.key === 'Escape' && setAdding(false)}
+                >
                   <button
                     type="button"
                     onClick={() => setAdding((v) => !v)}
@@ -273,7 +295,7 @@ export default function CoursePlanPage() {
                           key={t}
                           type="button"
                           onClick={() => {
-                            changeOrder([...order, t])
+                            setOrder([...order, t])
                             setAdding(false)
                           }}
                           className="flex items-center gap-1.5 rounded-md px-3 py-2 text-label-md whitespace-nowrap transition-colors hover:bg-surface-container-low"
@@ -405,6 +427,17 @@ export default function CoursePlanPage() {
                 })}
               </ol>
 
+              <button
+                type="button"
+                onClick={save}
+                disabled={saved || saving}
+                className={`-mb-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-xl border text-label-lg font-bold transition-all active:scale-[0.98] ${
+                  saved ? 'border-tertiary/40 text-tertiary' : 'border-primary-container text-primary hover:bg-surface-container-low'
+                }`}
+              >
+                <Icon name={saved ? 'bookmark_added' : 'bookmark_add'} className="text-[20px]" />
+                {saved ? '저장한 코스예요' : '코스 저장하기'}
+              </button>
               <div className="flex flex-col items-center gap-3 border-t border-surface-container-low pt-5 sm:flex-row">
                 <button
                   type="button"

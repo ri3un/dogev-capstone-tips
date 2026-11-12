@@ -30,9 +30,11 @@ class CourseApiTest extends ApiTestSupport {
                 .andExpect(jsonPath("$.data.legs", hasSize(2)))
                 .andExpect(jsonPath("$.data.totalMinutes").isNumber()), "$.data.id");
 
-        getApi(user, "/api/dogs/{id}/courses", dogId).andExpect(jsonPath("$.data", hasSize(1)));
+        getApi(user, "/api/dogs/{id}/courses", dogId).andExpect(jsonPath("$.data", hasSize(0)));
         postApi(user, "/api/courses/{id}/complete", null, id)
-                .andExpect(jsonPath("$.data.visitedAt").isNotEmpty());
+                .andExpect(jsonPath("$.data.visitedAt").isNotEmpty())
+                .andExpect(jsonPath("$.data.savedAt").isNotEmpty());
+        getApi(user, "/api/dogs/{id}/courses", dogId).andExpect(jsonPath("$.data", hasSize(1)));
         getApi(user, "/api/dogs/{id}/records?category=ACTIVITY", dogId)
                 .andExpect(jsonPath("$.data[0].source").value("COURSE"));
         getApi(login("남"), "/api/courses/{id}", id).andExpect(status().isNotFound());
@@ -75,7 +77,7 @@ class CourseApiTest extends ApiTestSupport {
     }
 
     @Test
-    void 다시_추천은_안_다녀온_코스만_바꾸고_다녀온_코스는_남긴다() throws Exception {
+    void 다시_추천은_임시_코스만_바꾸고_저장하거나_다녀온_코스는_남긴다() throws Exception {
         postApi(login("관리자", true), "/api/admin/places/import", PlaceApiTest.sample());
         String user = login("다인");
         long dogId = createDog(user, "콩이", "4", "2022-01");
@@ -84,12 +86,34 @@ class CourseApiTest extends ApiTestSupport {
         Number second = read(postApi(user, "/api/courses/recommend", retry(dogId, List.of(), first))
                 .andExpect(status().isOk()), "$.data.id");
         getApi(user, "/api/courses/{id}", first).andExpect(status().isNotFound());
+
+        postApi(user, "/api/courses/{id}/save", null, second).andExpect(jsonPath("$.data.savedAt").isNotEmpty());
+        postApi(user, "/api/courses/{id}/save", null, second).andExpect(status().isOk());
         getApi(user, "/api/dogs/{id}/courses", dogId).andExpect(jsonPath("$.data", hasSize(1)));
 
-        postApi(user, "/api/courses/{id}/complete", null, second);
-        postApi(user, "/api/courses/recommend", retry(dogId, List.of(), second)).andExpect(status().isOk());
+        Number third = read(postApi(user, "/api/courses/recommend", retry(dogId, List.of(), second))
+                .andExpect(status().isOk()), "$.data.id");
         getApi(user, "/api/courses/{id}", second).andExpect(status().isOk());
+        getApi(user, "/api/dogs/{id}/courses", dogId).andExpect(jsonPath("$.data", hasSize(1)));
+
+        postApi(user, "/api/courses/{id}/complete", null, third);
+        postApi(user, "/api/courses/recommend", retry(dogId, List.of(), third)).andExpect(status().isOk());
+        getApi(user, "/api/courses/{id}", third).andExpect(status().isOk());
         getApi(user, "/api/dogs/{id}/courses", dogId).andExpect(jsonPath("$.data", hasSize(2)));
+    }
+
+    @Test
+    void 다른_반려견_코스로_다시_추천하면_404() throws Exception {
+        postApi(login("관리자", true), "/api/admin/places/import", PlaceApiTest.sample());
+        String user = login("다인");
+        long dogA = createDog(user, "콩이", "4", "2022-01");
+        long dogB = createDog(user, "팥이", "4", "2022-01");
+        Number bCourse = read(postApi(user, "/api/courses/recommend", body(dogB)), "$.data.id");
+
+        postApi(user, "/api/courses/recommend", retry(dogA, List.of(), bCourse))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("COURSE_NOT_FOUND"));
+        getApi(user, "/api/courses/{id}", bCourse).andExpect(status().isOk());
     }
 
     @Test
@@ -104,6 +128,7 @@ class CourseApiTest extends ApiTestSupport {
         postApi(other, "/api/courses/recommend", retry(otherDog, List.of(), id))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error.code").value("COURSE_NOT_FOUND"));
+        postApi(other, "/api/courses/{id}/save", null, id).andExpect(status().isNotFound());
         getApi(user, "/api/courses/{id}", id).andExpect(status().isOk());
     }
 

@@ -29,7 +29,7 @@ public final class CourseDtos {
 
     public record Response(Long id, Long dogId, List<Stop> stops, List<Leg> legs, int startToFirstM,
                            int totalDistanceM, int totalMinutes, List<String> reasons, LocalDateTime visitedAt,
-                           Long createdBy, LocalDateTime createdAt) {
+                           LocalDateTime savedAt, Long createdBy, LocalDateTime createdAt) {
     }
 
     public record Stop(int seq, Long placeId, String name, PlaceCategory category, String categoryLabel, double lat,
