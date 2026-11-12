@@ -67,12 +67,19 @@ public class CourseService {
                         && "yes".equals(c.conditions().get(ConditionKey.OFF_LEASH_AREA.key()).value())))
                 .toList();
 
+        // 권한 확인은 추천 전에, 삭제는 새 코스를 만든 뒤에 (후보가 없으면 기존 코스 유지)
+        Course replaced = req.replaceCourseId() == null ? null : find(memberId, req.replaceCourseId());
+        List<Long> exclude = req.excludePlaceIds() == null ? List.of() : req.excludePlaceIds();
         int[] radii = req.radiusKm() == null ? RADII_M : new int[]{(int) Math.round(req.radiusKm() * 1000)};
         GreedyCourseBuilder.Plan plan = Arrays.stream(radii)
-                .mapToObj(r -> GreedyCourseBuilder.build(req.lat(), req.lng(), req.placeTypes(), spots, rules, r))
+                .mapToObj(r -> GreedyCourseBuilder.build(req.lat(), req.lng(), req.placeTypes(), spots, rules, r,
+                        exclude))
                 .flatMap(Optional::stream)
                 .findFirst()
                 .orElseThrow(() -> new BusinessException(ErrorCode.COURSE_NOT_ENOUGH_PLACES));
+        if (replaced != null && replaced.getVisitedAt() == null) {
+            remove(replaced);   // 다녀온 코스는 기록이라 남김
+        }
 
         Course course = courseRepository.save(new Course(memberId, dog.getId(), plan.startToFirstM(), plan.totalM(),
                 plan.totalMinutes(), String.join("\n", rules.reasons())));
@@ -114,7 +121,10 @@ public class CourseService {
 
     /** 같은 가족이면 누구나 삭제. "다녀왔어요" 활동 기록은 리포트·상담 근거라 남김 */
     public void delete(Long memberId, Long courseId) {
-        Course c = find(memberId, courseId);
+        remove(find(memberId, courseId));
+    }
+
+    private void remove(Course c) {
         coursePlaceRepository.deleteByCourseId(c.getId());
         courseRepository.delete(c);
     }

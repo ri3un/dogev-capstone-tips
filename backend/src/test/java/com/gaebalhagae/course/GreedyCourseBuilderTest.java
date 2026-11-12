@@ -8,6 +8,7 @@ import com.gaebalhagae.course.service.GreedyCourseBuilder.Spot;
 import com.gaebalhagae.dog.domain.ActivityLevel;
 import com.gaebalhagae.place.domain.PlaceCategory;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class GreedyCourseBuilderTest {
@@ -22,7 +23,7 @@ class GreedyCourseBuilderTest {
     @Test
     void 순서대로_가장_가까운_곳을_잇는다() {
         var plan = GreedyCourseBuilder.build(37.0, 127.0, List.of(PlaceCategory.CAFE, PlaceCategory.PARK),
-                List.of(cafeFar, cafeNear, park, offLeashPark), none, 3000).orElseThrow();
+                List.of(cafeFar, cafeNear, park, offLeashPark), none, 3000, Set.of()).orElseThrow();
 
         assertThat(plan.stops()).extracting(s -> s.spot().placeId()).containsExactly(1L, 3L);
         assertThat(plan.startToFirstM()).isCloseTo(111, org.assertj.core.data.Offset.offset(2));
@@ -32,26 +33,46 @@ class GreedyCourseBuilderTest {
     @Test
     void 반경_밖이거나_후보가_없으면_실패() {
         assertThat(GreedyCourseBuilder.build(37.0, 127.0, List.of(PlaceCategory.RESTAURANT),
-                List.of(cafeNear), none, 3000)).isEmpty();
+                List.of(cafeNear), none, 3000, Set.of())).isEmpty();
         assertThat(GreedyCourseBuilder.build(37.0, 127.0, List.of(PlaceCategory.CAFE),
-                List.of(cafeFar), none, 500)).isEmpty();
+                List.of(cafeFar), none, 500, Set.of())).isEmpty();
     }
 
     @Test
     void 오프리쉬_우선과_제외() {
         CourseRules prefer = CourseRules.of(new CourseRules.Input(36, List.of(), ActivityLevel.HIGH, List.of(), 0));
         assertThat(GreedyCourseBuilder.build(37.0, 127.0, List.of(PlaceCategory.PARK), List.of(park, offLeashPark),
-                prefer, 3000).orElseThrow().stops().get(0).spot().placeId()).isEqualTo(4L);
+                prefer, 3000, Set.of()).orElseThrow().stops().get(0).spot().placeId()).isEqualTo(4L);
 
         CourseRules exclude = CourseRules.of(new CourseRules.Input(36, List.of("JOINT"), null, List.of(), 0));
         assertThat(GreedyCourseBuilder.build(37.0, 127.0, List.of(PlaceCategory.PARK), List.of(offLeashPark),
-                exclude, 3000)).isEmpty();
+                exclude, 3000, Set.of())).isEmpty();
+    }
+
+    @Test
+    void 같은_종류를_반복해도_같은_장소는_한_번만() {
+        var plan = GreedyCourseBuilder.build(37.0, 127.0, List.of(PlaceCategory.PARK, PlaceCategory.PARK, PlaceCategory.CAFE),
+                List.of(park, offLeashPark, cafeNear), none, 3000, Set.of()).orElseThrow();
+
+        assertThat(plan.stops()).extracting(s -> s.spot().placeId()).containsExactly(3L, 4L, 1L);
+        assertThat(GreedyCourseBuilder.build(37.0, 127.0, List.of(PlaceCategory.PARK, PlaceCategory.PARK),
+                List.of(park), none, 3000, Set.of())).isEmpty();
+    }
+
+    @Test
+    void 제외한_장소는_고르지_않는다() {
+        var plan = GreedyCourseBuilder.build(37.0, 127.0, List.of(PlaceCategory.CAFE), List.of(cafeNear, cafeFar),
+                none, 3000, Set.of(1L)).orElseThrow();
+        assertThat(plan.stops()).extracting(s -> s.spot().placeId()).containsExactly(2L);
+
+        assertThat(GreedyCourseBuilder.build(37.0, 127.0, List.of(PlaceCategory.CAFE), List.of(cafeNear, cafeFar),
+                none, 3000, Set.of(1L, 2L))).isEmpty();
     }
 
     @Test
     void 설사_규칙이면_식당_대신_산책로() {
         CourseRules loose = CourseRules.of(new CourseRules.Input(36, List.of(), null, List.of(), 3));
-        var plan = GreedyCourseBuilder.build(37.0, 127.0, List.of(PlaceCategory.RESTAURANT), List.of(park), loose, 3000);
+        var plan = GreedyCourseBuilder.build(37.0, 127.0, List.of(PlaceCategory.RESTAURANT), List.of(park), loose, 3000, Set.of());
         assertThat(plan).isPresent();
     }
 }
