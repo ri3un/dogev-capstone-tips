@@ -85,7 +85,15 @@ export const consultApi = {
 }
 
 export const courseApi = {
-  recommend: (body: { dogId: number; lat: number; lng: number; placeTypes: PlaceCategory[]; radiusKm?: number }) =>
+  recommend: (body: {
+    dogId: number
+    lat: number
+    lng: number
+    placeTypes: PlaceCategory[]
+    radiusKm?: number
+    excludePlaceIds?: number[]
+    replaceCourseId?: number
+  }) =>
     api.post<Course>('/courses/recommend', body),
   get: (id: number) => api.get<Course>(`/courses/${id}`),
   list: (dogId: number) => api.get<Course[]>(`/dogs/${dogId}/courses`),
