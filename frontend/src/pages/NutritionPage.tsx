@@ -117,10 +117,13 @@ export default function NutritionPage() {
           </h2>
           <ul className="flex flex-col divide-y divide-outline-variant/30">
             {avoid.map((f) => (
-              <li key={f.name} className="flex items-center gap-3 py-2.5">
-                <span className={`w-16 shrink-0 rounded-md py-0.5 text-center text-label-sm font-bold ${LEVEL[f.level].cls}`}>{LEVEL[f.level].label}</span>
-                <span className="font-semibold">{f.name}</span>
-                <span className="ml-auto text-right text-label-md text-outline">{f.reason}</span>
+              <li key={f.name} className="flex items-start gap-3 py-3">
+                <span className={`mt-0.5 w-14 shrink-0 rounded-md py-0.5 text-center text-label-sm font-bold ${LEVEL[f.level].cls}`}>{LEVEL[f.level].label}</span>
+                {/* 이름 아래에 이유: 좁은 칸에서도 단어가 끊기지 않게 두 줄로 */}
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="font-semibold">{f.name}</span>
+                  <span className="text-label-md leading-relaxed text-outline">{f.reason}</span>
+                </div>
               </li>
             ))}
           </ul>
