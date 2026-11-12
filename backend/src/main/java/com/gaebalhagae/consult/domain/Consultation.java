@@ -10,7 +10,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -63,23 +62,9 @@ public class Consultation extends BaseTimeEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     private List<String> notices = new ArrayList<>();
 
-    /** 이번 답변에 함께 보낸 최근 14일 기록 집계 (화면 "사용한 내 기록", 90일 정리 때도 남김) */
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "context_lines")
-    private List<String> contextLines = new ArrayList<>();
-
-    /** 90일이 지나 모델별 원문을 지운 시각 (항목 6). null = 원문 보관 중 */
-    @Column(name = "archived_at")
-    private LocalDateTime archivedAt;
-
-    public void archive(LocalDateTime now) {
-        this.archivedAt = now;
-    }
-
     public Consultation(Long dogId, Long createdBy, String question, boolean emergencyFlag, int answeredCount,
                         Urgency urgency, boolean visitVet, boolean crossChecked, List<String> summary,
-                        List<String> notices, List<String> contextLines) {
-        this.contextLines = new ArrayList<>(contextLines);
+                        List<String> notices) {
         this.dogId = dogId;
         this.createdBy = createdBy;
         this.question = question;

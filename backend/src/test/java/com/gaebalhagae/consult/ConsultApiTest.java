@@ -66,30 +66,6 @@ class ConsultApiTest extends ApiTestSupport {
     }
 
     @Test
-    void 최근_14일_기록_집계를_함께_보내고_원문은_보내지_않는다() throws Exception {
-        given(gemini.completeJson(anyString(), anyString())).willReturn(LOW);
-        given(groq.completeJson(anyString(), anyString())).willReturn(LOW);
-        given(openRouter.completeJson(anyString(), anyString())).willReturn(LOW);
-        String token = login("다인");
-        long dogId = createDog(token, "콩이");
-
-        Number noRecord = read(postApi(token, "/api/dogs/{id}/consultations", Map.of("question", "괜찮을까요"), dogId),
-                "$.data.id");
-        getApi(token, "/api/consultations/{id}", noRecord).andExpect(jsonPath("$.data.contextLines", hasSize(0)));
-
-        postApi(token, "/api/dogs/{id}/records", Map.of("category", "SYMPTOM",
-                "recordDate", java.time.LocalDate.now().toString(), "memo", "왼쪽 다리를 절어요"), dogId);
-        postApi(token, "/api/dogs/{id}/consultations", Map.of("question", "병원 가야 하나요"), dogId)
-                .andExpect(jsonPath("$.data.contextLines[0]").value(org.hamcrest.Matchers.startsWith("증상 1회")));
-
-        ArgumentCaptor<String> prompt = ArgumentCaptor.forClass(String.class);
-        verify(groq, org.mockito.Mockito.times(2)).completeJson(anyString(), prompt.capture());
-        assertThat(prompt.getAllValues().get(0)).doesNotContain("최근 14일 기록");
-        assertThat(prompt.getAllValues().get(1)).contains("최근 14일 기록", "증상 1회", "판단은 질문 기준")
-                .doesNotContain("다리를 절어요");
-    }
-
-    @Test
     void 상담_기록을_지우면_목록과_상세에서_사라지고_남은_지울_수_없다() throws Exception {
         given(gemini.completeJson(anyString(), anyString())).willReturn(LOW);
         given(groq.completeJson(anyString(), anyString())).willReturn(HIGH);

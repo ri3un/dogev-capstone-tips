@@ -50,7 +50,6 @@ public class ConsultService {
     private final LlmParallelCaller llm;
     private final ConsultationRepository consultationRepository;
     private final ConsultationAnswerRepository answerRepository;
-    private final RecentContextBuilder recentContext;
     private final TransactionTemplate tx;
     private final ObjectMapper objectMapper;
     private final Clock clock;
@@ -58,8 +57,7 @@ public class ConsultService {
     public ConsultResponses.Detail ask(Long memberId, Long dogId, String question) {
         Dog dog = access.checkDog(memberId, dogId);
         String q = question.strip();
-        List<String> context = recentContext.build(dogId, LocalDate.now(clock));
-        List<Answer<JsonNode>> answers = llm.call(SYSTEM, prompt(dog, q, context), ConsultService::validate);
+        List<Answer<JsonNode>> answers = llm.call(SYSTEM, prompt(dog, q), ConsultService::validate);
 
         List<ConsultAggregator.ModelAnswer> ok = answers.stream().filter(a -> a.status() == Status.OK)
                 .map(a -> toModelAnswer(a.value())).toList();
@@ -71,8 +69,7 @@ public class ConsultService {
 
         Long id = tx.execute(status -> {
             Consultation c = consultationRepository.save(new Consultation(dogId, memberId, q, emergency, ok.size(),
-                    result.urgency(), result.visitVet(), result.crossChecked(), result.summary(), result.notices(),
-                    context));
+                    result.urgency(), result.visitVet(), result.crossChecked(), result.summary(), result.notices()));
             for (Answer<JsonNode> a : answers) {
                 answerRepository.save(new ConsultationAnswer(c.getId(), a.model(), a.status(),
                         a.value() == null ? null : a.value().toString(), a.latencyMs()));
@@ -110,8 +107,7 @@ public class ConsultService {
         return new ConsultResponses.Detail(c.getId(), c.getDogId(), c.getQuestion(), c.isEmergencyFlag(),
                 c.getUrgency(), c.getUrgency().label(), c.isVisitVet(), c.isCrossChecked(), c.getAnsweredCount(),
                 items.size(), List.copyOf(c.getSummary()), List.copyOf(c.getNotices()), items, c.getCreatedBy(),
-                c.getCreatedAt(), c.getContextLines() == null ? List.of() : List.copyOf(c.getContextLines()),
-                c.getArchivedAt());
+                c.getCreatedAt());
     }
 
     @Transactional(readOnly = true)
@@ -119,7 +115,7 @@ public class ConsultService {
         access.checkDog(memberId, dogId);
         return consultationRepository.findByDogIdOrderByIdDesc(dogId).stream()
                 .map(c -> new ConsultResponses.Item(c.getId(), c.getQuestion(), c.getUrgency(), c.getUrgency().label(),
-                        c.isEmergencyFlag(), c.isVisitVet(), c.getCreatedAt(), c.getArchivedAt()))
+                        c.isEmergencyFlag(), c.isVisitVet(), c.getCreatedAt()))
                 .toList();
     }
 
@@ -129,18 +125,15 @@ public class ConsultService {
         consultationRepository.deleteByDogId(event.dogId());
     }
 
-    /** 개인 식별 정보 없이 상담에 필요한 정보만. 최근 기록은 숫자 집계만(원문 없음) */
-    private String prompt(Dog dog, String question, List<String> context) {
+    /** 개인 식별 정보 없이 상담에 필요한 정보만 */
+    private String prompt(Dog dog, String question) {
         int months = dog.ageMonths(LocalDate.now(clock));
-        String info = "반려견 정보: 견종 %s, 나이 %d살 %d개월, 몸무게 %skg(%s), %s, 중성화 %s, 지병 %s, 알레르기 %s".formatted(
-                dog.getBreed(), months / 12, months % 12, dog.getWeightKg().toPlainString(),
+        return """
+                반려견 정보: 견종 %s, 나이 %d살 %d개월, 몸무게 %skg(%s), %s, 중성화 %s, 지병 %s, 알레르기 %s
+                보호자 질문: %s""".formatted(dog.getBreed(), months / 12, months % 12, dog.getWeightKg().toPlainString(),
                 dog.size(), dog.getSex(), dog.isNeutered() ? "함" : "안 함",
                 dog.getDiseases().isEmpty() ? "없음" : String.join(", ", dog.getDiseases()),
-                dog.getAllergies().isEmpty() ? "없음" : String.join(", ", dog.getAllergies()));
-        String recent = context.isEmpty() ? ""
-                : "\n최근 14일 기록:\n- " + String.join("\n- ", context)
-                + "\n기록은 참고용이고 판단은 질문 기준으로 하세요";
-        return info + recent + "\n보호자 질문: " + question;
+                dog.getAllergies().isEmpty() ? "없음" : String.join(", ", dog.getAllergies()), question);
     }
 
     static JsonNode validate(String raw) {

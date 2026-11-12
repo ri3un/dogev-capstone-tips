@@ -2,8 +2,7 @@ import PawLoading from '../components/common/PawLoading'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from '../components/common/toast'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
-import { consultApi, recordApi } from '../api/endpoints'
-import { isQuestion } from '../utils/intent'
+import { recordApi } from '../api/endpoints'
 import { todayStr } from '../api/format'
 import type { RecordCategory, RecordInput, StoolStatus } from '../api/types'
 import Icon from '../components/common/Icon'
@@ -77,23 +76,22 @@ export default function RecordNewPage() {
     kindParam && PARSED_LABEL[kindParam] ? [{ id: 1, kind: kindParam, category: CATEGORY_OF[kindParam], value: '', memo: '' }] : [],
   )
 
-  // 통합 입력: 글은 항상 기록으로 바로 저장(확인 단계 없음, 목록에서 되돌리기). 질문이면 AI 3개 상담도 함께
   const parse = async () => {
     if (!dog || !text.trim()) return
-    const q = text.trim()
     setLoading(true)
     setError('')
-    const consult = isQuestion(q) ? consultApi.ask(dog.id, q).catch(() => null) : null
-    let saved: { ids: number[]; needsCheckIds: number[] } | null = null
     try {
-      const res = await recordApi.parse(dog.id, q, date)
+      const res = await recordApi.parse(dog.id, text.trim(), date)
       const parsed = res.candidates.map(toItem)
       setItems(parsed)
-      setWarning(res.warnings.map((w) => w.message).join(' ')) // 2단계로 넘어갈 때만 보임 (바로 저장이면 따로 안 띄움)
-      if (parsed.length > 0) {
+      setWarning(res.warnings.map((w) => w.message).join(' '))
+      // 경고도 없고 애매한 항목도 없으면 확인 화면 없이 바로 저장
+      if (parsed.length > 0 && res.warnings.length === 0 && !parsed.some((i) => i.needsCheck)) {
         try {
-          const records = await recordApi.batch(dog.id, parsed.map((i) => toInput(i, date)))
-          saved = { ids: records.map((r) => r.id), needsCheckIds: records.filter((_, i) => parsed[i]?.needsCheck).map((r) => r.id) }
+          await recordApi.batch(dog.id, parsed.map((i) => toInput(i, date)))
+          toast(`킁킁, ${parsed.length}개 기록했어요!`)
+          navigate(`/records?date=${date}`)
+          return
         } catch (e) {
           // 저장이 안 되면 확인 화면에서 다시 저장할 수 있게
           setError((e as { message?: string }).message ?? '바로 저장하지 못했어요. 확인하고 다시 저장해 주세요.')
@@ -103,14 +101,6 @@ export default function RecordNewPage() {
       // LLM이 모두 실패(503)해도 직접 입력으로 이어 갈 수 있게
       setItems([])
       setError(`${(e as { message?: string }).message ?? 'AI가 응답하지 않았어요'} 아래에서 항목을 직접 추가해 주세요.`)
-    }
-    const answer = consult && (await consult)
-    if (answer) {
-      toast(saved ? `킁킁, ${saved.ids.length}개 기록하고 AI에게 물어봤어요!` : '킁킁, AI에게 물어봤어요!')
-      return navigate(`/consult/${answer.id}`)
-    }
-    if (saved) {
-      return navigate(`/records?date=${date}`, { state: { savedIds: saved.ids, needsCheckIds: saved.needsCheckIds, text: q } })
     }
     setLoading(false)
     setStep(2)
@@ -195,12 +185,7 @@ export default function RecordNewPage() {
             </button>
           </div>
           {/* AI가 글을 기록으로 나누는 동안 */}
-          {loading && (
-            <PawLoading
-              compact
-              label={`${dog?.name ?? ''} 보호자님! "${text.trim()}"을 저장하도록 하겠습니다 !${isQuestion(text) ? ' AI 3개에게도 물어보는 중이에요…' : ''}`}
-            />
-          )}
+          {loading && <PawLoading compact label="킁킁, 기록으로 정리하는 중이에요…" />}
         </section>
       ) : (
         <section className="flex flex-col gap-4">

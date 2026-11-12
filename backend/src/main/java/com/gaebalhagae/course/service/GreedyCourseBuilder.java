@@ -3,7 +3,6 @@ package com.gaebalhagae.course.service;
 import com.gaebalhagae.global.util.Geo;
 import com.gaebalhagae.place.domain.PlaceCategory;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -29,12 +28,11 @@ public final class GreedyCourseBuilder {
     }
 
     public static Optional<Plan> build(double startLat, double startLng, List<PlaceCategory> order, List<Spot> spots,
-                                       CourseRules rules, int radiusM, Collection<Long> excludePlaceIds) {
+                                       CourseRules rules, int radiusM) {
         double lat = startLat;
         double lng = startLng;
         int total = 0;
-        // 다시 추천: 앞서 보여 준 장소는 처음부터 쓴 것으로 칩니다
-        Set<Long> used = new HashSet<>(excludePlaceIds);
+        Set<Long> used = new HashSet<>();
         List<Stop> stops = new ArrayList<>();
         for (PlaceCategory type : order) {
             List<PlaceCategory> allowed = rules.replaceRestaurant() && type == PlaceCategory.RESTAURANT
