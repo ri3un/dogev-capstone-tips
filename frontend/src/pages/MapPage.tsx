@@ -14,6 +14,7 @@ import { CATEGORY_ICON, CATEGORY_LABEL, FILTERS, VERDICT_BG, VERDICT_LABEL } fro
 import { useApi } from '../hooks/useApi'
 import { useCurrentDog } from '../hooks/useCurrentDog'
 import { useMyLocation } from '../hooks/useMyLocation'
+import { useLiveLocation } from '../hooks/useLiveLocation'
 
 const CATEGORIES: PlaceCategory[] = ['CAFE', 'RESTAURANT', 'PARK']
 const mapBtn = 'flex h-10 w-10 items-center justify-center transition-colors hover:bg-surface-container-low'
@@ -32,6 +33,7 @@ export default function MapPage() {
 
   const { dog, loading } = useCurrentDog()
   const pos = useMyLocation()
+  const live = useLiveLocation()
   const dogId = dog?.id
   const q = keyword.trim()
   const { data, loading: listLoading } = useApi(
@@ -46,7 +48,8 @@ export default function MapPage() {
   const zoomBy = (d: number) => naverMap?.setZoom(naverMap.getZoom() + d, true)
   const toMyLocation = () => {
     const maps = window.naver?.maps
-    if (naverMap && maps && pos) naverMap.panTo(new maps.LatLng(pos.lat, pos.lng))
+    const at = live ?? pos // 실시간 위치가 있으면 그쪽으로
+    if (naverMap && maps && at) naverMap.panTo(new maps.LatLng(at.lat, at.lng))
   }
   const select = (id: number | null) => setParams(id ? { placeId: String(id) } : {})
   const selected = list.find((p) => p.id === selectedId)
