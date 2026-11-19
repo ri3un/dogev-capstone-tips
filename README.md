@@ -1,10 +1,38 @@
 # dogev-capstone-tips
 개발하개🐶
 
-LLM 기반 반려견 건강관리 및 맞춤형 외출 코스 추천 통합 플랫폼 (성결대 컴퓨터공학과 전공종합설계, 3번 팀 "개발하개")
+**킁킁** — LLM 기반 반려견 건강관리 및 맞춤형 외출 코스 추천 통합 플랫폼 (성결대 컴퓨터공학과 전공종합설계, 3번 팀 "개발하개")
 
-- 프로젝트 전체 정리: [졸업작품_통합정리.md](졸업작품_통합정리.md)
 - 주제 제안서: [TopicProposal.md](TopicProposal.md)
+- 결과 발표: 2026-12-17 (AWS EC2 1대에서 시연)
+
+## 주요 기능
+
+- 카카오·네이버 로그인, 반려견 프로필, 가족 그룹 공유(초대 코드)
+- 안양 반려견 동반 장소 지도 (블로그 리뷰 LLM 요약, 장소 수정 요청)
+- 글 → 건강 기록 자동 변환, 위험 음식 경고
+- 무료 LLM 3개(Groq·Gemini·OpenRouter) 교차검증 AI 상담
+- 조건 기반 산책·나들이 코스 추천
+- 건강 기록 PDF 리포트, 맞춤 영양 카드, 수의사 질문 정리
+
+## 실행 방법
+
+**로컬 개발**
+
+```bash
+docker compose -f docker-compose.dev.yml up -d   # MySQL만 실행 (127.0.0.1:3306)
+cd backend && ./gradlew bootRun                  # 백엔드 (local 프로필)
+cd frontend && nvm use && npm install && npm run dev   # 프론트엔드
+```
+
+**배포 (EC2)**
+
+```bash
+# 루트에 .env 작성 후
+docker compose up -d --build   # Nginx(80/443) + Spring Boot + MySQL
+```
+
+`.env`에 넣는 변수: `DB_ROOT_PASSWORD`, `JWT_SECRET`, `FRONT_URL`, `KAKAO_CLIENT_ID/SECRET`, `NAVER_CLIENT_ID/SECRET`, `KAKAO_REST_KEY`, `NAVER_SEARCH_ID/SECRET`, `GROQ_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `VITE_NCP_MAP_KEY_ID`. 실제 값은 커밋하지 않습니다.
 
 ---
 
@@ -20,8 +48,10 @@ LLM 기반 반려견 건강관리 및 맞춤형 외출 코스 추천 통합 플�
 dogev-capstone-tips/
 ├── backend/             # Spring Boot (Java 17, Gradle)
 ├── frontend/            # React + TypeScript (Vite)
+├── nginx/               # Nginx 설정
 ├── docs/                # 기획·설계 문서
-└── docker-compose.yml   # Nginx + Spring Boot + MySQL
+├── docker-compose.yml   # 배포용: Nginx + Spring Boot + MySQL
+└── docker-compose.dev.yml  # 로컬 개발용: MySQL만
 ```
 
 ## 2. 브랜치 규칙
@@ -100,8 +130,8 @@ docs: README에 브랜치 규칙 추가
 
 | 영역 | 버전·도구 |
 | --- | --- |
-| 백엔드 | Java 17, Spring Boot 3.5.x, Gradle, MySQL 8.4 LTS |
-| 프론트엔드 | **Node 24 LTS** (`frontend/.nvmrc`에 고정), React + TypeScript, Vite, Tailwind CSS |
+| 백엔드 | Java 17, Spring Boot 3.5.16, Gradle, MySQL 8.4 LTS, Spring Security + OAuth2 + JWT |
+| 프론트엔드 | **Node 24 LTS** (`frontend/.nvmrc`에 고정), React 19 + TypeScript, Vite 8, Tailwind CSS 4, React Router |
 | 배포 | AWS EC2 1대, Docker Compose |
 
 프론트엔드 작업 전에 `frontend/` 폴더에서 `nvm use`로 Node 버전을 맞춥니다.
@@ -112,7 +142,7 @@ docs: README에 브랜치 규칙 추가
 - 기본키는 `id`
 - 모든 테이블에 `created_at`, `updated_at`
 
-테이블 14개: `member`, `dog`, `health_record`, `vet_question`, `consultation`, `consultation_answer`, `place`, `place_condition`, `place_source`, `place_edit_request`, `course`, `course_place`, `food_guide`, `disease_guide`
+테이블 16개: `member`, `family_group`, `family_member`, `dog`, `health_record`, `vet_question`, `consultation`, `consultation_answer`, `place`, `place_condition`, `place_source`, `place_edit_request`, `course`, `course_place`, `food_guide`, `disease_guide`
 
 ## 8. 일정·작업 관리
 
