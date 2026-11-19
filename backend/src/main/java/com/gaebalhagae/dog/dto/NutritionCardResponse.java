@@ -12,17 +12,21 @@ public record NutritionCardResponse(
         double factor,
         int derKcal,
         Integer foodKcalPerKg,
-        Integer foodGrams,          // 사료 칼로리를 모르면 null
+        int foodGrams,
+        boolean foodGramsEstimated, // 사료 칼로리를 몰라 일반 건사료 3,500kcal/kg 로 계산
+        boolean weightLoss,         // 비만이라 감량 기준 사료량
         int waterMinMl,
         int waterMaxMl,
         List<FoodItem> dangerFoods,
         List<FoodItem> safeFoods,
         List<FoodItem> cautionFoods,
         List<DiseaseItem> diseaseCautions,
+        List<String> unknownDiseases, // 등록된 안내가 없는 자유 입력 지병
         List<String> notices
 ) {
 
-    public record FoodItem(String name, String reason, String howToFeed, String sourceUrl) {
+    /** reasonTag: 원래 먹어도 되는 음식인데 ALLERGY·DISEASE 때문에 주의로 옮겼으면 그 이유, 아니면 null */
+    public record FoodItem(String name, String reason, String howToFeed, String sourceUrl, String reasonTag) {
     }
 
     public record DiseaseItem(String diseaseKey, String label, String cautionText, List<String> avoidKeywords,

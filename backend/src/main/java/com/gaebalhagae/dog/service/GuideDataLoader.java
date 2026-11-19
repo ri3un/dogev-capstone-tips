@@ -9,6 +9,7 @@ import com.gaebalhagae.dog.domain.FoodGuide;
 import com.gaebalhagae.dog.repository.DiseaseGuideRepository;
 import com.gaebalhagae.dog.repository.FoodGuideRepository;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -27,6 +28,9 @@ public class GuideDataLoader implements ApplicationRunner {
 
     static final String ASPCA = "https://www.aspca.org/pet-care/animal-poison-control/people-foods-avoid-feeding-your-pets";
 
+    /** 먹어도 되는 음식 중 지병이 있으면 "주의"로 옮길 음식 → 지병 키 (항목 2, LLM 없이 고정) */
+    static final Map<String, String> AVOID_DISEASES = Map.of("고구마", "OBESITY", "바나나", "OBESITY", "단호박", "OBESITY");
+
     private final FoodGuideRepository foodGuideRepository;
     private final DiseaseGuideRepository diseaseGuideRepository;
 
@@ -37,6 +41,10 @@ public class GuideDataLoader implements ApplicationRunner {
             foodGuideRepository.saveAll(foods());
             log.info("food_guide 고정 데이터 {}건 적재", foodGuideRepository.count());
         }
+        // 지병 키 열은 11/11 추가: 이미 데이터가 있는 DB 도 채움
+        foodGuideRepository.findAll().stream()
+                .filter(f -> f.getAvoidDiseases() == null && AVOID_DISEASES.containsKey(f.getName()))
+                .forEach(f -> f.avoidFor(AVOID_DISEASES.get(f.getName())));
         if (diseaseGuideRepository.count() == 0) {
             diseaseGuideRepository.saveAll(diseases());
         }

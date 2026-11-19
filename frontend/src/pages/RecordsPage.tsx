@@ -1,8 +1,9 @@
 import PawLoading from '../components/common/PawLoading'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BoneIcon } from '../components/common/Paw'
 import EmptyState from '../components/common/EmptyState'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { toast } from '../components/common/toast'
 import { recordApi } from '../api/endpoints'
 import { addDays, localDate, todayStr } from '../api/format'
 import type { HealthRecord, RecordCategory } from '../api/types'
@@ -73,6 +74,8 @@ function weightPath(points: { weightKg: number }[]) {
 // 건강 기록: 월 캘린더 + 일별 상세 (Stitch 06-records)
 export default function RecordsPage() {
   const [params] = useSearchParams()
+  const location = useLocation()
+  const navigate = useNavigate()
   const initial = params.get('date') ?? todayStr()
   const [month, setMonth] = useState(() => new Date(`${initial.slice(0, 7)}-01T00:00:00`))
   const [selected, setSelected] = useState<string | null>(initial)
@@ -95,6 +98,26 @@ export default function RecordsPage() {
     } finally {
       setDeleting(null)
     }
+  }
+
+  // 통합 입력에서 바로 저장하고 넘어오면: 안내 바 + 되돌리기 (방금 저장한 id 들 삭제)
+  const [justSaved, setJustSaved] = useState(() => location.state as { savedIds: number[]; needsCheckIds: number[]; text: string } | null)
+  useEffect(() => {
+    // 새로고침·뒤로 가기 때 안내 바가 다시 뜨지 않게 한 번 읽고 비움
+    if (location.state) navigate(location.pathname + location.search, { replace: true, state: null })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const undoSaved = async () => {
+    if (!justSaved) return
+    try {
+      await Promise.all(justSaved.savedIds.map((id) => recordApi.remove(id)))
+      setRecords((records ?? []).filter((x) => !justSaved.savedIds.includes(x.id)))
+      reloadWeights()
+      toast('방금 저장한 기록을 되돌렸어요')
+    } catch {
+      alert('되돌리지 못했어요. 목록에서 하나씩 지워 주세요')
+    }
+    setJustSaved(null)
   }
 
   const moveMonth = (d: number) => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + d))
@@ -155,6 +178,29 @@ export default function RecordsPage() {
           ))}
         </div>
       </div>
+
+      {justSaved && (
+        <div role="status" className={`${card} mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3.5`}>
+          <Icon name="check_circle" className="text-[22px] text-status-ok" />
+          <p className="font-semibold">기록 {justSaved.savedIds.length}개를 저장했어요</p>
+          <button type="button" onClick={undoSaved} className="text-label-lg font-bold text-primary hover:underline">
+            되돌리기
+          </button>
+          {justSaved.needsCheckIds.length > 0 && (
+            <span className="text-label-md text-status-check">값을 못 읽은 항목 {justSaved.needsCheckIds.length}개 → 아래 '확인 필요' 기록을 지우고 다시 적어 주세요</span>
+          )}
+          <button
+            type="button"
+            onClick={() => navigate('/consult', { state: { question: justSaved.text } })}
+            className="text-label-md text-on-surface-variant hover:text-primary hover:underline"
+          >
+            AI에게 물어보기 →
+          </button>
+          <button type="button" aria-label="안내 닫기" onClick={() => setJustSaved(null)} className="ml-auto text-outline hover:text-on-surface">
+            <Icon name="close" className="text-[18px]" />
+          </button>
+        </div>
+      )}
 
       {/* 체중 카드 */}
       <div className={`${card} mb-6 p-5 transition-all hover:shadow-[0_8px_28px_-4px_rgba(74,52,38,0.08)]`}>
@@ -327,7 +373,10 @@ export default function RecordsPage() {
                   const kind = KIND_OF[r.category]
                   const author = r.createdByNickname ?? '가족'
                   return (
-                    <div key={r.id} className="flex flex-col gap-2 rounded-xl bg-surface p-3.5 transition-all hover:bg-surface-container-low/70">
+                    <div key={r.id} className={`flex flex-col gap-2 rounded-xl bg-surface p-3.5 transition-all hover:bg-surface-container-low/70 ${justSaved?.savedIds.includes(r.id) ? 'ring-2 ring-primary-container' : ''}`}>
+                      {justSaved?.needsCheckIds.includes(r.id) && (
+                        <span className="w-fit rounded-md bg-status-check px-2 py-0.5 text-label-sm font-bold text-white">확인 필요</span>
+                      )}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-label-sm font-semibold ${KIND_BADGE[kind]}`}>

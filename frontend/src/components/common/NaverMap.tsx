@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { FALLBACK_LOCATION } from '../../hooks/useMyLocation'
+import { useLiveLocation } from '../../hooks/useLiveLocation'
 
 // 네이버 지도 JS SDK v3 중 여기서 쓰는 것만 적은 타입 (공식 타입 패키지를 따로 넣지 않으려고)
 type LatLng = object
@@ -15,12 +16,21 @@ export interface NaverMapInstance {
 interface Overlay {
   setMap(map: NaverMapInstance | null): void
 }
+interface PositionedOverlay extends Overlay {
+  setPosition(p: LatLng): void
+}
+interface CircleOverlay extends Overlay {
+  setCenter(p: LatLng): void
+  setRadius(m: number): void
+  setVisible(v: boolean): void
+}
 interface NaverMapsApi {
   Map: new (el: HTMLElement, options: object) => NaverMapInstance
   LatLng: new (lat: number, lng: number) => LatLng
   LatLngBounds: new (sw: LatLng, ne: LatLng) => { extend(p: LatLng): void }
   Point: new (x: number, y: number) => object
-  Marker: new (options: object) => Overlay
+  Marker: new (options: object) => PositionedOverlay
+  Circle: new (options: object) => CircleOverlay
   Polyline: new (options: object) => Overlay
 }
 declare global {
@@ -62,6 +72,12 @@ export interface MapPin {
 }
 type Point = { lat: number; lng: number }
 
+// 네이버 지도처럼 흰 테두리 파란 점 (마커 content 는 React 밖이라 인라인 스타일)
+const MY_DOT_HTML =
+  '<div style="width:16px;height:16px;transform:translate(-50%,-50%);border-radius:9999px;background:#1E6FFF;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>'
+const MY_BLUE = '#1E6FFF'
+const MAX_ACCURACY_M = 500 // 이보다 부정확하면 반경 원은 숨김 (데스크톱은 수 km 오차도 있어서)
+
 /**
  * 네이버 지도 + React 핀. pins 는 지도 마커 안에 portal 로 그려서 화면의 핀 디자인을 그대로 씀.
  * fitKey 가 바뀔 때마다 pins·path 가 다 보이게 지도를 맞춤.
@@ -72,12 +88,14 @@ export default function NaverMap({
   fitKey,
   className,
   onReady,
+  showMyLocation = true,
 }: {
   pins: MapPin[]
   path?: Point[]
   fitKey?: string
   className?: string
   onReady?: (map: NaverMapInstance) => void
+  showMyLocation?: boolean
 }) {
   const boxRef = useRef<HTMLDivElement>(null)
   const [map, setMap] = useState<NaverMapInstance | null>(null)
@@ -155,6 +173,33 @@ export default function NaverMap({
     return () => lines.forEach((l) => l.setMap(null))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, pathKey])
+
+  // 내 위치: 점·반경 원은 한 번만 만들고, 위치가 바뀌면 옮기기만 함
+  const me = useLiveLocation()
+  const meRef = useRef<{ dot: PositionedOverlay; circle: CircleOverlay } | null>(null)
+  const hasMe = showMyLocation && me !== null
+  useEffect(() => {
+    const maps = window.naver?.maps
+    if (!map || !maps || !hasMe) return
+    const at = new maps.LatLng(0, 0)
+    const circle = new maps.Circle({ map, center: at, radius: 0, fillColor: MY_BLUE, fillOpacity: 0.12, strokeColor: MY_BLUE, strokeOpacity: 0.3, strokeWeight: 1, clickable: false })
+    const dot = new maps.Marker({ map, position: at, zIndex: 1000, clickable: false, icon: { content: MY_DOT_HTML, anchor: new maps.Point(0, 0) } })
+    meRef.current = { dot, circle }
+    return () => {
+      dot.setMap(null)
+      circle.setMap(null)
+      meRef.current = null
+    }
+  }, [map, hasMe])
+  useEffect(() => {
+    const maps = window.naver?.maps
+    if (!maps || !me || !meRef.current) return
+    const at = new maps.LatLng(me.lat, me.lng)
+    meRef.current.dot.setPosition(at)
+    meRef.current.circle.setCenter(at)
+    meRef.current.circle.setRadius(me.accuracy)
+    meRef.current.circle.setVisible(me.accuracy <= MAX_ACCURACY_M)
+  }, [me, hasMe, map])
 
   // fitKey 가 바뀌면 핀·경로가 다 보이게
   useEffect(() => {

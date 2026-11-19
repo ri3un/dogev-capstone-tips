@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { Link, Navigate } from 'react-router'
+import ConfirmModal from '../components/common/ConfirmModal'
+import { toast } from '../components/common/toast'
 import EmptyState from '../components/common/EmptyState'
 import PawLoading from '../components/common/PawLoading'
 import { courseApi, familyApi } from '../api/endpoints'
@@ -11,8 +14,20 @@ import { useCurrentDog } from '../hooks/useCurrentDog'
 export default function CoursesPage() {
   const { dog, loading } = useCurrentDog()
   const dogId = dog?.id
-  const { data: courses, loading: listLoading } = useApi(() => (dogId ? courseApi.list(dogId) : null), [dogId])
+  const { data: courses, setData: setCourses, loading: listLoading } = useApi(() => (dogId ? courseApi.list(dogId) : null), [dogId])
   const { data: family } = useApi(() => familyApi.get(), [])
+  const [deleting, setDeleting] = useState<number | null>(null)
+  const remove = async (id: number) => {
+    try {
+      await courseApi.remove(id)
+      setCourses((list) => list?.filter((c) => c.id !== id) ?? list)
+      toast('코스를 삭제했어요')
+    } catch {
+      alert('코스를 삭제하지 못했어요')
+    } finally {
+      setDeleting(null)
+    }
+  }
   if (loading) return <PawLoading />
   if (!dog) return <Navigate to="/onboarding" replace />
 
@@ -57,10 +72,31 @@ export default function CoursesPage() {
               ) : (
                 <span className="shrink-0 rounded-md bg-surface-container px-2.5 py-0.5 text-label-sm text-on-surface-variant">아직 안 감</span>
               )}
+              <button
+                type="button"
+                aria-label="코스 삭제"
+                onClick={(e) => {
+                  e.preventDefault() // 링크(코스 상세)로 넘어가지 않게
+                  setDeleting(c.id)
+                }}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-outline transition-colors hover:bg-surface-container hover:text-error"
+              >
+                <Icon name="delete" className="text-[18px]" />
+              </button>
             </Link>
           </li>
         ))}
       </ul>
+      {deleting && (
+        <ConfirmModal
+          title="이 코스를 삭제할까요?"
+          body="가족 모두의 저장한 코스에서 사라지고 되돌릴 수 없어요. 다녀온 산책 기록은 남아요."
+          confirmLabel="삭제"
+          danger
+          onConfirm={() => remove(deleting)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
     </div>
   )
 }
