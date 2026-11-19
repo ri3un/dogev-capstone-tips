@@ -2,6 +2,7 @@ package com.gaebalhagae.course;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Clock;
 import com.gaebalhagae.course.domain.Course;
 import com.gaebalhagae.course.domain.CoursePlace;
 import com.gaebalhagae.course.repository.CoursePlaceRepository;
@@ -14,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 class CourseDraftCleanupJobTest extends ApiTestSupport {
-
+    @Autowired Clock clock;
     @Autowired
     private CourseDraftCleanupJob job;
     @Autowired
@@ -27,15 +28,15 @@ class CourseDraftCleanupJobTest extends ApiTestSupport {
     private Long course(long dogId, int hoursAgo, boolean saved, boolean visited) {
         Course c = new Course(1L, dogId, 100, 300, 5, null);
         if (saved) {
-            c.markSaved(LocalDateTime.now());
+            c.markSaved(LocalDateTime.now(clock));
         }
         if (visited) {
-            c.markVisited(LocalDateTime.now());
+            c.markVisited(LocalDateTime.now(clock));
         }
         c = courses.save(c);
         coursePlaces.save(new CoursePlace(c.getId(), 1L, 1, 100, 2));
         courses.flush();
-        jdbc.update("update course set created_at = ? where id = ?", LocalDateTime.now().minusHours(hoursAgo),
+        jdbc.update("update course set created_at = ? where id = ?", LocalDateTime.now(clock).minusHours(hoursAgo),
                 c.getId());
         return c.getId();
     }
