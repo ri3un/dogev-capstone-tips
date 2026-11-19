@@ -239,36 +239,32 @@ export default function CoursePlanPage() {
 
           <div className="flex flex-col gap-2.5">
             <Label icon="alt_route" text="들를 곳 순서" hint={`최대 ${MAX_STOPS}곳 · 드래그하여 순서 변경`} />
-            <div className="flex flex-wrap items-center gap-2 rounded-xl bg-surface-container-low/70 p-3">
+            {/* 좁은 칸에서도 이름이 잘리지 않게 3칸 격자 + 세로 카드로 배치 (번호가 순서를 나타냄) */}
+            <div className="grid grid-cols-3 gap-2 rounded-xl bg-surface-container-low/70 p-3">
               {order.map((t, i) => {
                 const o = TYPE_CHIP[t] ?? TYPE_CHIP.PARK!
                 return (
-                  <div key={i} className="contents">
-                    {i > 0 && <Icon name="trending_flat" className="text-[18px] text-primary" />}
-                    <div
-                      draggable
-                      onDragStart={() => setDragIndex(i)}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => drop(i)}
-                      className="group flex min-w-0 flex-1 cursor-grab items-center justify-between gap-1 rounded-lg bg-surface-container-lowest px-2.5 py-2 shadow-sm transition-all hover:bg-surface-bright active:cursor-grabbing"
-                    >
-                      <div className="flex min-w-0 items-center gap-1">
-                        <Icon name={o.icon} className={`text-[16px] ${o.color}`} />
-                        <span className="truncate text-label-md font-bold">
-                          {i + 1} {o.label}
-                        </span>
-                      </div>
-                      {order.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => setOrder(order.filter((_, j) => j !== i))}
-                          aria-label={`${i + 1}번째 ${o.label} 빼기`}
-                          className="flex shrink-0 items-center text-outline transition-colors hover:text-error"
-                        >
-                          <Icon name="close" className="text-[16px]" />
-                        </button>
-                      )}
-                    </div>
+                  <div
+                    key={i}
+                    draggable
+                    onDragStart={() => setDragIndex(i)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => drop(i)}
+                    className="group relative flex min-h-[64px] min-w-0 cursor-grab flex-col items-center justify-center gap-1 rounded-lg bg-surface-container-lowest px-2 pt-3 pb-2 shadow-sm transition-all hover:bg-surface-bright active:cursor-grabbing"
+                  >
+                    <span className="absolute top-1.5 left-2 text-[11px] leading-none font-bold text-primary">{i + 1}</span>
+                    <Icon name={o.icon} className={`text-[20px] ${o.color}`} />
+                    <span className="max-w-full truncate text-label-md font-bold">{o.label}</span>
+                    {order.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setOrder(order.filter((_, j) => j !== i))}
+                        aria-label={`${i + 1}번째 ${o.label} 빼기`}
+                        className="absolute top-1 right-1 flex items-center rounded-full p-0.5 text-outline transition-colors hover:text-error"
+                      >
+                        <Icon name="close" className="text-[14px]" />
+                      </button>
+                    )}
                   </div>
                 )
               })}
@@ -284,9 +280,10 @@ export default function CoursePlanPage() {
                     onClick={() => setAdding((v) => !v)}
                     aria-label="들를 곳 추가"
                     aria-expanded={adding}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-dashed border-outline-variant text-primary transition-colors hover:bg-surface-container-lowest"
+                    className="flex h-full min-h-[64px] w-full flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-outline-variant text-primary transition-colors hover:bg-surface-container-lowest"
                   >
                     <Icon name="add" className="text-[18px]" />
+                    <span className="text-[11px] font-bold">추가</span>
                   </button>
                   {adding && (
                     <div className="absolute top-full right-0 z-10 mt-1 flex flex-col rounded-lg bg-surface-container-lowest p-1 shadow-md">
