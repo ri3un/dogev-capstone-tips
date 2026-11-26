@@ -55,7 +55,7 @@ export default function OnboardingPage() {
               aria-label="초대 코드"
               className={`${input} font-mono tracking-[0.2em]`}
             />
-            <button type="submit" disabled={!valid} className={`${primaryBtn} h-12 shrink-0 px-5 whitespace-nowrap`}>
+            <button type="submit" disabled={!valid} className={`${primaryBtn} h-12 px-5`}>
               참여
             </button>
           </div>

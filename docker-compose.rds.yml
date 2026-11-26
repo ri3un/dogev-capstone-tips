@@ -26,7 +26,9 @@ services:
     restart: unless-stopped
     ports: ["80:80", "443:443"]
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # HTTPS 설정 + 호스트의 Let's Encrypt 인증서(certbot standalone 발급)
+      - ./nginx/nginx.https.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
       - uploads:/data/uploads:ro
     depends_on: [backend]
 
