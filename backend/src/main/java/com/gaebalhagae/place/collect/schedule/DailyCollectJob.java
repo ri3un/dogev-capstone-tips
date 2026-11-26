@@ -6,6 +6,8 @@ import com.gaebalhagae.place.collect.CollectedPlaceStore;
 import com.gaebalhagae.place.collect.PlaceCollectService;
 import com.gaebalhagae.place.domain.PlaceCategory;
 import com.gaebalhagae.place.dto.PlaceImportRequest;
+import com.gaebalhagae.place.review.ConditionKey;
+import com.gaebalhagae.place.review.ConditionResult;
 import com.gaebalhagae.place.review.ReviewSummary;
 import com.gaebalhagae.place.review.ReviewSummaryService;
 import com.gaebalhagae.place.service.PlaceImportService;
@@ -14,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -144,8 +147,16 @@ public class DailyCollectJob {
             jobStore.saveState(new CollectJobStore.State(q.nextCursor(), rounds, retryAfter));
 
             // ③ 애견동반이 확인된 곳만 DB 에 반영 (카카오 결과엔 일반 카페도 섞임. import 는 kakaoId 기준 생성·갱신)
+            // 공원·산책로는 목줄만 하면 출입 가능한 공공장소라 블로그 확인 없이 넣음 (2026-11-26)
             List<ReviewSummary> confirmed = places.stream().map(CollectedPlace::name).distinct()
-                    .map(summaryFor).filter(Objects::nonNull).filter(summaries::isConfirmed).toList();
+                    .map(name -> {
+                        ReviewSummary s = summaryFor.apply(name);
+                        if (s != null && summaries.isConfirmed(s)) {
+                            return s;
+                        }
+                        return categoryOf.get(name) == PlaceCategory.PARK ? parkDefault(name, s) : null;
+                    })
+                    .filter(Objects::nonNull).toList();
             Set<String> confirmedNames = confirmed.stream().map(ReviewSummary::placeName).collect(Collectors.toSet());
             List<CollectedPlace> confirmedPlaces = places.stream().filter(p -> confirmedNames.contains(p.name())).toList();
             PlaceImportRequest.Result imported = importer.importData(new PlaceImportRequest(confirmedPlaces, confirmed));
@@ -164,6 +175,23 @@ public class DailyCollectJob {
         } finally {
             running.set(false);
         }
+    }
+
+    /** 블로그로 확인 못 한 공원: 기존 요약은 살리고 목줄 조건이 비어 있으면 "목줄 필수"로 채움 */
+    static ReviewSummary parkDefault(String name, ReviewSummary s) {
+        Map<String, ConditionResult> conditions = new LinkedHashMap<>(
+                s == null || s.conditions() == null ? Map.of() : s.conditions());
+        String leash = ConditionKey.LEASH_REQUIRED.key();
+        ConditionResult current = conditions.get(leash);
+        if (current == null || !ConditionKey.LEASH_REQUIRED.isKnownValue(current.value())) {
+            conditions.put(leash, new ConditionResult("yes", null, 0, 0, List.of()));
+        }
+        if (s == null) {
+            return new ReviewSummary(name, List.of(), List.of(), conditions, List.of(), 0, List.of(), "park-default",
+                    null);
+        }
+        return new ReviewSummary(name, s.summary(), s.keywords(), conditions, s.mood(), s.sourceCount(),
+                s.sourceUrls(), s.model(), s.summarizedAt());
     }
 
     private void pause() {
