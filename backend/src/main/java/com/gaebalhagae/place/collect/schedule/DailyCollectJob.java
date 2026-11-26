@@ -147,14 +147,16 @@ public class DailyCollectJob {
             jobStore.saveState(new CollectJobStore.State(q.nextCursor(), rounds, retryAfter));
 
             // ③ 애견동반이 확인된 곳만 DB 에 반영 (카카오 결과엔 일반 카페도 섞임. import 는 kakaoId 기준 생성·갱신)
-            // 공원·산책로는 목줄만 하면 출입 가능한 공공장소라 블로그 확인 없이 넣음 (2026-11-26)
+            // 공원·산책로는 목줄만 하면 출입 가능한 공공장소라 블로그 5건 기준 없이 넣음 (2026-11-26)
             List<ReviewSummary> confirmed = places.stream().map(CollectedPlace::name).distinct()
                     .map(name -> {
                         ReviewSummary s = summaryFor.apply(name);
                         if (s != null && summaries.isConfirmed(s)) {
                             return s;
                         }
-                        return categoryOf.get(name) == PlaceCategory.PARK ? parkDefault(name, s) : null;
+                        // 블로그 후기가 한 건도 없는 공원은 넣지 않음 (2026-11-26)
+                        return categoryOf.get(name) == PlaceCategory.PARK && s != null && s.sourceCount() > 0
+                                ? parkDefault(name, s) : null;
                     })
                     .filter(Objects::nonNull).toList();
             Set<String> confirmedNames = confirmed.stream().map(ReviewSummary::placeName).collect(Collectors.toSet());
