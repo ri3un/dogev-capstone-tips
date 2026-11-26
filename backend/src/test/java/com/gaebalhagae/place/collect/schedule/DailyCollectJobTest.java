@@ -129,16 +129,23 @@ class DailyCollectJobTest {
     }
 
     @Test
-    void 공원은_블로그로_확인_못해도_목줄_필수로_import_한다() {
+    void 공원은_후기가_있으면_5건_미만이어도_목줄_필수로_import_한다() {
         CollectedPlace park = new CollectedPlace("9", "평촌중앙공원", "여행 > 공원", "AT4", "경기 안양시 동안구", "", 37.39,
                 126.95, "", "", List.of(), null);
-        when(placeStore.findAll()).thenReturn(List.of(place("1", "멍카페"), place("2", "냥식당"), park));
+
+        CollectedPlace emptyPark = new CollectedPlace("8", "후기없는공원", "여행 > 공원", "AT4", "경기 안양시 동안구", "",
+                37.39, 126.95, "", "", List.of(), null);
+        when(placeStore.findAll()).thenReturn(List.of(place("1", "멍카페"), place("2", "냥식당"), park, emptyPark));
+        when(summaries.findByPlace("평촌중앙공원")).thenReturn(Optional.of(new ReviewSummary("평촌중앙공원", List.of("요약"),
+                List.of(), Map.of(), List.of(), 2, List.of(), "groq", null)));
+        when(summaries.findByPlace("후기없는공원")).thenReturn(Optional.of(new ReviewSummary("후기없는공원", List.of(),
+                List.of(), Map.of(), List.of(), 0, List.of(), "groq", null)));
 
         job.runOnce();
 
         ArgumentCaptor<PlaceImportRequest> sent = ArgumentCaptor.forClass(PlaceImportRequest.class);
         verify(importer).importData(sent.capture());
-        // 미확인 카페·식당(냥식당)은 빠지고, 아직 블로그를 안 본 공원은 들어감
+        // 미확인 카페·식당(냥식당)과 후기 0건 공원은 빠지고, 후기가 있는 공원은 5건 미만이어도 들어감
         assertThat(sent.getValue().places()).extracting(CollectedPlace::name).containsExactly("멍카페", "평촌중앙공원");
         ReviewSummary parkSummary = sent.getValue().summaries().stream()
                 .filter(s -> s.placeName().equals("평촌중앙공원")).findFirst().orElseThrow();
