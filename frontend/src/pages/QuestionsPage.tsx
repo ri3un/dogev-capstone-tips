@@ -55,7 +55,7 @@ export default function QuestionsPage() {
         className={`${card} flex gap-2 p-4`}
       >
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="다음 병원 갈 때 물어볼 것" className={input} />
-        <button type="submit" disabled={!text.trim() || saving} className={`${primaryBtn} h-12 shrink-0 px-5 whitespace-nowrap`}>
+        <button type="submit" disabled={!text.trim() || saving} className={`${primaryBtn} h-12 px-5`}>
           <Icon name="add" className="text-[20px]" />
           추가
         </button>
