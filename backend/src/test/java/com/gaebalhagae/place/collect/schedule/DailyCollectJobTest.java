@@ -17,6 +17,7 @@ import com.gaebalhagae.place.collect.CollectedPlace;
 import com.gaebalhagae.place.collect.CollectedPlaceStore;
 import com.gaebalhagae.place.collect.PlaceCollectService;
 import com.gaebalhagae.place.dto.PlaceImportRequest;
+import com.gaebalhagae.place.review.ConditionResult;
 import com.gaebalhagae.place.review.ReviewSummary;
 import com.gaebalhagae.place.review.ReviewSummaryService;
 import com.gaebalhagae.place.service.PlaceImportService;
@@ -125,6 +126,34 @@ class DailyCollectJobTest {
 
         verify(blogCollect).collect("평촌중앙공원");
         verify(blogCollect, never()).collect("멍카페");
+    }
+
+    @Test
+    void 공원은_블로그로_확인_못해도_목줄_필수로_import_한다() {
+        CollectedPlace park = new CollectedPlace("9", "평촌중앙공원", "여행 > 공원", "AT4", "경기 안양시 동안구", "", 37.39,
+                126.95, "", "", List.of(), null);
+        when(placeStore.findAll()).thenReturn(List.of(place("1", "멍카페"), place("2", "냥식당"), park));
+
+        job.runOnce();
+
+        ArgumentCaptor<PlaceImportRequest> sent = ArgumentCaptor.forClass(PlaceImportRequest.class);
+        verify(importer).importData(sent.capture());
+        // 미확인 카페·식당(냥식당)은 빠지고, 아직 블로그를 안 본 공원은 들어감
+        assertThat(sent.getValue().places()).extracting(CollectedPlace::name).containsExactly("멍카페", "평촌중앙공원");
+        ReviewSummary parkSummary = sent.getValue().summaries().stream()
+                .filter(s -> s.placeName().equals("평촌중앙공원")).findFirst().orElseThrow();
+        assertThat(parkSummary.conditions().get("leash_required").value()).isEqualTo("yes");
+    }
+
+    @Test
+    void 공원_기본값은_블로그가_정한_목줄_값을_덮지_않는다() {
+        ReviewSummary s = new ReviewSummary("공원", List.of("요약"), List.of(), Map.of("leash_required",
+                new ConditionResult("no", null, 3, 3, List.of())), List.of(), 2, List.of(), "groq", null);
+
+        ReviewSummary result = DailyCollectJob.parkDefault("공원", s);
+
+        assertThat(result.conditions().get("leash_required").value()).isEqualTo("no");
+        assertThat(result.summary()).containsExactly("요약");
     }
 
     private static CollectedPlace place(String id, String name) {

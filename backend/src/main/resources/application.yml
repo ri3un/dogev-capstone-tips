@@ -94,8 +94,9 @@ collect:
     # 매일 03:00 (Asia/Seoul)
     # 데이터가 충분히 쌓이면 .env 의 COLLECT_CRON 으로 한 달에 한 번 (예: 매월 1일 03:00 = 0 0 3 1 * *)
     cron: "${COLLECT_CRON:0 0 3 * * *}"
-    daily-places: 30             # 하루에 블로그 수집·요약할 장소 수
-    queries-per-day: 6           # 하루에 새로 돌릴 카카오 검색어 수 (검색 1번에 최대 45곳)
+    # 30곳·6개일 때 한 번에 15분 안쪽이라 늘림. Groq 하루 한도를 넘으면 Gemini 로 넘어감 (2026-11-26)
+    daily-places: ${COLLECT_DAILY_PLACES:80}      # 하루에 블로그 수집·요약할 장소 수
+    queries-per-day: ${COLLECT_QUERIES_PER_DAY:21} # 하루에 새로 돌릴 카카오 검색어 수 (검색 1번에 최대 45곳, 3개 지역분)
     address-prefix: 경기 안양시
     summary-delay-ms: ${collect.summary-delay-ms:40000}
     # 안양 안에서 넓혀 가는 순서. 다 돌면 처음으로 돌아가고 collect-state.json 의 rounds 가 1 늘어남 → 그때 다른 시 추가
